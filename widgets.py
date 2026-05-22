@@ -67,7 +67,18 @@ class SettingsDialog(QDialog):
         perf_tab = QWidget(); self.tabs.addTab(perf_tab, tr("settings_tab_perf")); perf_l = QVBoxLayout(perf_tab)
         self.vram_slice = QCheckBox(tr("settings_vram_slice"))
         self.vram_slice.setChecked(settings.get_bool('Performance', 'vram_slicing'))
-        perf_l.addWidget(self.vram_slice); perf_l.addStretch()
+        self.cb_attention_slicing = QCheckBox(tr("perf_attention_slicing"))
+        self.cb_attention_slicing.setChecked(settings.get_bool('Performance', 'attention_slicing'))
+        self.cb_cpu_offload = QCheckBox(tr("perf_cpu_offload"))
+        self.cb_cpu_offload.setChecked(settings.get_bool('Performance', 'cpu_offload'))
+        self.cb_auto_clear = QCheckBox(tr("perf_auto_clear_vram"))
+        self.cb_auto_clear.setChecked(settings.get_bool('Performance', 'auto_clear_vram'))
+
+        perf_l.addWidget(self.vram_slice)
+        perf_l.addWidget(self.cb_attention_slicing)
+        perf_l.addWidget(self.cb_cpu_offload)
+        perf_l.addWidget(self.cb_auto_clear)
+        perf_l.addStretch()
 
         # 2. Paths
         paths_tab = QWidget(); self.tabs.addTab(paths_tab, tr("settings_tab_paths")); paths_l = QVBoxLayout(paths_tab)
@@ -142,6 +153,9 @@ class SettingsDialog(QDialog):
 
     def save_and_close(self):
         settings.set('Performance', 'vram_slicing', self.vram_slice.isChecked())
+        settings.set('Performance', 'attention_slicing', self.cb_attention_slicing.isChecked())
+        settings.set('Performance', 'cpu_offload', self.cb_cpu_offload.isChecked())
+        settings.set('Performance', 'auto_clear_vram', self.cb_auto_clear.isChecked())
         for k, edit in self.path_edits.items():
             p = edit.text()
             settings.set('Paths', k, p)

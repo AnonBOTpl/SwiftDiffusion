@@ -44,7 +44,10 @@ class SettingsManager:
             'default_scheduler': 'Normal'
         }
         self.config['Performance'] = {
-            'vram_slicing': 'False'
+            'vram_slicing': 'False',
+            'attention_slicing': 'False',
+            'cpu_offload': 'False',
+            'auto_clear_vram': 'False'
         }
 
     def save(self):

@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.12.0] - 2026-05-21
+### Dodano
+- **Zaawansowana Optymalizacja VRAM:** Dodano nowe opcje w ustawieniach: Attention Slicing, Model CPU Offloading oraz automatyczne czyszczenie VRAM po generacji. Pozwala to na jeszcze stabilniejszą pracę na kartach 6GB.
+
 ## [2.11.0] - 2026-05-21
 ### Usunięto
 - **Moduł VRAM Oracle:** Całkowite usunięcie wskaźnika zużycia VRAM oraz przycisku Auto-Optimizer z panelu bocznego. Zmiana podyktowana przygotowaniami pod nową architekturę Resource Monitora.

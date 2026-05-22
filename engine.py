@@ -1,4 +1,5 @@
 import torch
+import gc
 import uuid
 import random
 import os
@@ -66,7 +67,7 @@ class DiffusionEngine:
         self.pipe.safety_checker = None
         self.pipe.feature_extractor = None
         self.pipe.enable_xformers_memory_efficient_attention()
-        self.pipe.enable_model_cpu_offload()
+        self._apply_performance_settings(self.pipe)
         self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe.scheduler.config)
         self.current_model_path = model_path
         self.current_inpaint_model_path = None
@@ -96,7 +97,7 @@ class DiffusionEngine:
             self.current_model_path = None
 
         self.inpaint_pipe.enable_xformers_memory_efficient_attention()
-        self.inpaint_pipe.enable_model_cpu_offload()
+        self._apply_performance_settings(self.inpaint_pipe)
 
     def load_controlnet_model(self, cn_model_path):
         if not self.pipe:
@@ -115,7 +116,7 @@ class DiffusionEngine:
 
         self.controlnet_pipe = StableDiffusionControlNetPipeline(**self.pipe.components, controlnet=controlnet)
         self.controlnet_pipe.enable_xformers_memory_efficient_attention()
-        self.controlnet_pipe.enable_model_cpu_offload()
+        self._apply_performance_settings(self.controlnet_pipe)
         self.current_cn_model_path = cn_model_path
 
     def load_lora(self, lora_path, adapter_name):
@@ -140,6 +141,24 @@ class DiffusionEngine:
         elif self.pipe:
             self.pipe.disable_lora()
 
+    def _apply_performance_settings(self, pipe):
+        if settings.get_bool('Performance', 'attention_slicing'):
+            pipe.enable_attention_slicing()
+        else:
+            pipe.disable_attention_slicing()
+
+        if settings.get_bool('Performance', 'cpu_offload'):
+            pipe.enable_model_cpu_offload()
+        else:
+            pipe.to("cuda")
+
+        if settings.get_bool('Performance', 'vram_slicing'):
+            pipe.enable_vae_slicing()
+            pipe.enable_vae_tiling()
+        else:
+            pipe.disable_vae_slicing()
+            pipe.disable_vae_tiling()
+
     def _set_scheduler(self, pipe, sampler_name, scheduler_name):
         config = pipe.scheduler.config
         use_karras = (scheduler_name == "Karras")
@@ -156,9 +175,13 @@ class DiffusionEngine:
         elif sampler_name == "DDIM":
             pipe.scheduler = DDIMScheduler.from_config(config)
 
-        if settings.get_bool('Performance', 'vram_slicing'):
-            pipe.enable_vae_slicing()
-            pipe.enable_vae_tiling()
+        self._apply_performance_settings(pipe)
+
+    def _maybe_auto_clear(self):
+        if settings.get_bool('Performance', 'auto_clear_vram'):
+            gc.collect()
+            torch.cuda.empty_cache()
+            logger.info("[VRAM] Automatyczne czyszczenie pamięci (auto_clear_vram)")
 
     def generate(self, params, callback=None):
         if 'sampler' in params and 'scheduler' in params:
@@ -203,6 +226,7 @@ class DiffusionEngine:
         metadata.add_text("sd_params", json.dumps(metadata_dict))
 
         image.save(file_path, pnginfo=metadata)
+        self._maybe_auto_clear()
         return file_path, seed
 
     def inpaint(self, params, callback=None):
@@ -240,6 +264,7 @@ class DiffusionEngine:
         filename = f"inpaint_{uuid.uuid4().hex[:8]}.png"
         file_path = os.path.join(settings.get('Paths', 'output_inpaint'), filename)
         image.save(file_path)
+        self._maybe_auto_clear()
         return file_path, seed
 
     def controlnet_generate(self, params, callback=None):
@@ -278,6 +303,7 @@ class DiffusionEngine:
         filename = f"cn_{uuid.uuid4().hex[:8]}.png"
         file_path = os.path.join(settings.get('Paths', 'output_controlnet'), filename)
         image.save(file_path)
+        self._maybe_auto_clear()
         return file_path, seed
 
     def upscale_image(self, image_path, upscaler_model_path, keep_in_vram=False):
