@@ -26,23 +26,8 @@ from diffusers import (
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger("SD-Controller")
 
-try:
-    from spandrel import ModelLoader, ImageModelDescriptor
-    try:
-        import spandrel_extra_arches
-        # spandrel_extra_arches automatycznie rejestruje się w spandrel przy imporcie
-        logger.info("[SYSTEM] Załadowano dodatkowe architektury spandrel (spandrel_extra_arches)")
-    except ImportError:
-        logger.warning("[SYSTEM] Brak spandrel_extra_arches - niektóre modele (np. CodeFormer) mogą nie działać")
-except ImportError:
-    ModelLoader = None
-    logger.error("[SYSTEM] Brak biblioteki spandrel")
+ModelLoader = None
 
-try:
-    from facexlib.utils.face_restoration_helper import FaceRestoreHelper
-except ImportError:
-    FaceRestoreHelper = None
-    logger.error("[SYSTEM] Brak biblioteki facexlib")
 
 class DiffusionEngine:
     def __init__(self):
@@ -345,103 +330,6 @@ class DiffusionEngine:
         self._maybe_auto_clear()
         return file_path, seed
 
-    def apply_face_restore(self, image_path, model_path, det_model='retinaface_resnet50'):
-        if not model_path:
-            logger.error("[FACE RESTORE] Nie wybrano modelu rekonstrukcji"); return None
-        if not os.path.exists(model_path):
-            logger.error(f"[FACE RESTORE] Plik modelu nie istnieje: {model_path}"); return None
-        if FaceRestoreHelper is None:
-            logger.error("[FACE RESTORE] Biblioteka facexlib nie jest zainstalowana"); return None
-        if ModelLoader is None:
-            logger.error("[FACE RESTORE] Biblioteka spandrel nie jest zainstalowana"); return None
-
-        logger.info(f"[SYSTEM] Rozpoczęcie Face Restore: {image_path} (Model: {model_path}, Detektor: {det_model})")
-        helper = None
-        model = None
-
-        try:
-            # 1. Ładowanie modelu CodeFormer przez spandrel
-            loader = ModelLoader()
-            model = loader.load_from_file(model_path).to("cuda").eval()
-
-            # 2. Inicjalizacja FaceRestoreHelper (facexlib)
-            det_root = settings.get('Paths', 'models_facedetection')
-            helper = FaceRestoreHelper(
-                upscale_factor=1,
-                face_size=512,
-                crop_ratio=(1, 1),
-                det_model=det_model,
-                save_ext='png',
-                device='cuda',
-                model_rootpath=det_root
-            )
-
-            # 3. Przetwarzanie obrazu
-            if not os.path.exists(image_path):
-                logger.error(f"[FACE RESTORE] Obraz wejściowy nie istnieje: {image_path}"); return None
-
-            img = cv2.imread(image_path)
-            if img is None:
-                logger.error(f"[FACE RESTORE] Nie udało się wczytać obrazu: {image_path}"); return None
-
-            helper.clean_all()
-            helper.read_image(img)
-            helper.get_face_landmarks_5(only_center_face=False, eye_dist_threshold=5)
-            helper.align_warp_face()
-
-            # 4. Rekonstrukcja każdej wykrytej twarzy
-            for cropped_face in helper.cropped_faces:
-                # Pre-processing (Z OpenCV BGR do PyTorch RGB [0, 1])
-                face_rgb = cv2.cvtColor(cropped_face, cv2.COLOR_BGR2RGB)
-                face_norm = face_rgb.astype(np.float32) / 255.0
-                face_tensor = torch.from_numpy(face_norm).permute(2, 0, 1).unsqueeze(0).to('cuda')
-
-                with torch.no_grad():
-                    output_tensor = model(face_tensor)
-
-                # Post-processing (Z PyTorch RGB do OpenCV BGR [0, 255])
-                output_norm = output_tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
-                output_norm = np.clip(output_norm, 0, 1)
-                output_rgb = (output_norm * 255.0).astype(np.uint8)
-                restored_face_bgr = cv2.cvtColor(output_rgb, cv2.COLOR_RGB2BGR)
-
-                # --- COLOR MATCHING (LAB Space Transfer) ---
-                orig_lab = cv2.cvtColor(cropped_face, cv2.COLOR_BGR2LAB).astype(np.float32)
-                rest_lab = cv2.cvtColor(restored_face_bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
-
-                for i in range(3):
-                    o_mean, o_std = orig_lab[:,:,i].mean(), orig_lab[:,:,i].std()
-                    r_mean, r_std = rest_lab[:,:,i].mean(), rest_lab[:,:,i].std()
-                    rest_lab[:,:,i] = (rest_lab[:,:,i] - r_mean) * (o_std / (r_std + 1e-5)) + o_mean
-
-                matched_face_bgr = cv2.cvtColor(np.clip(rest_lab, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
-                helper.restored_faces.append(matched_face_bgr)
-
-            # 5. Wklejenie twarzy z powrotem
-            helper.get_inverse_affine(None)
-            restored_img = helper.paste_faces_to_input_image()
-
-            # 6. Zapis
-            filename = os.path.basename(image_path).replace(".png", "_restored.png")
-            out_dir = settings.get('Paths', 'output_txt2img')
-            if not os.path.exists(out_dir): os.makedirs(out_dir)
-
-            out_path = os.path.join(out_dir, filename)
-            # restored_img jest już w formacie BGR (bo helper operował na BGR)
-            success = cv2.imwrite(out_path, restored_img)
-            if not success:
-                logger.error(f"[FACE RESTORE] Nie udało się zapisać obrazu do {out_path}"); return None
-
-            logger.info(f"[FACE RESTORE] Sukces: {out_path}")
-            return out_path
-
-        except Exception as e:
-            logger.error(f"[SYSTEM] Błąd podczas Face Restore: {e}")
-            return None
-        finally:
-            if helper: del helper
-            if model: del model
-            self._clear_vram()
 
     def upscale_image(self, image_path, upscaler_model_path, keep_in_vram=False):
         if not upscaler_model_path or not os.path.exists(upscaler_model_path) or ModelLoader is None:

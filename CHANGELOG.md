@@ -1,8 +1,15 @@
 # Changelog
 
+## [2.15.0] - 2026-05-21
+### Dodano
+- **Interfejs ADetailer:** Nowa zakładka "ADetailer" z pełnym zestawem parametrów (prompt, denoise, dilation, confidence).
+- **Logika "Wyślij do ADetailer":** Możliwość bezpośredniego przenoszenia wygenerowanych obrazów z Text2Image do ADetailera.
+### Usunięto
+- **Moduł Face Restore:** Rezygnacja z bibliotek `facexlib` oraz `spandrel` (CodeFormer) na rzecz nadchodzącej, natywnej architektury opartej na inpaintingu i YOLO.
+
 ## [2.14.0] - 2026-05-21
 ### Dodano
-- **Moduł Face Restore:** Wdrożenie zaawansowanej rekonstrukcji twarzy z wykorzystaniem `CodeFormer` (ładowany przez `spandrel`) oraz `facexlib`. Dodano manualne i automatyczne tryby przetwarzania oraz dedykowany trzeci podgląd w interfejsie.
+- **Moduł Face Restore (Legacy):** Wdrożenie zaawansowanej rekonstrukcji twarzy z wykorzystaniem `CodeFormer` (ładowany przez `spandrel`) oraz `facexlib`. Dodano manualne i automatyczne tryby przetwarzania oraz dedykowany trzeci podgląd w interfejsie.
 
 ## [2.13.0] - 2026-05-21
 ### Dodano
