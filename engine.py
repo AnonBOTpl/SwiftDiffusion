@@ -26,7 +26,17 @@ from diffusers import (
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger("SD-Controller")
 
-ModelLoader = None
+try:
+    from spandrel import ModelLoader, ImageModelDescriptor
+except ImportError:
+    ModelLoader = None
+    logger.error("[SYSTEM] Brak biblioteki spandrel")
+
+try:
+    from ultralytics import YOLO
+except ImportError:
+    YOLO = None
+    logger.error("[SYSTEM] Brak biblioteki ultralytics (YOLO)")
 
 
 class DiffusionEngine:
@@ -330,6 +340,86 @@ class DiffusionEngine:
         self._maybe_auto_clear()
         return file_path, seed
 
+
+    def apply_adetailer(self, params, callback=None):
+        image = params['image']
+        model_path = params['model_path']
+        prompt = params['prompt']
+        neg_prompt = params['neg_prompt']
+        strength = params['denoise']
+        dilation = params['dilation']
+        threshold = params['conf']
+
+        if YOLO is None or not self.pipe:
+            logger.error("[ADETAILER] YOLO lub potok SD nie zainicjalizowany")
+            return None
+
+        # 1. Detekcja YOLO i generowanie maski
+        logger.info(f"[ADETAILER] Rozpoczęcie detekcji: {model_path}")
+        try:
+            yolo_model = YOLO(model_path)
+            results = yolo_model(image, conf=threshold)
+
+            # Tworzenie maski w numpy (BGR/Grayscale dla OpenCV)
+            img_np = np.array(image)
+            mask_np = np.zeros(img_np.shape[:2], dtype=np.uint8)
+
+            faces_found = 0
+            for result in results:
+                for box in result.boxes.xyxy:
+                    x1, y1, x2, y2 = map(int, box)
+                    cv2.rectangle(mask_np, (x1, y1), (x2, y2), 255, -1)
+                    faces_found += 1
+
+            del yolo_model
+
+            if faces_found == 0:
+                logger.info("[ADETAILER] Nie wykryto twarzy. Pomijanie.")
+                return image
+
+            # Dylatacja maski
+            if dilation > 0:
+                kernel = np.ones((dilation, dilation), np.uint8)
+                mask_np = cv2.dilate(mask_np, kernel, iterations=1)
+
+            mask_pil = Image.fromarray(mask_np).convert("L")
+
+            # 2. Inpainting (Zero-Copy VRAM)
+            logger.info(f"[ADETAILER] Rozpoczęcie Inpaintingu ({faces_found} twarzy)")
+            inpaint_pipe = StableDiffusionInpaintPipeline(**self.pipe.components)
+
+            # Aplikacja ustawień wydajności
+            self._apply_performance_settings(inpaint_pipe)
+
+            # Wykonanie Inpaintingu
+            def progress_wrap(pipe, step, timestep, callback_kwargs):
+                if callback: callback(step + 1)
+                return callback_kwargs
+
+            result_img = inpaint_pipe(
+                prompt=prompt,
+                negative_prompt=neg_prompt,
+                image=image,
+                mask_image=mask_pil,
+                num_inference_steps=30, # Stała liczba kroków dla detali
+                guidance_scale=7.5,
+                strength=strength,
+                generator=torch.Generator(device="cuda").manual_seed(random.randint(0, 2**32-1)),
+                callback_on_step_end=progress_wrap
+            ).images[0]
+
+            filename = f"adet_{uuid.uuid4().hex[:8]}.png"
+            out_path = os.path.join(settings.get('Paths', 'output_txt2img'), filename)
+            result_img.save(out_path)
+
+            return out_path
+
+        except Exception as e:
+            logger.error(f"[ADETAILER] Błąd krytyczny: {e}")
+            return None
+        finally:
+            if 'inpaint_pipe' in locals(): del inpaint_pipe
+            self._clear_vram()
 
     def upscale_image(self, image_path, upscaler_model_path, keep_in_vram=False):
         if not upscaler_model_path or not os.path.exists(upscaler_model_path) or ModelLoader is None:

@@ -331,6 +331,9 @@ class ClickableLabel(QLabel):
     clicked = pyqtSignal(QPixmap)
     def __init__(self, text="", parent=None):
         super().__init__(text, parent); self.pixmap_cached = None
+    def get_image_pil(self):
+        if not self.pixmap_cached: return None
+        return qimage_to_pil(self.pixmap_cached.toImage())
     def set_image(self, path_or_pixmap):
         self.pixmap_cached = QPixmap(path_or_pixmap) if isinstance(path_or_pixmap, str) else path_or_pixmap
         if self.pixmap_cached:

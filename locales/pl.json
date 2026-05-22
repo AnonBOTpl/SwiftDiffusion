@@ -65,7 +65,6 @@
 
     "opt_use_main_model": "Użyj modelu głównego",
     "opt_default_vae": "Domyślne (z modelu)",
-    "opt_no_facerestore": "Brak Face Restore",
 
     "welcome_title": "Witaj w Stable Diffusion UI",
     "welcome_header": "Witaj!",

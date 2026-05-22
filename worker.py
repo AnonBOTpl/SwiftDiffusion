@@ -58,6 +58,31 @@ class ControlNetWorker(QThread):
         file_path, used_seed = self.engine.controlnet_generate(self.params, callback=lambda s: self.progress.emit(s))
         self.finished.emit(file_path, used_seed)
 
+class ADetailerWorker(QThread):
+    finished = pyqtSignal(str)
+    progress = pyqtSignal(int)
+    status = pyqtSignal(str)
+
+    def __init__(self, engine, params):
+        super().__init__()
+        self.engine = engine
+        self.params = params
+
+    def run(self):
+        self.status.emit("Detekcja YOLO / Inpainting...")
+        out_path = self.engine.apply_adetailer(self.params, callback=lambda s: self.progress.emit(s))
+
+        if out_path and self.params.get('auto_upscale') and self.params.get('upscaler_model'):
+            self.status.emit("ADetailer -> Upscaling...")
+            ups_path = self.engine.upscale_image(
+                out_path,
+                self.params['upscaler_model'],
+                self.params.get('keep_upscaler_vram', False)
+            )
+            if ups_path: out_path = ups_path
+
+        self.finished.emit(out_path)
+
 class UpscaleWorker(QThread):
     finished = pyqtSignal(str)
     status = pyqtSignal(str)

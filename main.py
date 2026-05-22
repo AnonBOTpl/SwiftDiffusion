@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt, QSize, QFileSystemWatcher
 from PyQt6.QtGui import QPixmap, QIcon, QIntValidator
 
 from engine import DiffusionEngine
-from worker import GenerationWorker, UpscaleWorker, InpaintWorker, ControlNetWorker
+from worker import GenerationWorker, UpscaleWorker, InpaintWorker, ControlNetWorker, ADetailerWorker
 from config import get_style, settings, FOLDERS, logger, tr, translator
 from utils import qimage_to_pil
 from widgets import (
@@ -104,9 +104,7 @@ class MainWindow(QMainWindow):
 
         self.c_ups = QWidget(); l_ups = QVBoxLayout(self.c_ups); l_ups.setContentsMargins(0, 0, 0, 0); self.l_ups_lbl = QLabel(tr("label_upscaled")); self.l_ups_lbl.setStyleSheet("color: #00d4ff; font-weight: bold;"); self.l_ups_lbl.hide(); self.v_ups = ClickableLabel(); self.v_ups.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_ups.setObjectName("PreviewArea"); self.v_ups.setStyleSheet("color: #444; font-size: 18px; font-weight: bold;"); self.v_ups.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_ups.setMinimumSize(1, 1); self.v_ups.clicked.connect(self.open_fullscreen); l_ups.addWidget(self.l_ups_lbl); l_ups.addWidget(self.v_ups, 1); self.c_ups.hide()
 
-        self.c_face = QWidget(); l_face = QVBoxLayout(self.c_face); l_face.setContentsMargins(0, 0, 0, 0); self.l_face_lbl = QLabel(tr("label_facerestored")); self.l_face_lbl.setStyleSheet("color: #00d4ff; font-weight: bold;"); self.l_face_lbl.hide(); self.v_face = ClickableLabel(); self.v_face.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_face.setObjectName("PreviewArea"); self.v_face.setStyleSheet("color: #444; font-size: 18px; font-weight: bold;"); self.v_face.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_face.setMinimumSize(1, 1); self.v_face.clicked.connect(self.open_fullscreen); l_face.addWidget(self.l_face_lbl); l_face.addWidget(self.v_face, 1); self.c_face.hide()
-
-        self.preview_layout.addWidget(self.c_orig, 1); self.preview_layout.addWidget(self.c_ups, 1); self.preview_layout.addWidget(self.c_face, 1); t2i_main.addWidget(self.preview_container, 1)
+        self.preview_layout.addWidget(self.c_orig, 1); self.preview_layout.addWidget(self.c_ups, 1); t2i_main.addWidget(self.preview_container, 1)
 
         up_box = QHBoxLayout(); self.btn_up = QPushButton(tr("btn_apply_upscaler")); self.btn_up.setObjectName("ActionBtn"); self.btn_up.clicked.connect(self.manual_upscale)
         self.btn_face = QPushButton(tr("btn_apply_adetailer")); self.btn_face.setObjectName("ActionBtn"); self.btn_face.clicked.connect(self.send_to_adetailer)
@@ -205,7 +203,7 @@ class MainWindow(QMainWindow):
         self.btn_load_adet = QPushButton(tr("btn_load_image")); self.btn_load_adet.setObjectName("SecondaryBtn"); self.btn_load_adet.clicked.connect(self.load_adet_image); adet_params.addWidget(self.btn_load_adet)
         self.check_adet_upscale = QCheckBox(tr("chk_auto_upscale_adet")); adet_params.addWidget(self.check_adet_upscale)
         adet_params.addStretch()
-        self.btn_gen_adet = QPushButton(tr("btn_generate_adet")); self.btn_gen_adet.setObjectName("GenerateBtn"); self.btn_gen_adet.setFixedHeight(45); adet_params.addWidget(self.btn_gen_adet)
+        self.btn_gen_adet = QPushButton(tr("btn_generate_adet")); self.btn_gen_adet.setObjectName("GenerateBtn"); self.btn_gen_adet.setFixedHeight(45); self.btn_gen_adet.clicked.connect(self.start_adetailer); adet_params.addWidget(self.btn_gen_adet)
         adet_l.addLayout(adet_params, 0)
 
         adet_main = QVBoxLayout(); adet_main.setContentsMargins(20, 10, 20, 0)
@@ -367,8 +365,6 @@ class MainWindow(QMainWindow):
         self.btn_gen_t2i.setEnabled(True); self.p_bar.setFormat(tr("status_done")); self.p_bar.setMaximum(100); self.p_bar.setValue(100)
         if "_upscaled" in path:
             self.last_upscaled_path = path; self.v_ups.set_image(path); self.v_ups.setText(""); self.l_orig_lbl.show(); self.l_ups_lbl.show(); self.c_ups.show(); self.l_status.setText(tr("status_finished"))
-        elif "_restored" in path:
-            self.v_face.set_image(path); self.v_face.setText(""); self.l_orig_lbl.show(); self.l_face_lbl.show(); self.c_face.show(); self.l_status.setText(tr("status_finished"))
     def on_upscale_finished(self, path):
         if path: self.on_generation_finished(path, "N/A"); self.btn_up.setEnabled(True)
         else: self.btn_up.setEnabled(True); self.p_bar.setFormat(tr("status_upscale_error"))
@@ -415,6 +411,45 @@ class MainWindow(QMainWindow):
         pix = QPixmap(path); scaled = pix.scaled(512, 512, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         logger.info(f"[SYSTEM] Skalowanie CN: {pix.width()}x{pix.height()} -> {scaled.width()}x{scaled.height()}"); self.cn_preview.set_image(scaled); self.cn_preview.setText("")
         self.ref_image_pil = qimage_to_pil(scaled.toImage())
+    def start_adetailer(self):
+        input_img = self.v_adet_in.get_image_pil()
+        if not input_img or not self.engine.pipe:
+            return QMessageBox.warning(self, tr("status_error"), tr("status_no_data"))
+
+        params = {
+            "image": input_img,
+            "model_path": os.path.join(settings.get('Paths', 'models_facedetection'), self.adet_model_combo.currentText()),
+            "prompt": self.adet_prompt.toPlainText(),
+            "neg_prompt": self.adet_neg.toPlainText(),
+            "denoise": self.adet_denoise.value(),
+            "dilation": self.adet_dilation.value(),
+            "conf": self.adet_conf.value(),
+            "auto_upscale": self.check_adet_upscale.isChecked(),
+            "upscaler_model": self.upscaler_combo.currentData(),
+            "keep_upscaler_vram": self.check_vram.isChecked()
+        }
+
+        self.btn_gen_adet.setEnabled(False)
+        self.adet_progress.setMaximum(30) # inpainting steps
+        self.adet_progress.setValue(0)
+
+        self.adet_worker = ADetailerWorker(self.engine, params)
+        self.adet_worker.progress.connect(self.adet_progress.setValue)
+        self.adet_worker.status.connect(self.l_status.setText)
+        self.adet_worker.finished.connect(self.on_adetailer_finished)
+        self.adet_worker.start()
+
+    def on_adetailer_finished(self, path):
+        self.btn_gen_adet.setEnabled(True)
+        if path:
+            self.v_adet_out.set_image(path)
+            self.adet_progress.setValue(30)
+            self.l_status.setText(tr("status_finished"))
+            # Jeśli to był plik tymczasowy z logiki 'send_to'
+            self.last_generated_path = path
+        else:
+            self.adet_progress.setFormat(tr("status_error"))
+
     def start_controlnet(self):
         if not self.engine.pipe or not self.ref_image_pil: return QMessageBox.warning(self, tr("status_error"), tr("status_no_data"))
         try: sv = int(self.cn_seed.text())

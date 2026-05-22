@@ -2,10 +2,11 @@
 
 ## [2.15.0] - 2026-05-21
 ### Dodano
+- **Moduł ADetailer:** Wdrożenie natywnej poprawy twarzy przy użyciu detekcji YOLOv8 i inpaintingu (Zero-Copy VRAM).
 - **Interfejs ADetailer:** Nowa zakładka "ADetailer" z pełnym zestawem parametrów (prompt, denoise, dilation, confidence).
 - **Logika "Wyślij do ADetailer":** Możliwość bezpośredniego przenoszenia wygenerowanych obrazów z Text2Image do ADetailera.
 ### Usunięto
-- **Moduł Face Restore:** Rezygnacja z bibliotek `facexlib` oraz `spandrel` (CodeFormer) na rzecz nadchodzącej, natywnej architektury opartej na inpaintingu i YOLO.
+- **Moduł Face Restore:** Rezygnacja z bibliotek `facexlib` oraz `basicsr` na rzecz wydajniejszej architektury ADetailera.
 
 ## [2.14.0] - 2026-05-21
 ### Dodano
