@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.16.0] - 2026-05-21
+### Dodano
+- **Asynchroniczne Ładowanie Modelu:** Modele główne i LoRA są teraz wczytywane w tle, co zapobiega zamarzaniu interfejsu (GUI).
+- **Monitor Zasobów:** Interaktywny panel boczny wyświetlający realne zużycie VRAM, RAM oraz obciążenie i temperaturę GPU (NVIDIA).
+- **Pasek Postępu Ładowania:** Animowany, minimalistyczny wskaźnik pracy w tle przy ładowaniu modelu.
+### Poprawiono
+- **Płynność UI:** Odblokowanie wątku głównego podczas ciężkich operacji dyskowych.
+
 ## [2.15.0] - 2026-05-21
 ### Dodano
 - **Moduł ADetailer:** Wdrożenie natywnej poprawy twarzy przy użyciu detekcji YOLOv8 i inpaintingu (Zero-Copy VRAM).

@@ -1,11 +1,12 @@
 import sys
 import os
+import logging
 from PyQt6.QtWidgets import *
-from PyQt6.QtCore import Qt, QSize, QFileSystemWatcher
+from PyQt6.QtCore import Qt, QSize, QFileSystemWatcher, QTimer
 from PyQt6.QtGui import QPixmap, QIcon, QIntValidator
 
 from engine import DiffusionEngine
-from worker import GenerationWorker, UpscaleWorker, InpaintWorker, ControlNetWorker, ADetailerWorker
+from worker import GenerationWorker, UpscaleWorker, InpaintWorker, ControlNetWorker, ADetailerWorker, ModelLoaderWorker
 from config import get_style, settings, FOLDERS, logger, tr, translator
 from utils import qimage_to_pil
 from widgets import (
@@ -17,6 +18,13 @@ from widgets import (
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        try:
+            import pynvml
+            pynvml.nvmlInit()
+            self.nvml_active = True
+        except:
+            self.nvml_active = False
+
         self.engine = DiffusionEngine()
         self.loras = {}
         self.setup_folders()
@@ -63,7 +71,9 @@ class MainWindow(QMainWindow):
 
         lbl_model = QLabel(tr("sidebar_model_header")); lbl_model.setObjectName("Header"); sidebar_layout.addWidget(lbl_model)
         model_row = QHBoxLayout(); self.model_combo = QComboBox(); self.refresh_base_models(); btn_br = QPushButton("..."); btn_br.setFixedSize(30, 28); btn_br.clicked.connect(self.browse_model); model_row.addWidget(self.model_combo); model_row.addWidget(btn_br); sidebar_layout.addLayout(model_row)
-        btn_load = QPushButton(tr("btn_load_model")); btn_load.clicked.connect(self.load_model); sidebar_layout.addWidget(btn_load)
+        self.btn_load = QPushButton(tr("btn_load_model")); self.btn_load.clicked.connect(self.load_model); sidebar_layout.addWidget(self.btn_load)
+
+        self.load_progress = QProgressBar(); self.load_progress.setFixedHeight(4); self.load_progress.setTextVisible(False); self.load_progress.hide(); sidebar_layout.addWidget(self.load_progress)
 
         sidebar_layout.addWidget(QLabel(tr("lbl_vae")))
         self.vae_combo = QComboBox()
@@ -87,6 +97,18 @@ class MainWindow(QMainWindow):
         self.check_vram = QCheckBox(tr("chk_keep_vram")); sidebar_layout.addWidget(self.check_vram)
 
         sidebar_layout.addStretch()
+
+        # MONITOR ZASOBÓW
+        mon_frame = QFrame(); mon_frame.setObjectName("Sidebar"); mon_frame.setStyleSheet("border: 1px solid #333; border-radius: 6px; background-color: rgba(0,0,0,20);"); mon_l = QVBoxLayout(mon_frame)
+        lbl_mon = QLabel("📊 MONITOR ZASOBÓW"); lbl_mon.setStyleSheet("font-size: 10px; font-weight: bold; color: #888;"); mon_l.addWidget(lbl_mon)
+
+        self.vram_bar = QProgressBar(); self.vram_bar.setFixedHeight(6); self.vram_bar.setTextVisible(False); self.lbl_vram_info = QLabel("VRAM: -"); self.lbl_vram_info.setStyleSheet("font-size: 10px;"); mon_l.addWidget(self.lbl_vram_info); mon_l.addWidget(self.vram_bar)
+        self.gpu_bar = QProgressBar(); self.gpu_bar.setFixedHeight(6); self.gpu_bar.setTextVisible(False); self.lbl_gpu_info = QLabel("GPU: -"); self.lbl_gpu_info.setStyleSheet("font-size: 10px;"); mon_l.addWidget(self.lbl_gpu_info); mon_l.addWidget(self.gpu_bar)
+        self.ram_bar = QProgressBar(); self.ram_bar.setFixedHeight(6); self.ram_bar.setTextVisible(False); self.lbl_ram_info = QLabel("RAM: -"); self.lbl_ram_info.setStyleSheet("font-size: 10px;"); mon_l.addWidget(self.lbl_ram_info); mon_l.addWidget(self.ram_bar)
+
+        lbl_sync = QLabel("Odświeżanie: 1.0 s"); lbl_sync.setStyleSheet("font-size: 9px; color: #555;"); mon_l.addWidget(lbl_sync)
+        sidebar_layout.addWidget(mon_frame)
+
         btn_settings = QPushButton(tr("btn_settings")); btn_settings.setObjectName("ActionBtn"); btn_settings.clicked.connect(self.open_settings); sidebar_layout.addWidget(btn_settings)
         global_layout.addWidget(sidebar)
 
@@ -226,6 +248,8 @@ class MainWindow(QMainWindow):
 
         self.apply_settings_ui()
         self.refresh_gallery()
+
+        self.mon_timer = QTimer(); self.mon_timer.timeout.connect(self.update_resource_monitor); self.mon_timer.start(1000)
         self.showMaximized()
 
     def apply_settings_ui(self):
@@ -324,14 +348,24 @@ class MainWindow(QMainWindow):
     def load_model(self):
         m = self.model_combo.currentData()
         if m:
-            self.btn_gen_t2i.setEnabled(False)
+            self.btn_load.setEnabled(False); self.model_combo.setEnabled(False)
+            self.load_progress.setRange(0, 0); self.load_progress.show()
             self.p_bar.setFormat(tr("status_loading_model"))
-            self.engine.load_model(m)
-            # Przeładowanie LoRA do nowego pipeline
-            for name, lora_item in self.loras.items():
-                self.engine.load_lora(lora_item.path, name)
-            self.btn_gen_t2i.setEnabled(True)
+
+            self.load_worker = ModelLoaderWorker(self.engine, m, self.loras)
+            self.load_worker.finished.connect(self.on_model_loaded)
+            self.load_worker.start()
+
+    def on_model_loaded(self, success, message):
+        self.btn_load.setEnabled(True); self.model_combo.setEnabled(True)
+        self.load_progress.hide(); self.load_progress.setRange(0, 100)
+
+        if success:
             self.p_bar.setFormat(tr("status_model_ready"))
+            logger.info("[SYSTEM] Model załadowany asynchronicznie.")
+        else:
+            self.p_bar.setFormat(tr("status_error"))
+            QMessageBox.critical(self, tr("status_error"), f"Błąd ładowania: {message}")
     def start_generation(self):
         if not self.engine.pipe: return QMessageBox.warning(self, tr("status_error"), tr("status_model_error"))
         try: sv = int(self.s_seed.text())
@@ -492,6 +526,52 @@ class MainWindow(QMainWindow):
         if path: self.gallery_detail = GalleryDetailWindow(path, self); self.gallery_detail.show()
     def show_tips(self, title, path):
         self.tips_window = FloatingTips(title, path, self); self.tips_window.show()
+    def update_resource_monitor(self):
+        try:
+            import psutil
+            ram = psutil.virtual_memory()
+            self.ram_bar.setValue(int(ram.percent))
+            self.lbl_ram_info.setText(f"RAM: {ram.used/1024**3:.1f} / {ram.total/1024**3:.1f} GB")
+            self._set_mon_color(self.lbl_ram_info, ram.percent)
+
+            if self.nvml_active:
+                try:
+                    import pynvml
+                    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                    info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                    vram_used = info.used / 1024**3
+                    vram_total = info.total / 1024**3
+                    vram_perc = (info.used / info.total) * 100
+                    self.vram_bar.setValue(int(vram_perc))
+                    self.lbl_vram_info.setText(f"VRAM: {vram_used:.1f} / {vram_total:.1f} GB")
+                    self._set_mon_color(self.lbl_vram_info, vram_perc)
+
+                    util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                    temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+                    self.gpu_bar.setValue(int(util.gpu))
+                    self.lbl_gpu_info.setText(f"GPU: {util.gpu}% | {temp}°C")
+                    self._set_mon_color(self.lbl_gpu_info, util.gpu)
+                except Exception as e:
+                    self.nvml_active = False
+                    self.lbl_vram_info.setText("VRAM: Error"); self.lbl_gpu_info.setText("GPU: Error")
+            else:
+                self.lbl_vram_info.setText("VRAM: N/A (Non-NVIDIA)"); self.lbl_gpu_info.setText("GPU: N/A")
+
+        except Exception as e:
+            logging.debug(f"Monitor error: {e}")
+
+    def _set_mon_color(self, label, percent):
+        color = "#00ff00" if percent < 80 else "#ffaa00" if percent < 95 else "#ff4444"
+        label.setStyleSheet(f"font-size: 10px; color: {color}; font-weight: bold;")
+
+    def closeEvent(self, event):
+        if self.nvml_active:
+            try:
+                import pynvml
+                pynvml.nvmlShutdown()
+            except: pass
+        super().closeEvent(event)
+
     def resizeEvent(self, event):
         super().resizeEvent(event); self.v_orig.update_scaling(); self.v_ups.update_scaling()
 

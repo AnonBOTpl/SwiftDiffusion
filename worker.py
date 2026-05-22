@@ -83,6 +83,22 @@ class ADetailerWorker(QThread):
 
         self.finished.emit(out_path)
 
+class ModelLoaderWorker(QThread):
+    finished = pyqtSignal(bool, str) # success, message
+    def __init__(self, engine, model_path, loras):
+        super().__init__()
+        self.engine = engine
+        self.model_path = model_path
+        self.loras = loras
+    def run(self):
+        try:
+            self.engine.load_model(self.model_path)
+            for name, lora_item in self.loras.items():
+                self.engine.load_lora(lora_item.path, name)
+            self.finished.emit(True, "Model loaded")
+        except Exception as e:
+            self.finished.emit(False, str(e))
+
 class UpscaleWorker(QThread):
     finished = pyqtSignal(str)
     status = pyqtSignal(str)
