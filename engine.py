@@ -23,6 +23,8 @@ from diffusers import (
 )
 try:
     from spandrel import ModelLoader, ImageModelDescriptor
+    from spandrel_extra_arches import ext_registry
+    ModelLoader.add_extra_registry(ext_registry)
 except ImportError:
     ModelLoader = None
 
@@ -336,11 +338,11 @@ class DiffusionEngine:
         self._maybe_auto_clear()
         return file_path, seed
 
-    def apply_face_restore(self, image_path, model_path):
+    def apply_face_restore(self, image_path, model_path, det_model='retinaface_resnet50'):
         if not model_path or not os.path.exists(model_path) or FaceRestoreHelper is None or ModelLoader is None:
             return None
 
-        logger.info(f"[SYSTEM] Rozpoczęcie Face Restore: {image_path} przy użyciu {model_path}")
+        logger.info(f"[SYSTEM] Rozpoczęcie Face Restore: {image_path} (Model: {model_path}, Detektor: {det_model})")
         helper = None
         model = None
 
@@ -350,13 +352,15 @@ class DiffusionEngine:
             model = loader.load_from_file(model_path).to("cuda").eval()
 
             # 2. Inicjalizacja FaceRestoreHelper (facexlib)
+            det_root = settings.get('Paths', 'models_facedetection')
             helper = FaceRestoreHelper(
                 upscale_factor=1,
                 face_size=512,
                 crop_ratio=(1, 1),
-                det_model='retinaface_resnet50',
+                det_model=det_model,
                 save_ext='png',
-                device='cuda'
+                device='cuda',
+                model_rootpath=det_root
             )
 
             # 3. Przetwarzanie obrazu
@@ -383,7 +387,17 @@ class DiffusionEngine:
                 output_rgb = (output_norm * 255.0).astype(np.uint8)
                 restored_face_bgr = cv2.cvtColor(output_rgb, cv2.COLOR_RGB2BGR)
 
-                helper.restored_faces.append(restored_face_bgr)
+                # --- COLOR MATCHING (LAB Space Transfer) ---
+                orig_lab = cv2.cvtColor(cropped_face, cv2.COLOR_BGR2LAB).astype(np.float32)
+                rest_lab = cv2.cvtColor(restored_face_bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
+
+                for i in range(3):
+                    o_mean, o_std = orig_lab[:,:,i].mean(), orig_lab[:,:,i].std()
+                    r_mean, r_std = rest_lab[:,:,i].mean(), rest_lab[:,:,i].std()
+                    rest_lab[:,:,i] = (rest_lab[:,:,i] - r_mean) * (o_std / (r_std + 1e-5)) + o_mean
+
+                matched_face_bgr = cv2.cvtColor(np.clip(rest_lab, 0, 255).astype(np.uint8), cv2.COLOR_LAB2BGR)
+                helper.restored_faces.append(matched_face_bgr)
 
             # 5. Wklejenie twarzy z powrotem
             helper.get_inverse_affine(None)

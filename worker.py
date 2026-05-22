@@ -20,7 +20,8 @@ class GenerationWorker(QThread):
             self.status.emit("Face Restore...")
             restored_path = self.engine.apply_face_restore(
                 file_path,
-                self.params['facerestore_model']
+                self.params['facerestore_model'],
+                self.params.get('face_detector', 'retinaface_resnet50')
             )
             if restored_path:
                 file_path = restored_path
@@ -71,15 +72,16 @@ class FaceRestoreWorker(QThread):
     finished = pyqtSignal(str)
     status = pyqtSignal(str)
 
-    def __init__(self, engine, image_path, model_path):
+    def __init__(self, engine, image_path, model_path, detector_model):
         super().__init__()
         self.engine = engine
         self.image_path = image_path
         self.model_path = model_path
+        self.detector_model = detector_model
 
     def run(self):
         self.status.emit("Face Restore...")
-        path = self.engine.apply_face_restore(self.image_path, self.model_path)
+        path = self.engine.apply_face_restore(self.image_path, self.model_path, self.detector_model)
         self.finished.emit(path)
 
 class UpscaleWorker(QThread):
