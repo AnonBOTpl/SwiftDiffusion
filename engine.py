@@ -369,20 +369,20 @@ class DiffusionEngine:
 
             # 4. Rekonstrukcja każdej wykrytej twarzy
             for cropped_face in helper.cropped_faces:
-                # Przekonwertuj BGR -> RGB dla modelu CodeFormer
+                # Pre-processing (Z OpenCV BGR do PyTorch RGB [0, 1])
                 face_rgb = cv2.cvtColor(cropped_face, cv2.COLOR_BGR2RGB)
-                # CodeFormer/spandrel oczekuje float32 tensor [1, 3, H, W] w zakresie [-1, 1]
-                face_t = torch.from_numpy(face_rgb).permute(2, 0, 1).unsqueeze(0).to("cuda").float() / 255.0
-                face_t = (face_t - 0.5) / 0.5
+                face_norm = face_rgb.astype(np.float32) / 255.0
+                face_tensor = torch.from_numpy(face_norm).permute(2, 0, 1).unsqueeze(0).to('cuda')
 
                 with torch.no_grad():
-                    output_t = model(face_t)
-                    # Powrót do [0, 1]
-                    output_f = (output_t.squeeze(0).permute(1, 2, 0) * 0.5 + 0.5).cpu().clamp(0, 1).numpy()
+                    output_tensor = model(face_tensor)
 
-                restored_face_rgb = (output_f * 255.0).astype(np.uint8)
-                # Przekonwertuj z powrotem RGB -> BGR przed dodaniem do helpera
-                restored_face_bgr = cv2.cvtColor(restored_face_rgb, cv2.COLOR_RGB2BGR)
+                # Post-processing (Z PyTorch RGB do OpenCV BGR [0, 255])
+                output_norm = output_tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
+                output_norm = np.clip(output_norm, 0, 1)
+                output_rgb = (output_norm * 255.0).astype(np.uint8)
+                restored_face_bgr = cv2.cvtColor(output_rgb, cv2.COLOR_RGB2BGR)
+
                 helper.restored_faces.append(restored_face_bgr)
 
             # 5. Wklejenie twarzy z powrotem
