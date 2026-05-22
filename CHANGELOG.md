@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.14.0] - 2026-05-21
+### Dodano
+- **Moduł Face Restore:** Wdrożenie zaawansowanej rekonstrukcji twarzy z wykorzystaniem `CodeFormer` (ładowany przez `spandrel`) oraz `facexlib`. Dodano manualne i automatyczne tryby przetwarzania oraz dedykowany trzeci podgląd w interfejsie.
+
 ## [2.13.0] - 2026-05-21
 ### Dodano
 - **Obsługa niestandardowych VAE:** Dodano możliwość ładowania zewnętrznych plików VAE (.safetensors, .pt). Nowy panel wyboru w panelu bocznym oraz opcja domyślnego VAE w ustawieniach.

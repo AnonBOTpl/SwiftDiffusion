@@ -26,6 +26,11 @@ try:
 except ImportError:
     ModelLoader = None
 
+try:
+    from facexlib.utils.face_restoration_helper import FaceRestoreHelper
+except ImportError:
+    FaceRestoreHelper = None
+
 # --- LOGGING CONFIG ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger("SD-Controller")
@@ -330,6 +335,68 @@ class DiffusionEngine:
         image.save(file_path)
         self._maybe_auto_clear()
         return file_path, seed
+
+    def apply_face_restore(self, image_path, model_path):
+        if not model_path or not os.path.exists(model_path) or FaceRestoreHelper is None or ModelLoader is None:
+            return None
+
+        logger.info(f"[SYSTEM] Rozpoczęcie Face Restore: {image_path} przy użyciu {model_path}")
+        helper = None
+        model = None
+
+        try:
+            # 1. Ładowanie modelu CodeFormer przez spandrel
+            loader = ModelLoader()
+            model = loader.load_from_file(model_path).to("cuda").eval()
+
+            # 2. Inicjalizacja FaceRestoreHelper (facexlib)
+            helper = FaceRestoreHelper(
+                upscale_factor=1,
+                face_size=512,
+                crop_ratio=(1, 1),
+                det_model='retinaface_resnet50',
+                save_ext='png',
+                device='cuda'
+            )
+
+            # 3. Przetwarzanie obrazu
+            img = cv2.imread(image_path)
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+            helper.clean_all()
+            helper.read_image(img_rgb)
+            helper.get_face_landmarks_5(only_center_face=False, eye_dist_threshold=5)
+            helper.align_warp_face()
+
+            # 4. Rekonstrukcja każdej wykrytej twarzy
+            for cropped_face in helper.aligned_faces:
+                # CodeFormer/spandrel oczekuje float32 tensor [1, 3, H, W]
+                face_t = torch.from_numpy(cropped_face).permute(2, 0, 1).unsqueeze(0).to("cuda").float() / 255.0
+                with torch.no_grad():
+                    output_t = model(face_t)
+                    output_f = output_t.squeeze(0).permute(1, 2, 0).cpu().clamp(0, 1).numpy()
+
+                restored_face = (output_f * 255.0).astype(np.uint8)
+                helper.add_restored_face(restored_face)
+
+            # 5. Wklejenie twarzy z powrotem
+            helper.get_inverse_affine(None)
+            restored_img = helper.paste_faces_to_input_image()
+
+            # 6. Zapis
+            filename = os.path.basename(image_path).replace(".png", "_restored.png")
+            out_path = os.path.join(settings.get('Paths', 'output_txt2img'), filename)
+            cv2.imwrite(out_path, cv2.cvtColor(restored_img, cv2.COLOR_RGB2BGR))
+
+            return out_path
+
+        except Exception as e:
+            logger.error(f"[SYSTEM] Błąd podczas Face Restore: {e}")
+            return None
+        finally:
+            if helper: del helper
+            if model: del model
+            self._clear_vram()
 
     def upscale_image(self, image_path, upscaler_model_path, keep_in_vram=False):
         if not upscaler_model_path or not os.path.exists(upscaler_model_path) or ModelLoader is None:

@@ -8,6 +8,8 @@
     "lbl_global_upscaler": "GLOBAL UPSCALER",
     "opt_no_upscaler": "No upscaler",
     "chk_auto_upscale": "Automatic Upscale",
+    "lbl_facerestore_header": "FACE RESTORE",
+    "chk_auto_facerestore": "Automatic Face Restore",
     "chk_keep_vram": "Keep in VRAM",
     "lbl_sampling_header": "SAMPLING",
     "btn_settings": "⚙️ Settings",
@@ -34,6 +36,7 @@
     "label_negative": "Negative:",
     "label_original": "Original",
     "label_upscaled": "Upscaled",
+    "label_facerestored": "Restored",
     "label_waiting": "Waiting...",
 
     "placeholder_prompt": "Prompt...",
@@ -41,6 +44,7 @@
     "placeholder_drop": "Drop image here",
 
     "btn_apply_upscaler": "APPLY UPSCALER",
+    "btn_apply_facerestore": "APPLY FACE RESTORE",
     "btn_send_to_inpaint": "SEND TO INPAINT",
     "btn_copy": "Copy",
     "btn_load_inpaint_model": "Load inpaint model",
@@ -55,6 +59,7 @@
 
     "opt_use_main_model": "Use main model",
     "opt_default_vae": "Default (from model)",
+    "opt_no_facerestore": "No Face Restore",
 
     "welcome_title": "Welcome to Stable Diffusion UI",
     "welcome_header": "Welcome!",
@@ -98,6 +103,8 @@
     "status_error": "Error",
     "status_upscaling": "Upscaling...",
     "status_upscale_error": "Upscaler error",
+    "status_facerestoring": "Face Restore...",
+    "status_facerestore_error": "Face Restore error",
     "status_done": "Done!",
     "status_seed": "Seed: ",
     "status_loading_inpaint": "Loading inpaint model...",

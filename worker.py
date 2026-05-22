@@ -26,6 +26,15 @@ class GenerationWorker(QThread):
             if upscaled_path:
                 file_path = upscaled_path
 
+        if self.params.get('auto_facerestore') and self.params.get('facerestore_model'):
+            self.status.emit("Face Restore...")
+            restored_path = self.engine.apply_face_restore(
+                file_path,
+                self.params['facerestore_model']
+            )
+            if restored_path:
+                file_path = restored_path
+
         self.finished.emit(file_path, used_seed)
 
 class InpaintWorker(QThread):
@@ -57,6 +66,21 @@ class ControlNetWorker(QThread):
         self.status.emit("ControlNet (Canny)...")
         file_path, used_seed = self.engine.controlnet_generate(self.params, callback=lambda s: self.progress.emit(s))
         self.finished.emit(file_path, used_seed)
+
+class FaceRestoreWorker(QThread):
+    finished = pyqtSignal(str)
+    status = pyqtSignal(str)
+
+    def __init__(self, engine, image_path, model_path):
+        super().__init__()
+        self.engine = engine
+        self.image_path = image_path
+        self.model_path = model_path
+
+    def run(self):
+        self.status.emit("Face Restore...")
+        path = self.engine.apply_face_restore(self.image_path, self.model_path)
+        self.finished.emit(path)
 
 class UpscaleWorker(QThread):
     finished = pyqtSignal(str)

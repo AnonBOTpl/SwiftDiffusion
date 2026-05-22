@@ -15,6 +15,7 @@ class SettingsManager:
             'models_controlnet': 'models/controlnet',
             'models_inpaint': 'models/inpaint',
             'models_vae': 'models/vae',
+            'models_facerestore': 'models/facerestore',
             'models_upscalers': 'models/upscalers',
             'output_txt2img': 'output/txt2img',
             'output_inpaint': 'output/inpaint',

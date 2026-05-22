@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt, QSize, QFileSystemWatcher
 from PyQt6.QtGui import QPixmap, QIcon, QIntValidator
 
 from engine import DiffusionEngine
-from worker import GenerationWorker, UpscaleWorker, InpaintWorker, ControlNetWorker
+from worker import GenerationWorker, UpscaleWorker, InpaintWorker, ControlNetWorker, FaceRestoreWorker
 from config import get_style, settings, FOLDERS, logger, tr, translator
 from utils import qimage_to_pil
 from widgets import (
@@ -69,6 +69,10 @@ class MainWindow(QMainWindow):
         self.refresh_vae_models()
         sidebar_layout.addWidget(self.vae_combo)
 
+        lbl_samp = QLabel(tr("lbl_sampling_header")); lbl_samp.setObjectName("Header"); sidebar_layout.addWidget(lbl_samp)
+        self.sampler_combo = QComboBox(); self.sampler_combo.addItems(["DPM++ 2M", "Euler", "Euler a", "DDIM"]); sidebar_layout.addWidget(self.sampler_combo)
+        self.scheduler_combo = QComboBox(); self.scheduler_combo.addItems(["Normal", "Karras", "Exponential"]); sidebar_layout.addWidget(self.scheduler_combo)
+
         lbl_mix = QLabel(tr("lbl_latent_mixology")); lbl_mix.setObjectName("Header"); sidebar_layout.addWidget(lbl_mix)
         self.lora_visualizer = LoRAVisualizer(); sidebar_layout.addWidget(self.lora_visualizer)
         self.lora_list_widget = QWidget(); self.lora_list_layout = QVBoxLayout(self.lora_list_widget); self.lora_list_layout.setContentsMargins(0, 0, 0, 0); self.lora_list_layout.setSpacing(2); sidebar_layout.addWidget(self.lora_list_widget)
@@ -76,12 +80,13 @@ class MainWindow(QMainWindow):
 
         lbl_ups = QLabel(tr("lbl_global_upscaler")); lbl_ups.setObjectName("Header"); sidebar_layout.addWidget(lbl_ups)
         self.upscaler_combo = QComboBox(); self.refresh_upscalers(); sidebar_layout.addWidget(self.upscaler_combo)
-        self.check_auto = QCheckBox(tr("chk_auto_upscale")); self.check_vram = QCheckBox(tr("chk_keep_vram"))
-        sidebar_layout.addWidget(self.check_auto); sidebar_layout.addWidget(self.check_vram)
+        self.check_auto = QCheckBox(tr("chk_auto_upscale")); sidebar_layout.addWidget(self.check_auto)
 
-        lbl_samp = QLabel(tr("lbl_sampling_header")); lbl_samp.setObjectName("Header"); sidebar_layout.addWidget(lbl_samp)
-        self.sampler_combo = QComboBox(); self.sampler_combo.addItems(["DPM++ 2M", "Euler", "Euler a", "DDIM"]); sidebar_layout.addWidget(self.sampler_combo)
-        self.scheduler_combo = QComboBox(); self.scheduler_combo.addItems(["Normal", "Karras", "Exponential"]); sidebar_layout.addWidget(self.scheduler_combo)
+        lbl_fr = QLabel(tr("lbl_facerestore_header")); lbl_fr.setObjectName("Header"); sidebar_layout.addWidget(lbl_fr)
+        self.facerestore_combo = QComboBox(); self.refresh_facerestore_models(); sidebar_layout.addWidget(self.facerestore_combo)
+        self.check_auto_fr = QCheckBox(tr("chk_auto_facerestore")); sidebar_layout.addWidget(self.check_auto_fr)
+
+        self.check_vram = QCheckBox(tr("chk_keep_vram")); sidebar_layout.addWidget(self.check_vram)
 
         sidebar_layout.addStretch()
         btn_settings = QPushButton(tr("btn_settings")); btn_settings.setObjectName("ActionBtn"); btn_settings.clicked.connect(self.open_settings); sidebar_layout.addWidget(btn_settings)
@@ -95,8 +100,22 @@ class MainWindow(QMainWindow):
         self.lbl_seed_t2i = QLabel(tr("label_seed")); t2i_params.addWidget(self.lbl_seed_t2i); t2i_params.addWidget(self.s_seed); t2i_params.addStretch()
         self.btn_gen_t2i = QPushButton(tr("btn_generate")); self.btn_gen_t2i.setObjectName("GenerateBtn"); self.btn_gen_t2i.setFixedHeight(45); self.btn_gen_t2i.clicked.connect(self.start_generation); t2i_params.addWidget(self.btn_gen_t2i); t2i_l.addLayout(t2i_params, 0)
         t2i_main = QVBoxLayout(); t2i_main.setContentsMargins(20, 10, 20, 0); self.t2i_prompt = QPlainTextEdit(); self.t2i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.t2i_prompt.setFixedHeight(60); self.t2i_neg = QPlainTextEdit(); self.t2i_neg.setPlaceholderText(tr("placeholder_negative")); self.t2i_neg.setFixedHeight(35); self.lbl_prompt_t2i = QLabel(tr("label_prompt")); t2i_main.addWidget(self.lbl_prompt_t2i); t2i_main.addWidget(self.t2i_prompt); self.lbl_neg_t2i = QLabel(tr("label_negative")); t2i_main.addWidget(self.lbl_neg_t2i); t2i_main.addWidget(self.t2i_neg)
-        self.preview_container = QWidget(); self.preview_layout = QHBoxLayout(self.preview_container); self.preview_layout.setContentsMargins(0, 0, 0, 0); self.preview_layout.setSpacing(20); self.c_orig = QWidget(); l_orig = QVBoxLayout(self.c_orig); l_orig.setContentsMargins(0, 0, 0, 0); self.l_orig_lbl = QLabel(tr("label_original")); self.l_orig_lbl.setStyleSheet("color: #00d4ff; font-weight: bold;"); self.l_orig_lbl.hide(); self.v_orig = ClickableLabel(tr("label_waiting")); self.v_orig.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_orig.setObjectName("PreviewArea"); self.v_orig.setStyleSheet("color: #444; font-size: 18px; font-weight: bold;"); self.v_orig.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_orig.setMinimumSize(1, 1); self.v_orig.clicked.connect(self.open_fullscreen); l_orig.addWidget(self.l_orig_lbl); l_orig.addWidget(self.v_orig, 1); self.c_ups = QWidget(); l_ups = QVBoxLayout(self.c_ups); l_ups.setContentsMargins(0, 0, 0, 0); self.l_ups_lbl = QLabel(tr("label_upscaled")); self.l_ups_lbl.setStyleSheet("color: #00d4ff; font-weight: bold;"); self.l_ups_lbl.hide(); self.v_ups = ClickableLabel(); self.v_ups.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_ups.setObjectName("PreviewArea"); self.v_ups.setStyleSheet("color: #444; font-size: 18px; font-weight: bold;"); self.v_ups.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_ups.setMinimumSize(1, 1); self.v_ups.clicked.connect(self.open_fullscreen); l_ups.addWidget(self.l_ups_lbl); l_ups.addWidget(self.v_ups, 1); self.c_ups.hide(); self.preview_layout.addWidget(self.c_orig, 1); self.preview_layout.addWidget(self.c_ups, 1); t2i_main.addWidget(self.preview_container, 1)
-        up_box = QHBoxLayout(); self.btn_up = QPushButton(tr("btn_apply_upscaler")); self.btn_up.setObjectName("ActionBtn"); self.btn_up.clicked.connect(self.manual_upscale); self.btn_to_inpaint = QPushButton(tr("btn_send_to_inpaint")); self.btn_to_inpaint.setObjectName("ActionBtn"); self.btn_to_inpaint.clicked.connect(self.send_to_inpaint); up_box.addStretch(); up_box.addWidget(self.btn_up); up_box.addWidget(self.btn_to_inpaint); up_box.addStretch(); t2i_main.addLayout(up_box); s_box = QHBoxLayout(); self.l_status = QLabel(""); self.l_status.setStyleSheet("color: #00d4ff; font-weight: bold; font-size: 11px;"); self.btn_copy = QPushButton(tr("btn_copy")); self.btn_copy.setObjectName("CopyBtn"); self.btn_copy.hide(); self.btn_copy.clicked.connect(self.copy_seed_to_clipboard); s_box.addStretch(); s_box.addWidget(self.l_status); s_box.addWidget(self.btn_copy); s_box.addStretch(); t2i_main.addLayout(s_box); self.p_bar = QProgressBar(); t2i_main.addWidget(self.p_bar); t2i_l.addLayout(t2i_main, 1)
+        self.preview_container = QWidget(); self.preview_layout = QHBoxLayout(self.preview_container); self.preview_layout.setContentsMargins(0, 0, 0, 0); self.preview_layout.setSpacing(20)
+
+        self.c_orig = QWidget(); l_orig = QVBoxLayout(self.c_orig); l_orig.setContentsMargins(0, 0, 0, 0); self.l_orig_lbl = QLabel(tr("label_original")); self.l_orig_lbl.setStyleSheet("color: #00d4ff; font-weight: bold;"); self.l_orig_lbl.hide(); self.v_orig = ClickableLabel(tr("label_waiting")); self.v_orig.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_orig.setObjectName("PreviewArea"); self.v_orig.setStyleSheet("color: #444; font-size: 18px; font-weight: bold;"); self.v_orig.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_orig.setMinimumSize(1, 1); self.v_orig.clicked.connect(self.open_fullscreen); l_orig.addWidget(self.l_orig_lbl); l_orig.addWidget(self.v_orig, 1)
+
+        self.c_ups = QWidget(); l_ups = QVBoxLayout(self.c_ups); l_ups.setContentsMargins(0, 0, 0, 0); self.l_ups_lbl = QLabel(tr("label_upscaled")); self.l_ups_lbl.setStyleSheet("color: #00d4ff; font-weight: bold;"); self.l_ups_lbl.hide(); self.v_ups = ClickableLabel(); self.v_ups.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_ups.setObjectName("PreviewArea"); self.v_ups.setStyleSheet("color: #444; font-size: 18px; font-weight: bold;"); self.v_ups.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_ups.setMinimumSize(1, 1); self.v_ups.clicked.connect(self.open_fullscreen); l_ups.addWidget(self.l_ups_lbl); l_ups.addWidget(self.v_ups, 1); self.c_ups.hide()
+
+        self.c_face = QWidget(); l_face = QVBoxLayout(self.c_face); l_face.setContentsMargins(0, 0, 0, 0); self.l_face_lbl = QLabel(tr("label_facerestored")); self.l_face_lbl.setStyleSheet("color: #00d4ff; font-weight: bold;"); self.l_face_lbl.hide(); self.v_face = ClickableLabel(); self.v_face.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_face.setObjectName("PreviewArea"); self.v_face.setStyleSheet("color: #444; font-size: 18px; font-weight: bold;"); self.v_face.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_face.setMinimumSize(1, 1); self.v_face.clicked.connect(self.open_fullscreen); l_face.addWidget(self.l_face_lbl); l_face.addWidget(self.v_face, 1); self.c_face.hide()
+
+        self.preview_layout.addWidget(self.c_orig, 1); self.preview_layout.addWidget(self.c_ups, 1); self.preview_layout.addWidget(self.c_face, 1); t2i_main.addWidget(self.preview_container, 1)
+
+        up_box = QHBoxLayout(); self.btn_up = QPushButton(tr("btn_apply_upscaler")); self.btn_up.setObjectName("ActionBtn"); self.btn_up.clicked.connect(self.manual_upscale)
+        self.btn_face = QPushButton(tr("btn_apply_facerestore")); self.btn_face.setObjectName("ActionBtn"); self.btn_face.clicked.connect(self.manual_face_restore)
+        self.btn_to_inpaint = QPushButton(tr("btn_send_to_inpaint")); self.btn_to_inpaint.setObjectName("ActionBtn"); self.btn_to_inpaint.clicked.connect(self.send_to_inpaint)
+        up_box.addStretch(); up_box.addWidget(self.btn_up); up_box.addWidget(self.btn_face); up_box.addWidget(self.btn_to_inpaint); up_box.addStretch(); t2i_main.addLayout(up_box)
+
+        s_box = QHBoxLayout(); self.l_status = QLabel(""); self.l_status.setStyleSheet("color: #00d4ff; font-weight: bold; font-size: 11px;"); self.btn_copy = QPushButton(tr("btn_copy")); self.btn_copy.setObjectName("CopyBtn"); self.btn_copy.hide(); self.btn_copy.clicked.connect(self.copy_seed_to_clipboard); s_box.addStretch(); s_box.addWidget(self.l_status); s_box.addWidget(self.btn_copy); s_box.addStretch(); t2i_main.addLayout(s_box); self.p_bar = QProgressBar(); t2i_main.addWidget(self.p_bar); t2i_l.addLayout(t2i_main, 1)
 
         # 2. INPAINTING
         self.inpaint_tab = QWidget()
@@ -203,6 +222,7 @@ class MainWindow(QMainWindow):
         logger.info(f"[SYSTEM] Wykryto zmiany w folderach modeli, odświeżanie list...")
         self.refresh_base_models()
         self.refresh_vae_models()
+        self.refresh_facerestore_models()
         self.refresh_inpaint_models()
         self.refresh_cn_models()
         self.refresh_upscalers()
@@ -227,6 +247,18 @@ class MainWindow(QMainWindow):
         if curr:
             idx = self.vae_combo.findText(curr)
             if idx >= 0: self.vae_combo.setCurrentIndex(idx)
+
+    def refresh_facerestore_models(self):
+        curr = self.facerestore_combo.currentText()
+        self.facerestore_combo.clear()
+        self.facerestore_combo.addItem(tr("opt_no_facerestore"), "")
+        path = settings.get('Paths', 'models_facerestore')
+        fr_exts = (".pth", ".pt", ".bin", ".onnx", ".safetensors", ".ckpt")
+        for f in self.scan_models(path, exts=fr_exts):
+            self.facerestore_combo.addItem(f, os.path.join(path, f))
+        if curr:
+            idx = self.facerestore_combo.findText(curr)
+            if idx >= 0: self.facerestore_combo.setCurrentIndex(idx)
     def explicit_load_inpaint_model(self):
         m = self.inp_model_combo.currentData()
         if m: self.btn_gen_inp.setEnabled(False); self.i_progress.setFormat(tr("status_loading_inpaint")); self.engine.load_inpaint_model(m); self.btn_gen_inp.setEnabled(True); self.i_progress.setFormat(tr("status_inpaint_ready"))
@@ -304,9 +336,19 @@ class MainWindow(QMainWindow):
             "loras": [{'name': n, 'weight': i.weight()} for n, i in self.loras.items()],
             "sampler": self.sampler_combo.currentText(),
             "scheduler": self.scheduler_combo.currentText(),
-            "vae_path": self.vae_combo.currentData()
+            "vae_path": self.vae_combo.currentData(),
+            "auto_facerestore": self.check_auto_fr.isChecked(),
+            "facerestore_model": self.facerestore_combo.currentData()
         }
         self.btn_gen_t2i.setEnabled(False); self.p_bar.setMaximum(params["steps"]); self.p_bar.setValue(0); self.worker = GenerationWorker(self.engine, params); self.worker.progress.connect(self.p_bar.setValue); self.worker.status.connect(self.l_status.setText); self.worker.part_finished.connect(self.on_base_finished); self.worker.finished.connect(self.on_generation_finished); self.worker.start()
+    def manual_face_restore(self):
+        if not self.last_generated_path or not self.facerestore_combo.currentData(): return QMessageBox.warning(self, tr("status_error"), tr("status_no_data"))
+        self.btn_face.setEnabled(False); self.p_bar.setFormat(tr("status_facerestoring")); self.fr_w = FaceRestoreWorker(self.engine, self.last_generated_path, self.facerestore_combo.currentData()); self.fr_w.status.connect(self.l_status.setText); self.fr_w.finished.connect(self.on_face_restore_finished); self.fr_w.start()
+    def on_face_restore_finished(self, path):
+        self.btn_face.setEnabled(True)
+        if path: self.on_generation_finished(path, "N/A")
+        else: self.p_bar.setFormat(tr("status_facerestore_error"))
+
     def manual_upscale(self):
         if not self.last_generated_path or not self.upscaler_combo.currentData(): return QMessageBox.warning(self, tr("status_error"), tr("status_no_data"))
         self.btn_up.setEnabled(False); self.p_bar.setFormat(tr("status_upscaling")); self.up_w = UpscaleWorker(self.engine, self.last_generated_path, self.upscaler_combo.currentData(), self.check_vram.isChecked()); self.up_w.status.connect(self.l_status.setText); self.up_w.finished.connect(self.on_upscale_finished); self.up_w.start()
@@ -316,7 +358,10 @@ class MainWindow(QMainWindow):
         else: self.l_status.setText(str(seed)); self.btn_copy.hide()
     def on_generation_finished(self, path, seed):
         self.btn_gen_t2i.setEnabled(True); self.p_bar.setFormat(tr("status_done")); self.p_bar.setMaximum(100); self.p_bar.setValue(100)
-        if "_upscaled" in path: self.last_upscaled_path = path; self.v_ups.set_image(path); self.v_ups.setText(""); self.l_orig_lbl.show(); self.l_ups_lbl.show(); self.c_ups.show(); self.l_status.setText(tr("status_finished"))
+        if "_upscaled" in path:
+            self.last_upscaled_path = path; self.v_ups.set_image(path); self.v_ups.setText(""); self.l_orig_lbl.show(); self.l_ups_lbl.show(); self.c_ups.show(); self.l_status.setText(tr("status_finished"))
+        elif "_restored" in path:
+            self.v_face.set_image(path); self.v_face.setText(""); self.l_orig_lbl.show(); self.l_face_lbl.show(); self.c_face.show(); self.l_status.setText(tr("status_finished"))
     def on_upscale_finished(self, path):
         if path: self.on_generation_finished(path, "N/A"); self.btn_up.setEnabled(True)
         else: self.btn_up.setEnabled(True); self.p_bar.setFormat(tr("status_upscale_error"))
