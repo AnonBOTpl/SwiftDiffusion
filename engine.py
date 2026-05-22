@@ -21,12 +21,17 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     DDIMScheduler
 )
+
+# --- LOGGING CONFIG ---
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+logger = logging.getLogger("SD-Controller")
+
 try:
     from spandrel import ModelLoader, ImageModelDescriptor
     try:
-        from spandrel_extra_arches import ext_registry
-        ModelLoader.add_extra_registry(ext_registry)
-        logger.info("[SYSTEM] Zarejestrowano dodatkowe architektury spandrel (spandrel_extra_arches)")
+        import spandrel_extra_arches
+        # spandrel_extra_arches automatycznie rejestruje się w spandrel przy imporcie
+        logger.info("[SYSTEM] Załadowano dodatkowe architektury spandrel (spandrel_extra_arches)")
     except ImportError:
         logger.warning("[SYSTEM] Brak spandrel_extra_arches - niektóre modele (np. CodeFormer) mogą nie działać")
 except ImportError:
@@ -38,10 +43,6 @@ try:
 except ImportError:
     FaceRestoreHelper = None
     logger.error("[SYSTEM] Brak biblioteki facexlib")
-
-# --- LOGGING CONFIG ---
-logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
-logger = logging.getLogger("SD-Controller")
 
 class DiffusionEngine:
     def __init__(self):
