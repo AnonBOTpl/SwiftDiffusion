@@ -152,12 +152,13 @@ class DiffusionEngine:
         else:
             pipe.to("cuda")
 
-        if settings.get_bool('Performance', 'vram_slicing'):
-            pipe.enable_vae_slicing()
-            pipe.enable_vae_tiling()
-        else:
-            pipe.disable_vae_slicing()
-            pipe.disable_vae_tiling()
+        if hasattr(pipe, "vae") and pipe.vae is not None:
+            if settings.get_bool('Performance', 'vram_slicing'):
+                pipe.vae.enable_slicing()
+                pipe.vae.enable_tiling()
+            else:
+                pipe.vae.disable_slicing()
+                pipe.vae.disable_tiling()
 
     def _set_scheduler(self, pipe, sampler_name, scheduler_name):
         config = pipe.scheduler.config
