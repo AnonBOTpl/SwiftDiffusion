@@ -42,11 +42,11 @@ class MainWindow(QMainWindow):
             settings.get('Paths', 'models_lora'),
             settings.get('Paths', 'models_controlnet'),
             settings.get('Paths', 'models_inpaint'),
-            settings.get('Paths', 'models_vae'),
+            settings.get('Paths', 'models_vae', fallback='models/vae'),
             settings.get('Paths', 'models_upscalers')
         ]
         for p in paths:
-            if os.path.exists(p):
+            if p and os.path.exists(p):
                 self.model_watcher.addPath(p)
         self.model_watcher.directoryChanged.connect(self.refresh_all_comboboxes)
     def scan_models(self, folder, exts=(".safetensors",)):
@@ -62,13 +62,12 @@ class MainWindow(QMainWindow):
 
         lbl_model = QLabel(tr("sidebar_model_header")); lbl_model.setObjectName("Header"); sidebar_layout.addWidget(lbl_model)
         model_row = QHBoxLayout(); self.model_combo = QComboBox(); self.refresh_base_models(); btn_br = QPushButton("..."); btn_br.setFixedSize(30, 28); btn_br.clicked.connect(self.browse_model); model_row.addWidget(self.model_combo); model_row.addWidget(btn_br); sidebar_layout.addLayout(model_row)
+        btn_load = QPushButton(tr("btn_load_model")); btn_load.clicked.connect(self.load_model); sidebar_layout.addWidget(btn_load)
 
         sidebar_layout.addWidget(QLabel(tr("lbl_vae")))
         self.vae_combo = QComboBox()
         self.refresh_vae_models()
         sidebar_layout.addWidget(self.vae_combo)
-
-        btn_load = QPushButton(tr("btn_load_model")); btn_load.clicked.connect(self.load_model); sidebar_layout.addWidget(btn_load)
 
         lbl_mix = QLabel(tr("lbl_latent_mixology")); lbl_mix.setObjectName("Header"); sidebar_layout.addWidget(lbl_mix)
         self.lora_visualizer = LoRAVisualizer(); sidebar_layout.addWidget(self.lora_visualizer)
