@@ -77,10 +77,6 @@ class MainWindow(QMainWindow):
         self.sampler_combo = QComboBox(); self.sampler_combo.addItems(["DPM++ 2M", "Euler", "Euler a", "DDIM"]); sidebar_layout.addWidget(self.sampler_combo)
         self.scheduler_combo = QComboBox(); self.scheduler_combo.addItems(["Normal", "Karras", "Exponential"]); sidebar_layout.addWidget(self.scheduler_combo)
 
-        lbl_vram = QLabel(tr("lbl_vram_oracle")); lbl_vram.setObjectName("Header"); sidebar_layout.addWidget(lbl_vram)
-        self.lbl_vram_info = QLabel("VRAM: 0.0 GB"); self.lbl_vram_info.setStyleSheet("font-size: 11px; font-weight: bold; color: #00ff00;"); sidebar_layout.addWidget(self.lbl_vram_info)
-        btn_opt = QPushButton(tr("btn_auto_optimize")); btn_opt.setObjectName("SecondaryBtn"); btn_opt.clicked.connect(self.auto_optimize); sidebar_layout.addWidget(btn_opt)
-
         sidebar_layout.addStretch()
         btn_settings = QPushButton(tr("btn_settings")); btn_settings.setObjectName("ActionBtn"); btn_settings.clicked.connect(self.open_settings); sidebar_layout.addWidget(btn_settings)
         global_layout.addWidget(sidebar)
@@ -89,7 +85,7 @@ class MainWindow(QMainWindow):
 
         # 1. TEXT2IMAGE
         self.t2i_tab = QWidget(); self.tabs.addTab(self.t2i_tab, tr("tab_t2i")); t2i_l = QHBoxLayout(self.t2i_tab); t2i_params = QVBoxLayout(); t2i_params.setContentsMargins(15, 10, 15, 10); t2i_params.setSpacing(10); self.lbl_p = QLabel(tr("header_params")); self.lbl_p.setObjectName("Header"); t2i_params.addWidget(self.lbl_p); self.s_steps = ParameterSlider(tr("label_steps"), 1, 100, 20); self.s_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 6.0, 0.5, True); self.s_w = ParameterSlider(tr("label_width"), 256, 1024, 512, 64); self.s_h = ParameterSlider(tr("label_height"), 256, 1024, 512, 64); self.s_seed = QLineEdit("-1"); self.s_seed.setValidator(QIntValidator(-1, 2147483647))
-        for s in [self.s_steps, self.s_cfg, self.s_w, self.s_h]: t2i_params.addWidget(s); s.changed.connect(self.update_vram_estimate)
+        for s in [self.s_steps, self.s_cfg, self.s_w, self.s_h]: t2i_params.addWidget(s)
         self.lbl_seed_t2i = QLabel(tr("label_seed")); t2i_params.addWidget(self.lbl_seed_t2i); t2i_params.addWidget(self.s_seed); t2i_params.addStretch()
         self.btn_gen_t2i = QPushButton(tr("btn_generate")); self.btn_gen_t2i.setObjectName("GenerateBtn"); self.btn_gen_t2i.setFixedHeight(45); self.btn_gen_t2i.clicked.connect(self.start_generation); t2i_params.addWidget(self.btn_gen_t2i); t2i_l.addLayout(t2i_params, 0)
         t2i_main = QVBoxLayout(); t2i_main.setContentsMargins(20, 10, 20, 0); self.t2i_prompt = QPlainTextEdit(); self.t2i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.t2i_prompt.setFixedHeight(60); self.t2i_neg = QPlainTextEdit(); self.t2i_neg.setPlaceholderText(tr("placeholder_negative")); self.t2i_neg.setFixedHeight(35); self.lbl_prompt_t2i = QLabel(tr("label_prompt")); t2i_main.addWidget(self.lbl_prompt_t2i); t2i_main.addWidget(self.t2i_prompt); self.lbl_neg_t2i = QLabel(tr("label_negative")); t2i_main.addWidget(self.lbl_neg_t2i); t2i_main.addWidget(self.t2i_neg)
@@ -170,7 +166,7 @@ class MainWindow(QMainWindow):
         cn_params.addWidget(QLabel(tr("label_seed"))); cn_params.addWidget(self.cn_seed); self.btn_load_cn = QPushButton(tr("btn_load_ref")); self.btn_load_cn.setObjectName("SecondaryBtn"); self.btn_load_cn.clicked.connect(self.load_cn_image); cn_params.addWidget(self.btn_load_cn); self.btn_tips_cn = QPushButton(tr("btn_tips")); self.btn_tips_cn.setObjectName("SecondaryBtn"); self.btn_tips_cn.clicked.connect(lambda: self.show_tips("Wskazówki ControlNet", "docs/tips_controlnet.html")); cn_params.addWidget(self.btn_tips_cn); cn_params.addStretch(); self.btn_gen_cn = QPushButton(tr("btn_generate_comp")); self.btn_gen_cn.setObjectName("GenerateBtn"); self.btn_gen_cn.clicked.connect(self.start_controlnet); cn_params.addWidget(self.btn_gen_cn); cn_l.addLayout(cn_params, 0)
         cn_main = QVBoxLayout(); cn_main.setContentsMargins(20, 10, 20, 0); self.cn_prompt = QPlainTextEdit(); self.cn_prompt.setPlaceholderText(tr("placeholder_prompt")); self.cn_prompt.setFixedHeight(50); self.cn_neg = QPlainTextEdit(); self.cn_neg.setPlaceholderText(tr("placeholder_negative")); self.cn_neg.setFixedHeight(30); cn_main.addWidget(QLabel(tr("label_prompt"))); cn_main.addWidget(self.cn_prompt); cn_main.addWidget(QLabel(tr("label_negative"))); cn_main.addWidget(self.cn_neg); self.cn_preview = ClickableLabel(tr("placeholder_drop")); self.cn_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.cn_preview.setObjectName("PreviewArea"); self.cn_preview.setStyleSheet("border: 2px dashed #333; color: #555;"); cn_main.addWidget(self.cn_preview, 1); self.cn_progress = QProgressBar(); cn_main.addWidget(self.cn_progress); cn_l.addLayout(cn_main, 1)
 
-        self.setAcceptDrops(True); self.update_vram_estimate();
+        self.setAcceptDrops(True);
 
         # 4. GALLERY
         self.gal_tab = QWidget(); self.tabs.addTab(self.gal_tab, tr("tab_gallery")); gal_l = QVBoxLayout(self.gal_tab)
@@ -255,11 +251,6 @@ class MainWindow(QMainWindow):
             self.engine.unload_lora(name)
             item = self.loras.pop(name); self.lora_list_layout.removeWidget(item); item.deleteLater(); self.update_lora_visualizer()
     def update_lora_visualizer(self): self.lora_visualizer.update_weights([(n, i.weight()) for n, i in self.loras.items()])
-    def update_vram_estimate(self):
-        w, h = self.s_w.value(), self.s_h.value(); est = 2.5 + ((w * h) / (512 * 512)) * 1.5
-        c = "#00ff00" if est < 4.5 else "#ffaa00" if est < 5.5 else "#ff4444"
-        self.lbl_vram_info.setText(f"VRAM: {est:.1f} GB"); self.lbl_vram_info.setStyleSheet(f"color: {c}; font-weight: bold;")
-    def auto_optimize(self): self.s_w.spin.setValue(512); self.s_h.spin.setValue(512); self.update_vram_estimate()
     def load_model(self):
         m = self.model_combo.currentData()
         if m:

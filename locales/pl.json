@@ -9,8 +9,6 @@
     "chk_auto_upscale": "Automatyczny Upscale",
     "chk_keep_vram": "Trzymaj w pamięci (VRAM)",
     "lbl_sampling_header": "SAMPLING",
-    "lbl_vram_oracle": "VRAM ORACLE",
-    "btn_auto_optimize": "AUTO-OPTIMIZER",
     "btn_settings": "⚙️ Ustawienia",
     "btn_generate": "GENERUJ OBRAZ",
 

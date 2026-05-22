@@ -35,10 +35,6 @@
 * **Latent Mixology Station** — A mixer for up to 5 LoRA adapters simultaneously with a visual weight equalizer. It automatically reloads active adapters when switching base models and physically unloads them to prevent memory conflicts.
 * **Smart Scanner** — Automatic detection of `.safetensors`, `.pth`, `.onnx`, and other common model formats.
 
-### 📊 VRAM Oracle & Optimization
-
-* Real-time GPU memory consumption estimation with color-coded warnings.
-* **Auto-Optimizer** — A one-click button to restore safe resolution settings.
 * **Zero-Copy Memory** — Highly efficient image conversion between the AI engine (PIL) and the UI (QImage) via direct memory views, eliminating CPU bottlenecks and ensuring memory stability (prevents SegFaults).
 
 ### 🖼️ Gallery & PNG Info

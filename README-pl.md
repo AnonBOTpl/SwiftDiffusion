@@ -28,9 +28,6 @@
 - **Latent Mixology Station** — Mikser do 5 adapterów LoRA jednocześnie z wizualnym equalizerem wag.
 - **Inteligentny Skaner** — Automatyczne wykrywanie modeli `.safetensors`, `.pth`, `.onnx` i innych.
 
-### 📊 VRAM Oracle & Optymalizacja
-- Szacowanie zużycia pamięci GPU w czasie rzeczywistym z kolorowymi ostrzeżeniami.
-- **Auto-Optimizer** — Jeden przycisk do przywrócenia bezpiecznych ustawień rozdzielczości.
 - **Zero-Copy Memory** — Wydajna konwersja obrazów między silnikiem AI a interfejsem bez zbędnego obciążania CPU.
 
 ### 🖼️ Galeria i PNG Info

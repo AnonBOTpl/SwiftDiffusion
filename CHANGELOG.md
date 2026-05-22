@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.11.0] - 2026-05-21
+### Usunięto
+- **Moduł VRAM Oracle:** Całkowite usunięcie wskaźnika zużycia VRAM oraz przycisku Auto-Optimizer z panelu bocznego. Zmiana podyktowana przygotowaniami pod nową architekturę Resource Monitora.
+
 ## [2.10.0] - 2026-05-21
 ### Dodano
 - **Automatyczne Odświeżanie List:** Wdrożenie `QFileSystemWatcher` do asynchronicznego monitorowania folderów z modelami. Listy w interfejsie aktualizują się automatycznie po dodaniu lub usunięciu plików na dysku.
