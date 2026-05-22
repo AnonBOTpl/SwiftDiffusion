@@ -1,5 +1,6 @@
 {
     "sidebar_model_header": "MODEL",
+    "lbl_vae": "VAE",
     "btn_load_model": "LOAD MODEL",
     "lbl_latent_mixology": "LATENT MIXOLOGY",
     "btn_add_lora": "+ ADD LORA",
@@ -53,6 +54,7 @@
     "btn_refresh_gallery": "REFRESH GALLERY",
 
     "opt_use_main_model": "Use main model",
+    "opt_default_vae": "Default (from model)",
 
     "welcome_title": "Welcome to Stable Diffusion UI",
     "welcome_header": "Welcome!",
@@ -78,6 +80,7 @@
     "lbl_restart_required": "Language change will take effect after restarting the program.",
     "settings_default_sampler": "Default Sampler:",
     "settings_default_scheduler": "Default Scheduler:",
+    "settings_default_vae": "Default VAE:",
     "btn_import": "Import",
     "btn_export": "Export",
     "btn_save_close": "Save & Close",

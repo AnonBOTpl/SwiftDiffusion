@@ -42,6 +42,7 @@ class MainWindow(QMainWindow):
             settings.get('Paths', 'models_lora'),
             settings.get('Paths', 'models_controlnet'),
             settings.get('Paths', 'models_inpaint'),
+            settings.get('Paths', 'models_vae'),
             settings.get('Paths', 'models_upscalers')
         ]
         for p in paths:
@@ -61,6 +62,12 @@ class MainWindow(QMainWindow):
 
         lbl_model = QLabel(tr("sidebar_model_header")); lbl_model.setObjectName("Header"); sidebar_layout.addWidget(lbl_model)
         model_row = QHBoxLayout(); self.model_combo = QComboBox(); self.refresh_base_models(); btn_br = QPushButton("..."); btn_br.setFixedSize(30, 28); btn_br.clicked.connect(self.browse_model); model_row.addWidget(self.model_combo); model_row.addWidget(btn_br); sidebar_layout.addLayout(model_row)
+
+        sidebar_layout.addWidget(QLabel(tr("lbl_vae")))
+        self.vae_combo = QComboBox()
+        self.refresh_vae_models()
+        sidebar_layout.addWidget(self.vae_combo)
+
         btn_load = QPushButton(tr("btn_load_model")); btn_load.clicked.connect(self.load_model); sidebar_layout.addWidget(btn_load)
 
         lbl_mix = QLabel(tr("lbl_latent_mixology")); lbl_mix.setObjectName("Header"); sidebar_layout.addWidget(lbl_mix)
@@ -184,6 +191,11 @@ class MainWindow(QMainWindow):
         self.sampler_combo.setCurrentText(settings.get('Generation', 'default_sampler'))
         self.scheduler_combo.setCurrentText(settings.get('Generation', 'default_scheduler'))
 
+        vae_val = settings.get('Generation', 'default_vae')
+        idx = self.vae_combo.findData(vae_val)
+        if idx < 0: idx = self.vae_combo.findText(vae_val)
+        if idx >= 0: self.vae_combo.setCurrentIndex(idx)
+
     def open_settings(self):
         dlg = SettingsDialog(self)
         dlg.exec()
@@ -191,6 +203,7 @@ class MainWindow(QMainWindow):
     def refresh_all_comboboxes(self, path=None):
         logger.info(f"[SYSTEM] Wykryto zmiany w folderach modeli, odświeżanie list...")
         self.refresh_base_models()
+        self.refresh_vae_models()
         self.refresh_inpaint_models()
         self.refresh_cn_models()
         self.refresh_upscalers()
@@ -203,6 +216,18 @@ class MainWindow(QMainWindow):
         if curr:
             idx = self.model_combo.findText(curr)
             if idx >= 0: self.model_combo.setCurrentIndex(idx)
+
+    def refresh_vae_models(self):
+        curr = self.vae_combo.currentText()
+        self.vae_combo.clear()
+        self.vae_combo.addItem(tr("opt_default_vae"), "Domyślne (z modelu)")
+        path = settings.get('Paths', 'models_vae')
+        vae_exts = (".safetensors", ".pt", ".ckpt")
+        for f in self.scan_models(path, exts=vae_exts):
+            self.vae_combo.addItem(f, os.path.join(path, f))
+        if curr:
+            idx = self.vae_combo.findText(curr)
+            if idx >= 0: self.vae_combo.setCurrentIndex(idx)
     def explicit_load_inpaint_model(self):
         m = self.inp_model_combo.currentData()
         if m: self.btn_gen_inp.setEnabled(False); self.i_progress.setFormat(tr("status_loading_inpaint")); self.engine.load_inpaint_model(m); self.btn_gen_inp.setEnabled(True); self.i_progress.setFormat(tr("status_inpaint_ready"))
@@ -279,7 +304,8 @@ class MainWindow(QMainWindow):
             "keep_upscaler_vram": self.check_vram.isChecked(),
             "loras": [{'name': n, 'weight': i.weight()} for n, i in self.loras.items()],
             "sampler": self.sampler_combo.currentText(),
-            "scheduler": self.scheduler_combo.currentText()
+            "scheduler": self.scheduler_combo.currentText(),
+            "vae_path": self.vae_combo.currentData()
         }
         self.btn_gen_t2i.setEnabled(False); self.p_bar.setMaximum(params["steps"]); self.p_bar.setValue(0); self.worker = GenerationWorker(self.engine, params); self.worker.progress.connect(self.p_bar.setValue); self.worker.status.connect(self.l_status.setText); self.worker.part_finished.connect(self.on_base_finished); self.worker.finished.connect(self.on_generation_finished); self.worker.start()
     def manual_upscale(self):
@@ -315,7 +341,8 @@ class MainWindow(QMainWindow):
             "strength": self.i_denoise.value(),
             "inpaint_model": self.inp_model_combo.currentData(),
             "sampler": self.sampler_combo.currentText(),
-            "scheduler": self.scheduler_combo.currentText()
+            "scheduler": self.scheduler_combo.currentText(),
+            "vae_path": self.vae_combo.currentData()
         }
         self.btn_gen_inp.setEnabled(False); self.i_progress.setMaximum(0); self.i_progress.setValue(0); self.in_worker = InpaintWorker(self.engine, params); self.in_worker.status.connect(self.i_progress.setFormat); self.in_worker.finished.connect(self.on_inpaint_finished); self.in_worker.start()
     def on_inpaint_finished(self, path, seed):
@@ -343,7 +370,8 @@ class MainWindow(QMainWindow):
             "seed": sv,
             "cn_model": self.cn_model_combo.currentData(),
             "sampler": self.sampler_combo.currentText(),
-            "scheduler": self.scheduler_combo.currentText()
+            "scheduler": self.scheduler_combo.currentText(),
+            "vae_path": self.vae_combo.currentData()
         }
         self.btn_gen_cn.setEnabled(False); self.cn_progress.setMaximum(0); self.cn_progress.setValue(0); self.cn_wkr = ControlNetWorker(self.engine, params); self.cn_wkr.status.connect(self.cn_progress.setFormat); self.cn_wkr.finished.connect(self.on_cn_finished); self.cn_wkr.start()
     def on_cn_finished(self, path, seed):

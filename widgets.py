@@ -100,8 +100,13 @@ class SettingsDialog(QDialog):
         self.sampler_combo.setCurrentText(settings.get('Generation', 'default_sampler'))
         self.sched_combo = QComboBox(); self.sched_combo.addItems(["Normal", "Karras", "Exponential"])
         self.sched_combo.setCurrentText(settings.get('Generation', 'default_scheduler'))
+        self.vae_combo = QComboBox()
+        self.refresh_vae_list()
+        self.vae_combo.setCurrentText(settings.get('Generation', 'default_vae'))
+
         pref_l.addWidget(QLabel(tr("settings_default_sampler"))); pref_l.addWidget(self.sampler_combo)
         pref_l.addWidget(QLabel(tr("settings_default_scheduler"))); pref_l.addWidget(self.sched_combo)
+        pref_l.addWidget(QLabel(tr("settings_default_vae"))); pref_l.addWidget(self.vae_combo)
         pref_l.addStretch()
 
         # 4. Appearance
@@ -141,6 +146,16 @@ class SettingsDialog(QDialog):
         btn_box.addWidget(btn_imp); btn_box.addWidget(btn_exp); btn_box.addStretch(); btn_box.addWidget(btn_save)
         layout.addLayout(btn_box)
 
+    def refresh_vae_list(self):
+        self.vae_combo.clear()
+        self.vae_combo.addItem(tr("opt_default_vae"))
+        path = settings.get('Paths', 'models_vae')
+        if os.path.exists(path):
+            vae_exts = (".safetensors", ".pt", ".ckpt")
+            for f in os.listdir(path):
+                if f.lower().endswith(vae_exts):
+                    self.vae_combo.addItem(f)
+
     def browse_path(self, key):
         d = QFileDialog.getExistingDirectory(self, tr("dialog_select_dir"), self.path_edits[key].text())
         if d: self.path_edits[key].setText(d)
@@ -162,6 +177,9 @@ class SettingsDialog(QDialog):
             os.makedirs(p, exist_ok=True)
         settings.set('Generation', 'default_sampler', self.sampler_combo.currentText())
         settings.set('Generation', 'default_scheduler', self.sched_combo.currentText())
+
+        vae_text = self.vae_combo.currentText()
+        settings.set('Generation', 'default_vae', vae_text)
         settings.set('UI', 'language', self.lang_combo.currentData())
         settings.set('UI', 'theme', self.theme_combo.currentText())
         settings.set('UI', 'accent_color', self.curr_accent)

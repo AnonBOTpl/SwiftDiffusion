@@ -12,6 +12,7 @@ from PIL.PngImagePlugin import PngInfo
 from config import settings
 from diffusers import (
     StableDiffusionPipeline,
+    AutoencoderKL,
     DPMSolverMultistepScheduler,
     StableDiffusionInpaintPipeline,
     ControlNetModel,
@@ -178,6 +179,19 @@ class DiffusionEngine:
 
         self._apply_performance_settings(pipe)
 
+    def _apply_custom_vae(self, pipe, vae_path):
+        if not vae_path or vae_path == "Domyślne (z modelu)":
+            return
+
+        logger.info(f"[SYSTEM] Ładowanie niestandardowego VAE: {vae_path}")
+        if vae_path.endswith((".safetensors", ".pt", ".ckpt")):
+            custom_vae = AutoencoderKL.from_single_file(vae_path, torch_dtype=torch.float16, use_safetensors=vae_path.endswith(".safetensors"))
+        else:
+            custom_vae = AutoencoderKL.from_pretrained(vae_path, torch_dtype=torch.float16)
+
+        pipe.vae = custom_vae.to(pipe.device)
+        self._apply_performance_settings(pipe)
+
     def _maybe_auto_clear(self):
         if settings.get_bool('Performance', 'auto_clear_vram'):
             gc.collect()
@@ -187,6 +201,10 @@ class DiffusionEngine:
     def generate(self, params, callback=None):
         if 'sampler' in params and 'scheduler' in params:
             self._set_scheduler(self.pipe, params['sampler'], params['scheduler'])
+
+        if 'vae_path' in params:
+            self._apply_custom_vae(self.pipe, params['vae_path'])
+
         if 'loras' in params: self.apply_loras(params['loras'])
         seed = params.get('seed', -1)
         if seed == -1: seed = random.randint(0, 2**32 - 1)
@@ -238,6 +256,9 @@ class DiffusionEngine:
         if 'sampler' in params and 'scheduler' in params:
             self._set_scheduler(self.inpaint_pipe, params['sampler'], params['scheduler'])
 
+        if 'vae_path' in params:
+            self._apply_custom_vae(self.inpaint_pipe, params['vae_path'])
+
         seed = params.get('seed', -1)
         if seed == -1: seed = random.randint(0, 2**32 - 1)
         generator = torch.Generator(device="cuda").manual_seed(seed)
@@ -274,6 +295,9 @@ class DiffusionEngine:
 
         if 'sampler' in params and 'scheduler' in params:
             self._set_scheduler(self.controlnet_pipe, params['sampler'], params['scheduler'])
+
+        if 'vae_path' in params:
+            self._apply_custom_vae(self.controlnet_pipe, params['vae_path'])
 
         image_np = np.array(params['image'])
         image_canny = cv2.Canny(image_np, 100, 200)

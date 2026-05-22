@@ -27,6 +27,7 @@ class SettingsManager:
             'models_lora': 'models/lora',
             'models_controlnet': 'models/controlnet',
             'models_inpaint': 'models/inpaint',
+            'models_vae': 'models/vae',
             'models_upscalers': 'models/upscalers',
             'output_txt2img': 'output/txt2img',
             'output_inpaint': 'output/inpaint',
@@ -41,7 +42,8 @@ class SettingsManager:
         }
         self.config['Generation'] = {
             'default_sampler': 'DPM++ 2M',
-            'default_scheduler': 'Normal'
+            'default_scheduler': 'Normal',
+            'default_vae': 'Domyślne (z modelu)'
         }
         self.config['Performance'] = {
             'vram_slicing': 'False',

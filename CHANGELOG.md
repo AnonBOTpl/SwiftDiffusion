@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.13.0] - 2026-05-21
+### Dodano
+- **Obsługa niestandardowych VAE:** Dodano możliwość ładowania zewnętrznych plików VAE (.safetensors, .pt). Nowy panel wyboru w panelu bocznym oraz opcja domyślnego VAE w ustawieniach.
+
 ## [2.12.0] - 2026-05-21
 ### Dodano
 - **Zaawansowana Optymalizacja VRAM:** Dodano nowe opcje w ustawieniach: Attention Slicing, Model CPU Offloading oraz automatyczne czyszczenie VRAM po generacji. Pozwala to na jeszcze stabilniejszą pracę na kartach 6GB.
