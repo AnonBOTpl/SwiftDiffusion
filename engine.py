@@ -23,15 +23,21 @@ from diffusers import (
 )
 try:
     from spandrel import ModelLoader, ImageModelDescriptor
-    from spandrel_extra_arches import ext_registry
-    ModelLoader.add_extra_registry(ext_registry)
+    try:
+        from spandrel_extra_arches import ext_registry
+        ModelLoader.add_extra_registry(ext_registry)
+        logger.info("[SYSTEM] Zarejestrowano dodatkowe architektury spandrel (spandrel_extra_arches)")
+    except ImportError:
+        logger.warning("[SYSTEM] Brak spandrel_extra_arches - niektóre modele (np. CodeFormer) mogą nie działać")
 except ImportError:
     ModelLoader = None
+    logger.error("[SYSTEM] Brak biblioteki spandrel")
 
 try:
     from facexlib.utils.face_restoration_helper import FaceRestoreHelper
 except ImportError:
     FaceRestoreHelper = None
+    logger.error("[SYSTEM] Brak biblioteki facexlib")
 
 # --- LOGGING CONFIG ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
@@ -339,8 +345,14 @@ class DiffusionEngine:
         return file_path, seed
 
     def apply_face_restore(self, image_path, model_path, det_model='retinaface_resnet50'):
-        if not model_path or not os.path.exists(model_path) or FaceRestoreHelper is None or ModelLoader is None:
-            return None
+        if not model_path:
+            logger.error("[FACE RESTORE] Nie wybrano modelu rekonstrukcji"); return None
+        if not os.path.exists(model_path):
+            logger.error(f"[FACE RESTORE] Plik modelu nie istnieje: {model_path}"); return None
+        if FaceRestoreHelper is None:
+            logger.error("[FACE RESTORE] Biblioteka facexlib nie jest zainstalowana"); return None
+        if ModelLoader is None:
+            logger.error("[FACE RESTORE] Biblioteka spandrel nie jest zainstalowana"); return None
 
         logger.info(f"[SYSTEM] Rozpoczęcie Face Restore: {image_path} (Model: {model_path}, Detektor: {det_model})")
         helper = None
@@ -364,7 +376,12 @@ class DiffusionEngine:
             )
 
             # 3. Przetwarzanie obrazu
+            if not os.path.exists(image_path):
+                logger.error(f"[FACE RESTORE] Obraz wejściowy nie istnieje: {image_path}"); return None
+
             img = cv2.imread(image_path)
+            if img is None:
+                logger.error(f"[FACE RESTORE] Nie udało się wczytać obrazu: {image_path}"); return None
 
             helper.clean_all()
             helper.read_image(img)
@@ -405,10 +422,16 @@ class DiffusionEngine:
 
             # 6. Zapis
             filename = os.path.basename(image_path).replace(".png", "_restored.png")
-            out_path = os.path.join(settings.get('Paths', 'output_txt2img'), filename)
-            # restored_img jest już w formacie BGR (bo helper operował na BGR)
-            cv2.imwrite(out_path, restored_img)
+            out_dir = settings.get('Paths', 'output_txt2img')
+            if not os.path.exists(out_dir): os.makedirs(out_dir)
 
+            out_path = os.path.join(out_dir, filename)
+            # restored_img jest już w formacie BGR (bo helper operował na BGR)
+            success = cv2.imwrite(out_path, restored_img)
+            if not success:
+                logger.error(f"[FACE RESTORE] Nie udało się zapisać obrazu do {out_path}"); return None
+
+            logger.info(f"[FACE RESTORE] Sukces: {out_path}")
             return out_path
 
         except Exception as e:

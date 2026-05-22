@@ -86,6 +86,7 @@ class MainWindow(QMainWindow):
         lbl_fr = QLabel(tr("lbl_facerestore_header")); lbl_fr.setObjectName("Header"); sidebar_layout.addWidget(lbl_fr)
         self.facerestore_combo = QComboBox(); self.refresh_facerestore_models(); sidebar_layout.addWidget(self.facerestore_combo)
 
+        sidebar_layout.addWidget(QLabel(tr("lbl_facedetector")))
         self.facedetector_combo = QComboBox()
         self.facedetector_combo.addItems(["retinaface_resnet50", "retinaface_mobile0.25", "YOLOv5l", "YOLOv5n"])
         sidebar_layout.addWidget(self.facedetector_combo)
@@ -349,8 +350,13 @@ class MainWindow(QMainWindow):
         }
         self.btn_gen_t2i.setEnabled(False); self.p_bar.setMaximum(params["steps"]); self.p_bar.setValue(0); self.worker = GenerationWorker(self.engine, params); self.worker.progress.connect(self.p_bar.setValue); self.worker.status.connect(self.l_status.setText); self.worker.part_finished.connect(self.on_base_finished); self.worker.finished.connect(self.on_generation_finished); self.worker.start()
     def manual_face_restore(self):
-        if not self.last_generated_path or not self.facerestore_combo.currentData(): return QMessageBox.warning(self, tr("status_error"), tr("status_no_data"))
-        self.btn_face.setEnabled(False); self.p_bar.setFormat(tr("status_facerestoring")); self.fr_w = FaceRestoreWorker(self.engine, self.last_generated_path, self.facerestore_combo.currentData(), self.facedetector_combo.currentText()); self.fr_w.status.connect(self.l_status.setText); self.fr_w.finished.connect(self.on_face_restore_finished); self.fr_w.start()
+        m = self.facerestore_combo.currentData()
+        if not m:
+            return QMessageBox.information(self, tr("status_error"), tr("opt_no_facerestore"))
+        if not self.last_generated_path:
+            return QMessageBox.warning(self, tr("status_error"), tr("status_no_data"))
+
+        self.btn_face.setEnabled(False); self.p_bar.setFormat(tr("status_facerestoring")); self.fr_w = FaceRestoreWorker(self.engine, self.last_generated_path, m, self.facedetector_combo.currentText()); self.fr_w.status.connect(self.l_status.setText); self.fr_w.finished.connect(self.on_face_restore_finished); self.fr_w.start()
     def on_face_restore_finished(self, path):
         self.btn_face.setEnabled(True)
         if path: self.on_generation_finished(path, "N/A")

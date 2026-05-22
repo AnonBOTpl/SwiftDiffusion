@@ -9,6 +9,7 @@
     "opt_no_upscaler": "Brak upscalera",
     "chk_auto_upscale": "Automatyczny Upscale",
     "lbl_facerestore_header": "FACE RESTORE",
+    "lbl_facedetector": "Detektor Twarzy",
     "chk_auto_facerestore": "Automatyczny Face Restore",
     "chk_keep_vram": "Trzymaj w pamięci (VRAM)",
     "lbl_sampling_header": "SAMPLING",
