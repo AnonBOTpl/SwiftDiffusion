@@ -16,6 +16,15 @@ class GenerationWorker(QThread):
         file_path, used_seed = self.engine.generate(self.params, callback=lambda s: self.progress.emit(s))
         self.part_finished.emit(file_path, used_seed)
 
+        if self.params.get('auto_facerestore') and self.params.get('facerestore_model'):
+            self.status.emit("Face Restore...")
+            restored_path = self.engine.apply_face_restore(
+                file_path,
+                self.params['facerestore_model']
+            )
+            if restored_path:
+                file_path = restored_path
+
         if self.params.get('auto_upscale') and self.params.get('upscaler_model'):
             self.status.emit("Powiększanie (Upscaling)...")
             upscaled_path = self.engine.upscale_image(
@@ -25,15 +34,6 @@ class GenerationWorker(QThread):
             )
             if upscaled_path:
                 file_path = upscaled_path
-
-        if self.params.get('auto_facerestore') and self.params.get('facerestore_model'):
-            self.status.emit("Face Restore...")
-            restored_path = self.engine.apply_face_restore(
-                file_path,
-                self.params['facerestore_model']
-            )
-            if restored_path:
-                file_path = restored_path
 
         self.finished.emit(file_path, used_seed)
 

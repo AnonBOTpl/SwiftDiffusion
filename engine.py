@@ -361,23 +361,29 @@ class DiffusionEngine:
 
             # 3. Przetwarzanie obrazu
             img = cv2.imread(image_path)
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
             helper.clean_all()
-            helper.read_image(img_rgb)
+            helper.read_image(img)
             helper.get_face_landmarks_5(only_center_face=False, eye_dist_threshold=5)
             helper.align_warp_face()
 
             # 4. Rekonstrukcja każdej wykrytej twarzy
-            for cropped_face in helper.aligned_faces:
-                # CodeFormer/spandrel oczekuje float32 tensor [1, 3, H, W]
-                face_t = torch.from_numpy(cropped_face).permute(2, 0, 1).unsqueeze(0).to("cuda").float() / 255.0
+            for cropped_face in helper.cropped_faces:
+                # Przekonwertuj BGR -> RGB dla modelu CodeFormer
+                face_rgb = cv2.cvtColor(cropped_face, cv2.COLOR_BGR2RGB)
+                # CodeFormer/spandrel oczekuje float32 tensor [1, 3, H, W] w zakresie [-1, 1]
+                face_t = torch.from_numpy(face_rgb).permute(2, 0, 1).unsqueeze(0).to("cuda").float() / 255.0
+                face_t = (face_t - 0.5) / 0.5
+
                 with torch.no_grad():
                     output_t = model(face_t)
-                    output_f = output_t.squeeze(0).permute(1, 2, 0).cpu().clamp(0, 1).numpy()
+                    # Powrót do [0, 1]
+                    output_f = (output_t.squeeze(0).permute(1, 2, 0) * 0.5 + 0.5).cpu().clamp(0, 1).numpy()
 
-                restored_face = (output_f * 255.0).astype(np.uint8)
-                helper.add_restored_face(restored_face)
+                restored_face_rgb = (output_f * 255.0).astype(np.uint8)
+                # Przekonwertuj z powrotem RGB -> BGR przed dodaniem do helpera
+                restored_face_bgr = cv2.cvtColor(restored_face_rgb, cv2.COLOR_RGB2BGR)
+                helper.restored_faces.append(restored_face_bgr)
 
             # 5. Wklejenie twarzy z powrotem
             helper.get_inverse_affine(None)
@@ -386,7 +392,8 @@ class DiffusionEngine:
             # 6. Zapis
             filename = os.path.basename(image_path).replace(".png", "_restored.png")
             out_path = os.path.join(settings.get('Paths', 'output_txt2img'), filename)
-            cv2.imwrite(out_path, cv2.cvtColor(restored_img, cv2.COLOR_RGB2BGR))
+            # restored_img jest już w formacie BGR (bo helper operował na BGR)
+            cv2.imwrite(out_path, restored_img)
 
             return out_path
 
