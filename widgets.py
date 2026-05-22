@@ -148,13 +148,13 @@ class SettingsDialog(QDialog):
 
     def refresh_vae_list(self):
         self.vae_combo.clear()
-        self.vae_combo.addItem(tr("opt_default_vae"))
+        self.vae_combo.addItem(tr("opt_default_vae"), "Domyślne (z modelu)")
         path = settings.get('Paths', 'models_vae')
         if os.path.exists(path):
             vae_exts = (".safetensors", ".pt", ".ckpt")
             for f in os.listdir(path):
                 if f.lower().endswith(vae_exts):
-                    self.vae_combo.addItem(f)
+                    self.vae_combo.addItem(f, os.path.join(path, f))
 
     def browse_path(self, key):
         d = QFileDialog.getExistingDirectory(self, tr("dialog_select_dir"), self.path_edits[key].text())
@@ -178,8 +178,8 @@ class SettingsDialog(QDialog):
         settings.set('Generation', 'default_sampler', self.sampler_combo.currentText())
         settings.set('Generation', 'default_scheduler', self.sched_combo.currentText())
 
-        vae_text = self.vae_combo.currentText()
-        settings.set('Generation', 'default_vae', vae_text)
+        vae_val = self.vae_combo.currentData()
+        settings.set('Generation', 'default_vae', vae_val)
         settings.set('UI', 'language', self.lang_combo.currentData())
         settings.set('UI', 'theme', self.theme_combo.currentText())
         settings.set('UI', 'accent_color', self.curr_accent)

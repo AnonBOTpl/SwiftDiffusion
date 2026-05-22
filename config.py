@@ -8,6 +8,38 @@ logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger("SD-Controller")
 
 class SettingsManager:
+    DEFAULT_CONFIG = {
+        'Paths': {
+            'models_sd': 'models/stable_diffusion',
+            'models_lora': 'models/lora',
+            'models_controlnet': 'models/controlnet',
+            'models_inpaint': 'models/inpaint',
+            'models_vae': 'models/vae',
+            'models_upscalers': 'models/upscalers',
+            'output_txt2img': 'output/txt2img',
+            'output_inpaint': 'output/inpaint',
+            'output_controlnet': 'output/controlnet',
+            'output_upscaled': 'output/upscaled',
+            'docs': 'docs'
+        },
+        'UI': {
+            'theme': 'dark',
+            'accent_color': '#00d4ff',
+            'language': 'pl'
+        },
+        'Generation': {
+            'default_sampler': 'DPM++ 2M',
+            'default_scheduler': 'Normal',
+            'default_vae': 'Domyślne (z modelu)'
+        },
+        'Performance': {
+            'vram_slicing': 'False',
+            'attention_slicing': 'False',
+            'cpu_offload': 'False',
+            'auto_clear_vram': 'False'
+        }
+    }
+
     def __init__(self, filename="settings.ini"):
         self.filename = filename
         self.is_first_run = not os.path.exists(self.filename)
@@ -20,37 +52,26 @@ class SettingsManager:
             self.save()
         else:
             self.config.read(self.filename, encoding="utf-8")
+            self.validate_and_heal()
 
     def set_defaults(self):
-        self.config['Paths'] = {
-            'models_sd': 'models/stable_diffusion',
-            'models_lora': 'models/lora',
-            'models_controlnet': 'models/controlnet',
-            'models_inpaint': 'models/inpaint',
-            'models_vae': 'models/vae',
-            'models_upscalers': 'models/upscalers',
-            'output_txt2img': 'output/txt2img',
-            'output_inpaint': 'output/inpaint',
-            'output_controlnet': 'output/controlnet',
-            'output_upscaled': 'output/upscaled',
-            'docs': 'docs'
-        }
-        self.config['UI'] = {
-            'theme': 'dark',
-            'accent_color': '#00d4ff',
-            'language': 'pl'
-        }
-        self.config['Generation'] = {
-            'default_sampler': 'DPM++ 2M',
-            'default_scheduler': 'Normal',
-            'default_vae': 'Domyślne (z modelu)'
-        }
-        self.config['Performance'] = {
-            'vram_slicing': 'False',
-            'attention_slicing': 'False',
-            'cpu_offload': 'False',
-            'auto_clear_vram': 'False'
-        }
+        for section, keys in self.DEFAULT_CONFIG.items():
+            self.config[section] = keys
+
+    def validate_and_heal(self):
+        requires_save = False
+        for section, keys in self.DEFAULT_CONFIG.items():
+            if section not in self.config:
+                self.config[section] = {}
+                requires_save = True
+            for key, value in keys.items():
+                if key not in self.config[section]:
+                    self.config[section][key] = value
+                    requires_save = True
+
+        if requires_save:
+            logger.info(f"[SYSTEM] Wykryto braki w konfiguracji. Naprawianie pliku {self.filename}...")
+            self.save()
 
     def save(self):
         with open(self.filename, 'w', encoding='utf-8') as configfile:

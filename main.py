@@ -42,11 +42,11 @@ class MainWindow(QMainWindow):
             settings.get('Paths', 'models_lora'),
             settings.get('Paths', 'models_controlnet'),
             settings.get('Paths', 'models_inpaint'),
-            settings.get('Paths', 'models_vae', fallback='models/vae'),
+            settings.get('Paths', 'models_vae'),
             settings.get('Paths', 'models_upscalers')
         ]
         for p in paths:
-            if p and os.path.exists(p):
+            if os.path.exists(p):
                 self.model_watcher.addPath(p)
         self.model_watcher.directoryChanged.connect(self.refresh_all_comboboxes)
     def scan_models(self, folder, exts=(".safetensors",)):
