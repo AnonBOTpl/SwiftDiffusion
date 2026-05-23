@@ -3,11 +3,10 @@
 [🇵🇱 Polski](README-pl.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AnonBOTpl/projects-files/main/sd_logo.png" alt="SwiftDiffusion Logo" width="200">
+    <br><br>
+  <b>Stop wrestling with the command line. Start creating.</b>
   <br>
-  <b>A modern, minimalist GUI for Stable Diffusion 1.5.</b>
-  <br>
-  <i>Built with PyQt6 – designed for convenience, aesthetics, and VRAM efficiency.</i>
+  <i>A clean, fast, VRAM-friendly GUI for Stable Diffusion 1.5 — built with PyQt6.</i>
 </p>
 
 <p align="center">
@@ -19,100 +18,117 @@
 
 ---
 
-## 🚀 Key Features
+## 🖼️ Screenshots
 
-### 🖌️ Smart Generation Modes
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AnonBOTpl/SwiftDiffusion/main/screens/screen%20main.png" alt="Main Window" width="700">
+  <br><i>Main generation window</i>
+</p>
 
-* **Text2Image** — Full control over the diffusion process: sampler, scheduler, CFG, steps, and dimensions.
-* **Img2Img** — Image-to-image generation with prompt-guided transformation.
-* **Inpainting (Editing)** — Advanced interactive canvas (`QGraphicsView`) for drawing precise binary masks. Features full **Undo/Redo** history (Ctrl+Z, Ctrl+Y) and image centering. Supports dedicated inpainting models and component sharing (saves VRAM).
-* **ControlNet (Canny)** — Edge-based generation from a reference image with smart scaling and OpenCV edge detection.
-* **ADetailer** — Automatic face improvement using YOLOv8 detection + inpainting, zero-copy VRAM.
-* **Upscaler** — High-quality image upscaling support powered by the `spandrel` library.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AnonBOTpl/SwiftDiffusion/main/screens/screen%20adetailer.png" alt="ADetailer" width="700">
+  <br><i>ADetailer — automatic face enhancement</i>
+</p>
 
-### ⚙️ Advanced Settings (`settings.ini`)
-
-* **First Launch Wizard** — A welcoming setup guide to help you configure your initial language and theme preferences.
-* **Modular Configuration** — Complete freedom in defining model paths and output directories.
-* **7 Dark Themes** — Dark, Amber, Nord, Dracula, Monokai, Forest, Ocean — each with its own accent color. Optional custom accent picker.
-* **Performance Tweaks** — VRAM Slicing, Attention Slicing, Model CPU Offloading, and auto VRAM clearing.
-* **i18n System (Multilingual Support)** — The application is fully prepared for multiple languages via JSON files (`locales/`). It officially supports English and Polish out of the box, but **you can easily add your own custom language** by simply dropping a new JSON file into the folder.
-
-### 📦 Asset Management
-
-* **URL Model Downloader** — Paste a CivitAI or HuggingFace URL to automatically download and categorize models (LoRA, VAE, ControlNet, checkpoints). Integrated search across both platforms.
-* **Autonomous Refreshing** — Thanks to `QFileSystemWatcher`, the interface dynamically reacts to new models/LoRAs added to the disk without restarting the app, smartly retaining your current selections.
-* **Latent Mixology Station** — A mixer for up to 5 LoRA adapters simultaneously with a visual weight equalizer. It automatically reloads active adapters when switching base models and physically unloads them to prevent memory conflicts.
-* **Smart Scanner** — Automatic detection of `.safetensors`, `.pth`, `.onnx`, and other common model formats.
-* **Zero-Copy Memory** — Highly efficient image conversion between the AI engine (PIL) and the UI (QImage) via direct memory views, eliminating CPU bottlenecks and ensuring memory stability.
-
-### 🖼️ Gallery & PNG Info
-
-* Browse your creations using the built-in file explorer.
-* **Recall Parameters** — Read the prompt, seed, and generation settings directly from PNG metadata and restore them to the pipeline with a single click.
-* **Floating Tips** — Interactive HTML documentation and guides available as floating windows within the app.
-
-### 📊 Resource Monitor
-
-* Real-time VRAM, RAM, GPU usage and temperature display in the sidebar, with configurable refresh interval.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AnonBOTpl/SwiftDiffusion/main/screens/screen%20downloader.png" alt="Model Downloader" width="700">
+  <br><i>Built-in model downloader for CivitAI & HuggingFace</i>
+</p>
 
 ---
 
-## 📂 Project Structure
+## 🚀 What can it do?
 
-```text
-SwiftDiffusion/
-    CHANGELOG.md
-    config.py
-    engine.py
-    install.bat
-    LICENSE
-    main.py
-    models_registry.py
-    README.md
-    README-pl.md
-    requirements.txt
-    scraper.py
-    start.bat
-    test_engine.py
-    url_downloader.py
-    utils.py
-    widgets.py
-    worker.py
-    docs/
-        tips_controlnet.html
-        tips_inpaint.html
-    locales/
-        en.json
-        pl.json
-```
+### 🖌️ Generation Modes
+
+| Mode | What it's for |
+|---|---|
+| **Text2Image** | Generate from a prompt with full control over sampler, scheduler, CFG, steps, and dimensions |
+| **Img2Img** | Transform an existing image guided by your prompt |
+| **Inpainting** | Paint a mask over any area and regenerate just that part — with full Undo/Redo (Ctrl+Z/Y) |
+| **ControlNet (Canny)** | Guide generation using the edge structure of a reference image |
+| **ADetailer** | Automatically detect and enhance faces using YOLOv8 — zero extra VRAM cost |
+| **Upscaler** | High-quality upscaling via the `spandrel` library |
+
+### ⚙️ Smart Settings
+
+- **First Launch Wizard** — choose your language and theme before anything else
+- **7 dark themes** — Dark, Amber, Nord, Dracula, Monokai, Forest, Ocean — with optional custom accent color
+- **Performance controls** — VRAM Slicing, Attention Slicing, CPU Offloading, auto VRAM clear
+- **Fully translatable** — add any language by dropping a JSON file into `locales/`
+
+### 📦 Model Management
+
+- **URL Downloader** — paste a CivitAI or HuggingFace link and SwiftDiffusion handles the rest: downloads, categorizes, and makes the model available instantly
+- **Live refresh** — add a model to disk and the UI picks it up automatically, no restart needed (`QFileSystemWatcher`)
+- **Latent Mixology Station** — blend up to 5 LoRA adapters simultaneously with a visual weight mixer
+- **Auto-detects** `.safetensors`, `.pth`, `.onnx`, and other common formats
+
+### 🖼️ Gallery & PNG Metadata
+
+- Browse generated images in the built-in file explorer
+- **One-click recall** — read prompt, seed, and all settings from PNG metadata and restore them to the pipeline instantly
+- Floating HTML guides for ControlNet and Inpainting
+
+### 📊 Live Resource Monitor
+
+Real-time VRAM, RAM, GPU load, and temperature — visible in the sidebar at all times.
 
 ---
 
 ## 🛠️ Installation
 
-### Quick Start (Windows)
+### Windows (recommended)
 
-Run the `install.bat` file, which will automatically configure a virtual environment, install PyTorch with CUDA 12.8 support, and download all necessary dependencies.
+```
+1. Clone or download this repo
+2. Run install.bat
+3. Run start.bat
+```
 
-### Launching
+`install.bat` sets up a virtual environment, installs PyTorch with CUDA 12.8 support, and pulls all dependencies automatically.
 
-After a successful installation, simply double-click `start.bat`.
+### Linux
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
 
 ---
 
-## 📋 Technical Requirements
+## 📋 Requirements
 
-* **Python:** 3.10+
-* **GPU:** CUDA-compatible (e.g., GTX 1060 or similar with min. 6 GB VRAM recommended)
-* **OS:** Windows / Linux (must support PyQt6)
+| | |
+|---|---|
+| **Python** | 3.10+ |
+| **GPU** | CUDA-compatible, 6 GB VRAM recommended (GTX 1060 or better) |
+| **OS** | Windows / Linux (PyQt6 required) |
+
+---
+
+## 📂 Project Structure
+
+```
+SwiftDiffusion/
+├── main.py            # UI & application entry point
+├── engine.py          # Diffusion pipeline logic
+├── worker.py          # Background QThread workers
+├── widgets.py         # Reusable UI components
+├── config.py          # Settings & i18n loader
+├── models_registry.py # Model scanner & registry
+├── url_downloader.py  # CivitAI / HuggingFace downloader
+├── scraper.py         # Model search scraper
+├── install.bat        # Windows installer
+├── start.bat          # Windows launcher
+├── locales/           # Translation files (en, pl, ...)
+└── docs/              # Floating HTML guides
+```
 
 ---
 
 ## ☕ Support
 
-If you find SwiftDiffusion useful, consider supporting its development:
+If SwiftDiffusion saves you time, consider buying me a coffee:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/anonbotpl)
-
----
