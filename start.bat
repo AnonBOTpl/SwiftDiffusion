@@ -8,24 +8,26 @@ if exist settings.ini (
     set LANG=!LANG: =!
 )
 
-if "%LANG%"=="pl" (
-    echo ============================================
-    echo  Uruchamianie SwiftDiffusion...
-    echo ============================================
-) else (
-    echo ============================================
-    echo  Launching SwiftDiffusion...
-    echo ============================================
-)
+if "%LANG%"=="pl" goto pl_start
+echo ============================================
+echo  Launching SwiftDiffusion...
+echo ============================================
+goto start_app
+:pl_start
+echo ============================================
+echo  Uruchamianie SwiftDiffusion...
+echo ============================================
+:start_app
 
 call .venv\Scripts\activate.bat
 python main.py
 
-if "%LANG%"=="pl" (
-    echo:
-    echo Nacisnij dowolny klawisz, aby zakonczyc...
-) else (
-    echo:
-    echo Press any key to exit...
-)
+if "%LANG%"=="pl" goto pl_end
+echo.
+echo Press any key to exit...
+goto end_end
+:pl_end
+echo.
+echo Nacisnij dowolny klawisz, aby zakonczyc...
+:end_end
 pause >nul

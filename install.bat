@@ -2,37 +2,31 @@
 set VENV_DIR=.venv
 
 REM === Language selection ===
-echo[
+echo.
 echo ============================================
 echo        SwiftDiffusion Installer
 echo ============================================
-echo[
+echo.
 echo [1] English
 echo [2] Polski
-echo[
+echo.
 choice /c 12 /m "Select language / Wybierz jezyk: "
-if errorlevel 2 goto set_pl
-if errorlevel 1 goto set_en
+if errorlevel 2 set LANG=pl
+if errorlevel 1 set LANG=en
+set LANG_OK=1
 
-:set_pl
-set LANG=pl
-goto continue
-
-:set_en
-set LANG=en
-goto continue
-
-:continue
-echo[
-if "%LANG%"=="en" (
-    echo ============================================
-    echo  Step 0/4: Creating virtual environment...
-    echo ============================================
-) else (
-    echo ============================================
-    echo  Krok 0/4: Tworzenie srodowiska wirtualnego...
-    echo ============================================
-)
+REM === Step 0/4: Virtual environment ===
+echo.
+if "%LANG%"=="en" goto en_0
+echo ============================================
+echo  Krok 0/4: Tworzenie srodowiska wirtualnego...
+echo ============================================
+goto end_0
+:en_0
+echo ============================================
+echo  Step 0/4: Creating virtual environment...
+echo ============================================
+:end_0
 
 if not exist "%VENV_DIR%" (
     python -m venv %VENV_DIR%
@@ -40,40 +34,48 @@ if not exist "%VENV_DIR%" (
 
 call %VENV_DIR%\Scripts\activate.bat
 
-echo[
-if "%LANG%"=="en" (
-    echo Step 1/4: Installing PyTorch (CUDA 12.8)...
-) else (
-    echo Krok 1/4: Instalowanie PyTorcha (CUDA 12.8)...
-)
+REM === Step 1/4: PyTorch ===
+echo.
+if "%LANG%"=="en" goto en_1
+echo Krok 1/4: Instalowanie PyTorcha (CUDA 12.8)...
+goto end_1
+:en_1
+echo Step 1/4: Installing PyTorch (CUDA 12.8)...
+:end_1
 python -m pip install torch==2.7.1+cu128 torchvision==0.22.1+cu128 --extra-index-url https://download.pytorch.org/whl/cu128
 
-echo[
-if "%LANG%"=="en" (
-    echo Step 2/4: Installing xformers...
-) else (
-    echo Krok 2/4: Instalowanie xformers...
-)
+REM === Step 2/4: xformers ===
+echo.
+if "%LANG%"=="en" goto en_2
+echo Krok 2/4: Instalowanie xformers...
+goto end_2
+:en_2
+echo Step 2/4: Installing xformers...
+:end_2
 python -m pip install xformers==0.0.31.post1 --extra-index-url https://download.pytorch.org/whl/cu128 --no-deps
 
-echo[
-if "%LANG%"=="en" (
-    echo Step 3/4: Installing remaining libraries...
-) else (
-    echo Krok 3/4: Instalowanie reszty bibliotek...
-)
+REM === Step 3/4: Requirements ===
+echo.
+if "%LANG%"=="en" goto en_3
+echo Krok 3/4: Instalowanie reszty bibliotek...
+goto end_3
+:en_3
+echo Step 3/4: Installing remaining libraries...
+:end_3
 python -m pip install -r requirements.txt
 
-echo[
-if "%LANG%"=="en" (
-    echo ============================================
-    echo  Step 4/4: Writing settings file...
-    echo ============================================
-) else (
-    echo ============================================
-    echo  Krok 4/4: Zapisywanie pliku konfiguracyjnego...
-    echo ============================================
-)
+REM === Step 4/4: Settings file ===
+echo.
+if "%LANG%"=="en" goto en_4
+echo ============================================
+echo  Krok 4/4: Zapisywanie pliku konfiguracyjnego...
+echo ============================================
+goto end_4
+:en_4
+echo ============================================
+echo  Step 4/4: Writing settings file...
+echo ============================================
+:end_4
 
 if not exist settings.ini (
     (
@@ -100,7 +102,7 @@ if not exist settings.ini (
         echo [Generation]
         echo default_sampler = DPM++ 2M
         echo default_scheduler = Normal
-        echo default_vae = Domyślne ^(z modelu^)
+        echo default_vae = Domyslne ^(z modelu^)
         echo.
         echo [Performance]
         echo vram_slicing = False
@@ -116,45 +118,51 @@ if not exist settings.ini (
         echo hf_token =
         echo civitai_api_key =
     ) > settings.ini
-    if "%LANG%"=="en" (
-        echo Settings file created.
-    ) else (
-        echo Plik konfiguracyjny utworzony.
-    )
+    if "%LANG%"=="en" goto en_4a
+    echo Plik konfiguracyjny utworzony.
+    goto end_4a
+    :en_4a
+    echo Settings file created.
+    :end_4a
 ) else (
-    REM Update only the language line in existing settings.ini
+    REM Update language line in existing settings.ini
     findstr /b "language" settings.ini >nul
     if not errorlevel 1 (
         powershell -Command "(gc settings.ini) -replace '^language = .*', 'language = %LANG%' | Out-File -Encoding utf8 settings.ini"
     )
-    if "%LANG%"=="en" (
-        echo Settings file updated with language: %LANG%.
-    ) else (
-        echo Plik konfiguracyjny zaktualizowany na jezyk: %LANG%.
-    )
+    if "%LANG%"=="en" goto en_4b
+    echo Plik konfiguracyjny zaktualizowany na jezyk: %LANG%.
+    goto end_4b
+    :en_4b
+    echo Settings file updated with language: %LANG%.
+    :end_4b
 )
 
-echo[
-echo[
-if "%LANG%"=="en" (
-    echo ============================================
-    echo  Installation complete!
-    echo ============================================
-    choice /c YN /m "Launch now / Uruchomic teraz? (Y/N): "
-) else (
-    echo ============================================
-    echo  Instalacja zakonczona!
-    echo ============================================
-    choice /c YN /m "Uruchomic teraz / Launch now? (Y/N): "
-)
+REM === Done ===
+echo.
+if "%LANG%"=="en" goto en_done
+echo ============================================
+echo  Instalacja zakonczona!
+echo ============================================
+echo.
+choice /c YN /m "Uruchomic teraz / Launch now? (Y/N): "
+goto end_done
+:en_done
+echo ============================================
+echo  Installation complete!
+echo ============================================
+echo.
+choice /c YN /m "Launch now / Uruchomic teraz? (Y/N): "
+:end_done
 
 if errorlevel 2 goto end
 python main.py
 
 :end
-if "%LANG%"=="en" (
-    echo Press any key to exit...
-) else (
-    echo Nacisnij dowolny klawisz, aby zakonczyc...
-)
+if "%LANG%"=="en" goto en_end
+echo Nacisnij dowolny klawisz, aby zakonczyc...
+goto end_end
+:en_end
+echo Press any key to exit...
+:end_end
 pause >nul
