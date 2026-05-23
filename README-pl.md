@@ -1,11 +1,11 @@
 [🇬🇧 English](README.md)
+# 🎨 SwiftDiffusion — Stable Diffusion GUI
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/AnonBOTpl/projects-files/main/sd_logo.png" alt="SwiftDiffusion Logo" width="200">
+    <br><br>
+  <b>Koniec z konsolą. Zacznij tworzyć.</b>
   <br>
-  <b>Nowoczesny, minimalistyczny interfejs graficzny dla Stable Diffusion 1.5.</b>
-  <br>
-  <i>Zaprojektowany w PyQt6 z myślą o wygodzie, estetyce i ochronie VRAM.</i>
+  <i>Przejrzysty, szybki i oszczędny dla VRAM interfejs do Stable Diffusion 1.5 — zbudowany w PyQt6.</i>
 </p>
 
 <p align="center">
@@ -17,104 +17,117 @@
 
 ---
 
-## 🚀 Kluczowe Funkcje
+## 🖼️ Zrzuty ekranu
 
-### 🖌️ Inteligentne Tryby Generowania
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AnonBOTpl/SwiftDiffusion/main/screens/screen%20main.png" alt="Główne okno" width="700">
+  <br><i>Główne okno generowania</i>
+</p>
 
-- **Text2Image** — Pełna kontrola nad procesem dyfuzji: sampler, scheduler, CFG, kroki i wymiary.
-- **Img2Img** — Generowanie obraz-na-obraz z transformacją sterowaną promptem.
-- **Inpainting (Edycja)** — Interaktywne płótno do rysowania precyzyjnych masek binarnych (`QGraphicsView`). Pełna historia Undo/Redo (Ctrl+Z, Ctrl+Y). Obsługa dedykowanych modeli oraz trybu współdzielenia komponentów (oszczędność VRAM).
-- **ControlNet (Canny)** — Generowanie oparte na krawędziach obrazu referencyjnego z inteligentnym skalowaniem i detekcją krawędzi OpenCV.
-- **ADetailer** — Automatyczna poprawa twarzy z użyciem YOLOv8 + inpainting, zero-copy VRAM.
-- **Upscaler** — Powiększanie obrazów z użyciem biblioteki `spandrel`.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AnonBOTpl/SwiftDiffusion/main/screens/screen%20adetailer.png" alt="ADetailer" width="700">
+  <br><i>ADetailer — automatyczna poprawa twarzy</i>
+</p>
 
-### ⚙️ Zaawansowane Ustawienia (settings.ini)
-
-- **Kreator powitalny** — Konfiguracja języka i motywu przy pierwszym uruchomieniu.
-- **Modułowa Konfiguracja** — Pełna swoboda w definiowaniu ścieżek modeli i folderów zapisu.
-- **7 ciemnych motywów** — Dark, Amber, Nord, Dracula, Monokai, Forest, Ocean — każdy z własnym akcentem. Opcjonalny własny kolor akcentu.
-- **Performance Tweaks** — VRAM Slicing, Attention Slicing, Model CPU Offloading, auto czyszczenie VRAM.
-- **System i18n (Wielojęzyczność)** — Aplikacja przygotowana do obsługi wielu języków (JSON). Obecnie wspiera polski i angielski.
-
-### 📦 Zarządzanie Zasobami
-
-- **URL Downloader** — Wklej link z CivitAI lub HuggingFace, aby automatycznie pobrać i skategoryzować model (LoRA, VAE, ControlNet, checkpoint). Zintegrowane wyszukiwanie w obu platformach.
-- **Autonomiczne Odświeżanie** — Dzięki `QFileSystemWatcher` interfejs automatycznie reaguje na dodanie nowych modeli/LoRA na dysku bez resetowania aplikacji.
-- **Latent Mixology Station** — Mikser do 5 adapterów LoRA jednocześnie z wizualnym equalizerem wag.
-- **Inteligentny Skaner** — Automatyczne wykrywanie modeli `.safetensors`, `.pth`, `.onnx` i innych.
-- **Zero-Copy Memory** — Wydajna konwersja obrazów między silnikiem AI a interfejsem bez zbędnego obciążania CPU.
-
-### 🖼️ Galeria i PNG Info
-
-- Przeglądaj swoje dzieła wbudowanym eksploratorem.
-- **Parametry Recall** — Odczytuj prompt, seed i ustawienia bezpośrednio z metadanych PNG i przywracaj je do potoku jednym kliknięciem.
-- **Floating Tips** — Interaktywne okna z dokumentacją HTML.
-
-### 📊 Monitor Zasobów
-
-- Podgląd VRAM, RAM, obciążenia i temperatury GPU w panelu bocznym, z konfigurowalnym interwałem odświeżania.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AnonBOTpl/SwiftDiffusion/main/screens/screen%20downloader.png" alt="Pobieracz modeli" width="700">
+  <br><i>Wbudowany pobieracz modeli z CivitAI i HuggingFace</i>
+</p>
 
 ---
 
-## 📂 Struktura Projektu
+## 🚀 Co potrafi?
 
-```text
-SwiftDiffusion/
-    CHANGELOG.md
-    config.py
-    engine.py
-    install.bat
-    LICENSE
-    main.py
-    models_registry.py
-    README.md
-    README-pl.md
-    requirements.txt
-    scraper.py
-    start.bat
-    test_engine.py
-    url_downloader.py
-    utils.py
-    widgets.py
-    worker.py
-    docs/
-        tips_controlnet.html
-        tips_inpaint.html
-    locales/
-        en.json
-        pl.json
-```
+### 🖌️ Tryby generowania
+
+| Tryb | Do czego służy |
+|---|---|
+| **Text2Image** | Generowanie z promptu — pełna kontrola nad samplerem, schedulerem, CFG, krokami i wymiarami |
+| **Img2Img** | Transformacja istniejącego obrazu sterowana promptem |
+| **Inpainting** | Narysuj maskę na dowolnym obszarze i wygeneruj tylko tę część — pełne Undo/Redo (Ctrl+Z/Y) |
+| **ControlNet (Canny)** | Steruj generowaniem na podstawie krawędzi obrazu referencyjnego |
+| **ADetailer** | Automatyczne wykrywanie i poprawa twarzy przez YOLOv8 — bez dodatkowych kosztów VRAM |
+| **Upscaler** | Powiększanie obrazów wysokiej jakości przez bibliotekę `spandrel` |
+
+### ⚙️ Inteligentne ustawienia
+
+- **Kreator powitalny** — wybierz język i motyw zanim cokolwiek inne
+- **7 ciemnych motywów** — Dark, Amber, Nord, Dracula, Monokai, Forest, Ocean — z opcjonalnym własnym kolorem akcentu
+- **Kontrola wydajności** — VRAM Slicing, Attention Slicing, CPU Offloading, auto czyszczenie VRAM
+- **Pełna wielojęzyczność** — dodaj dowolny język, wrzucając plik JSON do folderu `locales/`
+
+### 📦 Zarządzanie modelami
+
+- **URL Downloader** — wklej link z CivitAI lub HuggingFace, resztą zajmuje się SwiftDiffusion: pobiera, kategoryzuje i udostępnia model od razu
+- **Live refresh** — dodaj model do folderu i UI wykrywa go automatycznie, bez restartu (`QFileSystemWatcher`)
+- **Latent Mixology Station** — łącz do 5 adapterów LoRA jednocześnie z wizualnym mikserem wag
+- **Automatyczne wykrywanie** formatów `.safetensors`, `.pth`, `.onnx` i innych
+
+### 🖼️ Galeria i metadane PNG
+
+- Przeglądaj wygenerowane obrazy w wbudowanym eksploratorze
+- **Recall jednym kliknięciem** — odczytaj prompt, seed i wszystkie ustawienia z metadanych PNG i przywróć je do potoku natychmiast
+- Pływające okna z dokumentacją HTML do ControlNet i Inpaintingu
+
+### 📊 Monitor zasobów na żywo
+
+VRAM, RAM, obciążenie i temperatura GPU — widoczne w pasku bocznym przez cały czas.
 
 ---
 
 ## 🛠️ Instalacja
 
-### Szybki Start (Windows)
+### Windows (zalecane)
 
-Uruchom plik `install.bat`, który automatycznie skonfiguruje środowisko wirtualne, zainstaluje PyTorch z obsługą CUDA 12.8 i wszystkie niezbędne biblioteki.
+```
+1. Pobierz lub sklonuj repozytorium
+2. Uruchom install.bat
+3. Uruchom start.bat
+```
 
-### Uruchomienie
+`install.bat` automatycznie tworzy środowisko wirtualne, instaluje PyTorch z obsługą CUDA 12.8 i pobiera wszystkie zależności.
 
-Po instalacji wystarczy kliknąć `start.bat`.
+### Linux
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
 
 ---
 
-## 📋 Wymagania Techniczne
+## 📋 Wymagania
 
-- **Python:** 3.10+
-- **GPU:** Kompatybilna z CUDA (zalecane min. 6 GB VRAM)
-- **System:** Windows / Linux (z obsługą PyQt6)
+| | |
+|---|---|
+| **Python** | 3.10+ |
+| **GPU** | Kompatybilna z CUDA, zalecane min. 6 GB VRAM (GTX 1060 lub lepsza) |
+| **System** | Windows / Linux (wymagany PyQt6) |
+
+---
+
+## 📂 Struktura projektu
+
+```
+SwiftDiffusion/
+├── main.py            # UI i punkt wejścia aplikacji
+├── engine.py          # Logika pipeline'ów dyfuzji
+├── worker.py          # Wątki QThread działające w tle
+├── widgets.py         # Komponenty interfejsu
+├── config.py          # Ustawienia i loader i18n
+├── models_registry.py # Skaner i rejestr modeli
+├── url_downloader.py  # Pobieracz z CivitAI / HuggingFace
+├── scraper.py         # Wyszukiwarka modeli
+├── install.bat        # Instalator Windows
+├── start.bat          # Launcher Windows
+├── locales/           # Pliki tłumaczeń (en, pl, ...)
+└── docs/              # Pływające okna z dokumentacją HTML
+```
 
 ---
 
 ## ☕ Wsparcie
 
-Jeśli SwiftDiffusion jest dla Ciebie przydatny, rozważ wsparcie rozwoju:
+Jeśli SwiftDiffusion oszczędza Ci czas, rozważ postawienie mi kawy:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/anonbotpl)
-
----
-
-<p align="center">
-  <i>Opracowane jako zadanie przebudowy interfejsu GUI Stable Diffusion.</i>
-</p>
