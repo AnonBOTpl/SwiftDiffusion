@@ -12,7 +12,7 @@ def search_ddg_model(query, limit=20):
 
     # Method 1: DuckDuckGo (Bing) — may find obscure models
     try:
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS  # v9+
         with DDGS() as ddgs:
             for r in ddgs.text(f"{query} model", max_results=limit * 5):
                 url = r.get("href", "") if isinstance(r, dict) else getattr(r, "href", "")

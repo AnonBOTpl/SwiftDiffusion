@@ -61,7 +61,7 @@ class SettingsManager:
             self.set_defaults()
             self.save()
         else:
-            self.config.read(self.filename, encoding="utf-8")
+            self.config.read(self.filename, encoding="utf-8-sig")
             self.validate_and_heal()
 
     def set_defaults(self):
@@ -84,7 +84,7 @@ class SettingsManager:
             self.save()
 
     def save(self):
-        with open(self.filename, 'w', encoding='utf-8') as configfile:
+        with open(self.filename, 'w', encoding='utf-8-sig') as configfile:
             self.config.write(configfile)
 
     def get(self, section, key, fallback=None):
