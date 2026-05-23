@@ -100,6 +100,14 @@ Po instalacji wystarczy kliknąć `start.bat`.
 
 ---
 
+## ☕ Wsparcie
+
+Jeśli SwiftDiffusion jest dla Ciebie przydatny, rozważ wsparcie rozwoju:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/anonbotpl)
+
+---
+
 <p align="center">
   <i>Opracowane jako zadanie przebudowy interfejsu GUI Stable Diffusion.</i>
 </p>

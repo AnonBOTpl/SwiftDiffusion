@@ -101,3 +101,11 @@ After a successful installation, simply double-click `start.bat`.
 * **OS:** Windows / Linux (must support PyQt6)
 
 ---
+
+## ☕ Support
+
+If you find SwiftDiffusion useful, consider supporting its development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/anonbotpl)
+
+---
