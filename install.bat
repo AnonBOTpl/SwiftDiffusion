@@ -2,18 +2,28 @@
 set VENV_DIR=.venv
 
 REM === Language selection ===
-echo.
+echo:
 echo ============================================
 echo        SwiftDiffusion Installer
 echo ============================================
-echo.
+echo:
 echo [1] English
 echo [2] Polski
-echo.
+echo:
 choice /c 12 /m "Select language / Wybierz jezyk: "
-if errorlevel 2 set LANG=pl
-if errorlevel 1 set LANG=en
-echo.
+if errorlevel 2 goto set_pl
+if errorlevel 1 goto set_en
+
+:set_pl
+set LANG=pl
+goto continue
+
+:set_en
+set LANG=en
+goto continue
+
+:continue
+echo:
 
 if "%LANG%"=="en" (
     echo ============================================
@@ -32,39 +42,39 @@ if not exist "%VENV_DIR%" (
 call %VENV_DIR%\Scripts\activate.bat
 
 if "%LANG%"=="en" (
-    echo.
+    echo:
     echo Step 1/4: Installing PyTorch (CUDA 12.8)...
 ) else (
-    echo.
+    echo:
     echo Krok 1/4: Instalowanie PyTorcha (CUDA 12.8)...
 )
 python -m pip install torch==2.7.1+cu128 torchvision==0.22.1+cu128 --extra-index-url https://download.pytorch.org/whl/cu128
 
 if "%LANG%"=="en" (
-    echo.
+    echo:
     echo Step 2/4: Installing xformers...
 ) else (
-    echo.
+    echo:
     echo Krok 2/4: Instalowanie xformers...
 )
 python -m pip install xformers==0.0.31.post1 --extra-index-url https://download.pytorch.org/whl/cu128 --no-deps
 
 if "%LANG%"=="en" (
-    echo.
+    echo:
     echo Step 3/4: Installing remaining libraries...
 ) else (
-    echo.
+    echo:
     echo Krok 3/4: Instalowanie reszty bibliotek...
 )
 python -m pip install -r requirements.txt
 
 if "%LANG%"=="en" (
-    echo.
+    echo:
     echo ============================================
     echo  Step 4/4: Writing settings file...
     echo ============================================
 ) else (
-    echo.
+    echo:
     echo ============================================
     echo  Krok 4/4: Zapisywanie pliku konfiguracyjnego...
     echo ============================================
@@ -86,27 +96,27 @@ if not exist settings.ini (
         echo output_controlnet = output/controlnet
         echo output_upscaled = output/upscaled
         echo docs = docs
-        echo.
+        echo:
         echo [UI]
         echo theme = Dark
         echo accent_color = #00d4ff
         echo language = %LANG%
-        echo.
+        echo:
         echo [Generation]
         echo default_sampler = DPM++ 2M
         echo default_scheduler = Normal
         echo default_vae = Domyślne ^(z modelu^)
-        echo.
+        echo:
         echo [Performance]
         echo vram_slicing = False
         echo attention_slicing = False
         echo cpu_offload = False
         echo auto_clear_vram = False
-        echo.
+        echo:
         echo [Preview]
         echo enabled = False
         echo interval = 5
-        echo.
+        echo:
         echo [Integration]
         echo hf_token =
         echo civitai_api_key =
@@ -120,7 +130,6 @@ if not exist settings.ini (
     REM Update only the language line in existing settings.ini
     findstr /b "language" settings.ini >nul
     if not errorlevel 1 (
-        REM Replace existing language line
         powershell -Command "(gc settings.ini) -replace '^language = .*', 'language = %LANG%' | Out-File -Encoding utf8 settings.ini"
     )
     if "%LANG%"=="en" (
@@ -130,22 +139,22 @@ if not exist settings.ini (
     )
 )
 
-echo.
+echo:
 if "%LANG%"=="en" (
     echo ============================================
     echo  Installation complete!
     echo ============================================
-    echo.
+    echo:
     choice /c YN /m "Launch SwiftDiffusion now? / Uruchomic teraz? (Y/N): "
 ) else (
     echo ============================================
     echo  Instalacja zakonczona!
     echo ============================================
-    echo.
+    echo:
     choice /c YN /m "Uruchomic teraz? / Launch now? (Y/N): "
 )
 
-if errorlevel 2 goto :end
+if errorlevel 2 goto end
 python main.py
 
 :end

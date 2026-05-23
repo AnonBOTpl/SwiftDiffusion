@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM === Try to detect language from settings.ini ===
+REM === Detect language from settings.ini ===
 set LANG=en
 if exist settings.ini (
     for /f "tokens=2 delims==" %%a in ('findstr /b "language" settings.ini') do set LANG=%%a
@@ -22,10 +22,10 @@ call .venv\Scripts\activate.bat
 python main.py
 
 if "%LANG%"=="pl" (
-    echo.
+    echo:
     echo Nacisnij dowolny klawisz, aby zakonczyc...
 ) else (
-    echo.
+    echo:
     echo Press any key to exit...
 )
 pause >nul
