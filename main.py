@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
 
         self.btn_tips_inp = QPushButton(tr("btn_tips"))
         self.btn_tips_inp.setObjectName("SecondaryBtn")
-        self.btn_tips_inp.clicked.connect(lambda: self.show_tips("Wskazówki Inpainting", "docs/tips_inpaint.html"))
+        self.btn_tips_inp.clicked.connect(lambda: self.show_tips(tr("tips_title_inpaint"), "docs/tips_inpaint.html"))
         inp_params.addWidget(self.btn_tips_inp)
 
         undo_redo_l = QHBoxLayout()
@@ -252,7 +252,7 @@ class MainWindow(QMainWindow):
         # 3. CONTROLNET
         self.cn_tab = QWidget(); self.tabs.addTab(self.cn_tab, tr("tab_controlnet")); cn_l = QHBoxLayout(self.cn_tab); cn_params = QVBoxLayout(); cn_params.setContentsMargins(15, 10, 15, 10); cn_params.setSpacing(10); lbl_ct = QLabel(tr("header_controlnet_tools")); lbl_ct.setObjectName("Header"); cn_params.addWidget(lbl_ct); self.cn_model_combo = QComboBox(); self.refresh_cn_models(); cn_params.addWidget(self.cn_model_combo); self.cn_steps = ParameterSlider(tr("label_steps"), 1, 100, 25); self.cn_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 7.5, 0.5, True); self.cn_strength = ParameterSlider(tr("label_weight"), 0.0, 2.0, 1.0, 0.1, True); self.cn_w = ParameterSlider(tr("label_width"), 256, 1024, 512, 64); self.cn_h = ParameterSlider(tr("label_height"), 256, 1024, 512, 64); self.cn_seed = QLineEdit("-1"); self.cn_seed.setValidator(QIntValidator(-1, 2147483647))
         for s in [self.cn_steps, self.cn_cfg, self.cn_strength, self.cn_w, self.cn_h]: cn_params.addWidget(s)
-        cn_params.addWidget(QLabel(tr("label_seed"))); cn_params.addWidget(self.cn_seed); self.btn_load_cn = QPushButton(tr("btn_load_ref")); self.btn_load_cn.setObjectName("SecondaryBtn"); self.btn_load_cn.clicked.connect(self.load_cn_image); cn_params.addWidget(self.btn_load_cn); self.btn_tips_cn = QPushButton(tr("btn_tips")); self.btn_tips_cn.setObjectName("SecondaryBtn"); self.btn_tips_cn.clicked.connect(lambda: self.show_tips("Wskazówki ControlNet", "docs/tips_controlnet.html")); cn_params.addWidget(self.btn_tips_cn); cn_params.addStretch(); self.btn_gen_cn = QPushButton(tr("btn_generate_comp")); self.btn_gen_cn.setObjectName("GenerateBtn"); self.btn_gen_cn.clicked.connect(self.start_controlnet); cn_params.addWidget(self.btn_gen_cn); cn_l.addLayout(cn_params, 0)
+        cn_params.addWidget(QLabel(tr("label_seed"))); cn_params.addWidget(self.cn_seed); self.btn_load_cn = QPushButton(tr("btn_load_ref")); self.btn_load_cn.setObjectName("SecondaryBtn"); self.btn_load_cn.clicked.connect(self.load_cn_image); cn_params.addWidget(self.btn_load_cn); self.btn_tips_cn = QPushButton(tr("btn_tips")); self.btn_tips_cn.setObjectName("SecondaryBtn"); self.btn_tips_cn.clicked.connect(lambda: self.show_tips(tr("tips_title_controlnet"), "docs/tips_controlnet.html")); cn_params.addWidget(self.btn_tips_cn); cn_params.addStretch(); self.btn_gen_cn = QPushButton(tr("btn_generate_comp")); self.btn_gen_cn.setObjectName("GenerateBtn"); self.btn_gen_cn.clicked.connect(self.start_controlnet); cn_params.addWidget(self.btn_gen_cn); cn_l.addLayout(cn_params, 0)
         cn_main = QVBoxLayout(); cn_main.setContentsMargins(20, 10, 16, 0); self.cn_prompt = QPlainTextEdit(); self.cn_prompt.setPlaceholderText(tr("placeholder_prompt")); self.cn_prompt.setFixedHeight(60); self.cn_neg = QPlainTextEdit(); self.cn_neg.setPlaceholderText(tr("placeholder_negative")); self.cn_neg.setFixedHeight(50); cn_main.addWidget(QLabel(tr("label_prompt"))); cn_main.addWidget(self.cn_prompt); cn_main.addWidget(QLabel(tr("label_negative"))); cn_main.addWidget(self.cn_neg); self.cn_preview = ClickableLabel(tr("placeholder_drop")); self.cn_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.cn_preview.setObjectName("PreviewArea"); self.cn_preview.setStyleSheet("border: 2px dashed #333; color: #555;"); cn_main.addWidget(self.cn_preview, 1); self.cn_progress = QProgressBar(); cn_main.addWidget(self.cn_progress); cn_l.addLayout(cn_main, 1)
 
         self.setAcceptDrops(True)
@@ -349,7 +349,7 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def refresh_all_comboboxes(self, path=None):
-        logger.info(f"[SYSTEM] Wykryto zmiany w folderach modeli, odświeżanie list...")
+        logger.info(f"[SYSTEM] Detected changes in model folders, refreshing lists...")
         self.refresh_base_models()
         self.refresh_vae_models()
         self.refresh_inpaint_models()
@@ -455,10 +455,10 @@ class MainWindow(QMainWindow):
         if success:
             self.p_bar.setFormat(tr("status_model_ready"))
             self._enable_generate_buttons()
-            logger.info("[SYSTEM] Model załadowany asynchronicznie.")
+            logger.info("[SYSTEM] Model loaded asynchronously.")
         else:
             self.p_bar.setFormat(tr("status_error"))
-            QMessageBox.critical(self, tr("status_error"), f"Błąd ładowania: {message}")
+            QMessageBox.critical(self, tr("status_error"), tr("error_loading_model").format(message=message))
     def toggle_img2img_ui(self, enabled):
         self.img2img_strength.setVisible(enabled)
         self.btn_load_img2img.setVisible(enabled)
@@ -504,7 +504,7 @@ class MainWindow(QMainWindow):
         }
         self.btn_gen_t2i.setEnabled(False); self.p_bar.setMaximum(params["steps"]); self.p_bar.setValue(0)
         self.live_preview.setStyleSheet("border: 1px solid #333; border-radius: 8px; background-color: #1a1a1a; color: #555; font-size: 12px;")
-        self.live_preview.setText("Generowanie...")
+        self.live_preview.setText(tr("worker_generating"))
         self.live_preview.show()
         self._pulse_state = False
         if self._pulse_timer is None:
@@ -515,7 +515,7 @@ class MainWindow(QMainWindow):
         if self.chk_img2img.isChecked():
             if not self.img2img_image_pil:
                 self.live_preview.hide()
-                QMessageBox.warning(self, tr("status_error"), "Załaduj obraz dla Img2Img")
+                QMessageBox.warning(self, tr("status_error"), tr("error_load_img2img"))
                 self.btn_gen_t2i.setEnabled(True)
                 return
             params["image"] = self.img2img_image_pil
@@ -600,7 +600,7 @@ class MainWindow(QMainWindow):
         if f: self.set_cn_ref_image(f)
     def set_cn_ref_image(self, path):
         pix = QPixmap(path); scaled = pix.scaled(512, 512, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        logger.info(f"[SYSTEM] Skalowanie CN: {pix.width()}x{pix.height()} -> {scaled.width()}x{scaled.height()}"); self.cn_preview.set_image(scaled); self.cn_preview.setText("")
+        logger.info(f"[SYSTEM] Scaling CN: {pix.width()}x{pix.height()} -> {scaled.width()}x{scaled.height()}"); self.cn_preview.set_image(scaled); self.cn_preview.setText("")
         self.ref_image_pil = qimage_to_pil(scaled.toImage())
     def start_adetailer(self):
         input_img = self.v_adet_in.get_image_pil()
@@ -688,7 +688,7 @@ class MainWindow(QMainWindow):
             import psutil
             ram = psutil.virtual_memory()
             self.ram_bar.setValue(int(ram.percent))
-            self.lbl_ram_info.setText(f"RAM: {ram.used/1024**3:.1f} / {ram.total/1024**3:.1f} GB")
+            self.lbl_ram_info.setText(tr("monitor_ram").format(used=ram.used/1024**3, total=ram.total/1024**3))
             self._set_mon_color(self.lbl_ram_info, ram.percent)
 
             if self.nvml_active:
@@ -700,19 +700,19 @@ class MainWindow(QMainWindow):
                     vram_total = info.total / 1024**3
                     vram_perc = (info.used / info.total) * 100
                     self.vram_bar.setValue(int(vram_perc))
-                    self.lbl_vram_info.setText(f"VRAM: {vram_used:.1f} / {vram_total:.1f} GB")
+                    self.lbl_vram_info.setText(tr("monitor_vram").format(used=vram_used, total=vram_total))
                     self._set_mon_color(self.lbl_vram_info, vram_perc)
 
                     util = pynvml.nvmlDeviceGetUtilizationRates(handle)
                     temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
                     self.gpu_bar.setValue(int(util.gpu))
-                    self.lbl_gpu_info.setText(f"GPU: {util.gpu}% | {temp}°C")
+                    self.lbl_gpu_info.setText(tr("monitor_gpu").format(util=util.gpu, temp=temp))
                     self._set_mon_color(self.lbl_gpu_info, util.gpu)
                 except Exception as e:
                     self.nvml_active = False
-                    self.lbl_vram_info.setText("VRAM: Error"); self.lbl_gpu_info.setText("GPU: Error")
+                    self.lbl_vram_info.setText(tr("monitor_vram_error")); self.lbl_gpu_info.setText(tr("monitor_gpu_error"))
             else:
-                self.lbl_vram_info.setText("VRAM: N/A (Non-NVIDIA)"); self.lbl_gpu_info.setText("GPU: N/A")
+                self.lbl_vram_info.setText(tr("monitor_vram_na")); self.lbl_gpu_info.setText(tr("monitor_gpu_na"))
 
         except Exception as e:
             logging.debug(f"Monitor error: {e}")

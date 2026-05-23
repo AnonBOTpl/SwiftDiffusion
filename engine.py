@@ -31,13 +31,13 @@ try:
     from spandrel import ModelLoader
 except ImportError:
     ModelLoader = None
-    logger.error("[SYSTEM] Brak biblioteki spandrel")
+    logger.error("[SYSTEM] Missing spandrel library")
 
 try:
     from ultralytics import YOLO
 except ImportError:
     YOLO = None
-    logger.error("[SYSTEM] Brak biblioteki ultralytics (YOLO)")
+    logger.error("[SYSTEM] Missing ultralytics (YOLO) library")
 
 
 class DiffusionEngine:
@@ -53,7 +53,7 @@ class DiffusionEngine:
 
     def _clear_vram(self):
         torch.cuda.empty_cache()
-        logger.info("[VRAM] Wyczyszczono pamięć GPU (torch.cuda.empty_cache())")
+        logger.info("[VRAM] GPU memory cleared (torch.cuda.empty_cache())")
 
     def load_model(self, model_path):
         if self.current_model_path == model_path and self.pipe:
@@ -65,7 +65,7 @@ class DiffusionEngine:
 
         self._clear_vram()
 
-        logger.info(f"[SYSTEM] Ładowanie modelu bazowego: {model_path}")
+        logger.info(f"[SYSTEM] Loading base model: {model_path}")
         if model_path.endswith('.safetensors'):
             self.pipe = StableDiffusionPipeline.from_single_file(
                 model_path, torch_dtype=torch.float16, use_safetensors=True
@@ -89,7 +89,7 @@ class DiffusionEngine:
     def load_inpaint_model(self, model_path):
         if model_path == "original":
             if self.inpaint_pipe and self.current_inpaint_model_path == "original": return
-            logger.info("[SYSTEM] Inicjalizacja Inpaint Pipeline z komponentów modelu głównego")
+            logger.info("[SYSTEM] Initializing Inpaint Pipeline from main model components")
             self.inpaint_pipe = StableDiffusionInpaintPipeline(**self.pipe.components)
             self.current_inpaint_model_path = "original"
         else:
@@ -100,7 +100,7 @@ class DiffusionEngine:
             if self.inpaint_pipe: del self.inpaint_pipe
             self._clear_vram()
 
-            logger.info(f"[SYSTEM] Ładowanie dedykowanego modelu Inpaint: {model_path}")
+            logger.info(f"[SYSTEM] Loading dedicated Inpaint model: {model_path}")
             self.inpaint_pipe = StableDiffusionInpaintPipeline.from_single_file(
                 model_path, torch_dtype=torch.float16, use_safetensors=True
             )
@@ -112,13 +112,13 @@ class DiffusionEngine:
 
     def load_controlnet_model(self, cn_model_path):
         if not self.pipe:
-            raise RuntimeError("Najpierw załaduj model główny!")
+            raise RuntimeError("Load the main model first!")
 
         if self.current_cn_model_path == cn_model_path and self.controlnet_pipe:
             return
 
         self._clear_vram()
-        logger.info(f"[SYSTEM] Ładowanie modelu ControlNet (współdzielenie komponentów): {cn_model_path}")
+        logger.info(f"[SYSTEM] Loading ControlNet model (component sharing): {cn_model_path}")
 
         if cn_model_path.endswith('.safetensors'):
             controlnet = ControlNetModel.from_single_file(cn_model_path, torch_dtype=torch.float16)
@@ -133,22 +133,22 @@ class DiffusionEngine:
     def load_lora(self, lora_path, adapter_name):
         if self.pipe and lora_path:
             self.pipe.load_lora_weights(lora_path, adapter_name=adapter_name)
-            logger.info(f"[SYSTEM] LoRA {lora_path} załadowana jako {adapter_name}")
+            logger.info(f"[SYSTEM] LoRA {lora_path} loaded as {adapter_name}")
 
     def unload_lora(self, adapter_name):
         if hasattr(self, 'pipe') and self.pipe is not None:
             try:
                 self.pipe.delete_adapters(adapter_name)
-                logger.info(f"[SYSTEM] LoRA {adapter_name} usunięta z pamięci modelu")
+                logger.info(f"[SYSTEM] LoRA {adapter_name} removed from model memory")
             except Exception as e:
-                logger.warning(f"[SYSTEM] Błąd przy usuwaniu LoRA {adapter_name}: {e}")
+                logger.warning(f"[SYSTEM] Error removing LoRA {adapter_name}: {e}")
 
     def apply_loras(self, lora_configs):
         if self.pipe and lora_configs:
             names = [cfg['name'] for cfg in lora_configs]
             weights = [cfg['weight'] for cfg in lora_configs]
             self.pipe.set_adapters(names, adapter_weights=weights)
-            logger.info(f"[SYSTEM] Zastosowano wagi LoRA: {dict(zip(names, weights))}")
+            logger.info(f"[SYSTEM] Applied LoRA weights: {dict(zip(names, weights))}")
         elif self.pipe:
             self.pipe.disable_lora()
 
@@ -176,7 +176,7 @@ class DiffusionEngine:
         use_karras = (scheduler_name == "Karras")
         use_exp = (scheduler_name == "Exponential")
 
-        logger.info(f"[SYSTEM] Ustawianie Schedulera: {sampler_name} ({scheduler_name})")
+        logger.info(f"[SYSTEM] Setting scheduler: {sampler_name} ({scheduler_name})")
 
         if sampler_name == "DPM++ 2M":
             pipe.scheduler = DPMSolverMultistepScheduler.from_config(config, use_karras_sigmas=use_karras, use_exponential_sigmas=use_exp)
@@ -193,7 +193,7 @@ class DiffusionEngine:
         if not vae_path or vae_path == "Domyślne (z modelu)":
             return
 
-        logger.info(f"[SYSTEM] Ładowanie niestandardowego VAE: {vae_path}")
+        logger.info(f"[SYSTEM] Loading custom VAE: {vae_path}")
         if vae_path.endswith((".safetensors", ".pt", ".ckpt")):
             custom_vae = AutoencoderKL.from_single_file(vae_path, torch_dtype=torch.float16, use_safetensors=vae_path.endswith(".safetensors"))
         else:
@@ -206,7 +206,7 @@ class DiffusionEngine:
         if settings.get_bool('Performance', 'auto_clear_vram'):
             gc.collect()
             torch.cuda.empty_cache()
-            logger.info("[VRAM] Automatyczne czyszczenie pamięci (auto_clear_vram)")
+            logger.info("[VRAM] Auto-clearing memory (auto_clear_vram)")
 
     def generate(self, params, callback=None):
         if 'sampler' in params and 'scheduler' in params:
@@ -239,7 +239,7 @@ class DiffusionEngine:
                 callback(step + 1, preview)
             return callback_kwargs
 
-        logger.info(f"[SYSTEM] Generowanie obrazu (txt2img), seed: {seed}")
+        logger.info(f"[SYSTEM] Generating image (txt2img), seed: {seed}")
         image = self.pipe(
             prompt=params['prompt'],
             negative_prompt=params['neg_prompt'],
@@ -307,7 +307,7 @@ class DiffusionEngine:
                 callback(step + 1, preview)
             return callback_kwargs
 
-        logger.info(f"[SYSTEM] Generowanie obrazu (img2img), seed: {seed}")
+        logger.info(f"[SYSTEM] Generating image (img2img), seed: {seed}")
         result = pipe(
             prompt=params['prompt'],
             negative_prompt=params['neg_prompt'],
@@ -403,7 +403,7 @@ class DiffusionEngine:
             if callback: callback(step + 1)
             return callback_kwargs
 
-        logger.info(f"[SYSTEM] Rozpoczęcie generacji ControlNet, seed: {seed}")
+        logger.info(f"[SYSTEM] Starting ControlNet generation, seed: {seed}")
         image = self.controlnet_pipe(
             prompt=params['prompt'],
             negative_prompt=params['neg_prompt'],
@@ -432,11 +432,11 @@ class DiffusionEngine:
         threshold = params['conf']
 
         if YOLO is None or not self.pipe:
-            logger.error("[ADETAILER] YOLO lub potok SD nie zainicjalizowany")
+            logger.error("[ADETAILER] YOLO or SD pipeline not initialized")
             return None
 
         # 1. Detekcja YOLO i generowanie maski
-        logger.info(f"[ADETAILER] Rozpoczęcie detekcji: {model_path}")
+        logger.info(f"[ADETAILER] Starting detection: {model_path}")
         try:
             yolo_model = YOLO(model_path)
             results = yolo_model(image, conf=threshold)
@@ -455,7 +455,7 @@ class DiffusionEngine:
             del yolo_model
 
             if faces_found == 0:
-                logger.info("[ADETAILER] Nie wykryto twarzy. Pomijanie.")
+                logger.info("[ADETAILER] No face detected. Skipping.")
                 return image
 
             # Dylatacja maski
@@ -466,7 +466,7 @@ class DiffusionEngine:
             mask_pil = Image.fromarray(mask_np).convert("L")
 
             # 2. Inpainting (Zero-Copy VRAM)
-            logger.info(f"[ADETAILER] Rozpoczęcie Inpaintingu ({faces_found} twarzy)")
+            logger.info(f"[ADETAILER] Starting Inpainting ({faces_found} faces)")
             inpaint_pipe = StableDiffusionInpaintPipeline(**self.pipe.components)
 
             # Aplikacja ustawień wydajności
@@ -496,7 +496,7 @@ class DiffusionEngine:
             return out_path
 
         except Exception as e:
-            logger.error(f"[ADETAILER] Błąd krytyczny: {e}")
+            logger.error(f"[ADETAILER] Critical error: {e}")
             return None
         finally:
             if 'inpaint_pipe' in locals(): del inpaint_pipe
@@ -508,7 +508,7 @@ class DiffusionEngine:
 
         if self.upscaler_path != upscaler_model_path:
             if self.upscaler_model: del self.upscaler_model; self._clear_vram()
-            logger.info(f"[SYSTEM] Ładowanie upscalera: {upscaler_model_path}")
+            logger.info(f"[SYSTEM] Loading upscaler: {upscaler_model_path}")
             loader = ModelLoader()
             model = loader.load_from_file(upscaler_model_path)
             self.upscaler_model = model.to("cuda").eval()
@@ -518,7 +518,7 @@ class DiffusionEngine:
         img_np = np.array(img).astype(np.float32) / 255.0
         img_tensor = torch.from_numpy(img_np).permute(2, 0, 1).unsqueeze(0).to("cuda")
 
-        logger.info(f"[SYSTEM] Powiększanie obrazu: {image_path}")
+        logger.info(f"[SYSTEM] Upscaling image: {image_path}")
         with torch.no_grad():
             out_tensor = self.upscaler_model(img_tensor)
             out_np = out_tensor.squeeze(0).permute(1, 2, 0).cpu().clamp(0, 1).numpy()

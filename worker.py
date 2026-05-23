@@ -1,7 +1,7 @@
 from PyQt6.QtCore import QThread, pyqtSignal
 import os, time
 import requests
-from config import settings
+from config import settings, tr
 
 def log(msg):
     """Print to console for debugging."""
@@ -19,12 +19,12 @@ class GenerationWorker(QThread):
         self.params = params
 
     def run(self):
-        self.status.emit("Generowanie...")
+        self.status.emit(tr("worker_generating"))
         file_path, used_seed = self.engine.generate(self.params, callback=lambda s, p: self.progress.emit(s, p))
         self.part_finished.emit(file_path, used_seed)
 
         if self.params.get('auto_upscale') and self.params.get('upscaler_model'):
-            self.status.emit("Powiększanie (Upscaling)...")
+            self.status.emit(tr("status_upscaling"))
             upscaled_path = self.engine.upscale_image(
                 file_path,
                 self.params['upscaler_model'],
@@ -47,12 +47,12 @@ class Img2ImgWorker(QThread):
         self.params = params
 
     def run(self):
-        self.status.emit("Img2Img...")
+        self.status.emit(tr("worker_img2img"))
         file_path, used_seed = self.engine.img2img(self.params, callback=lambda s, p: self.progress.emit(s, p))
         self.part_finished.emit(file_path, used_seed)
 
         if self.params.get('auto_upscale') and self.params.get('upscaler_model'):
-            self.status.emit("Powiększanie (Upscaling)...")
+            self.status.emit(tr("status_upscaling"))
             upscaled_path = self.engine.upscale_image(
                 file_path,
                 self.params['upscaler_model'],
@@ -74,7 +74,7 @@ class InpaintWorker(QThread):
         self.params = params
 
     def run(self):
-        self.status.emit("Inpainting...")
+        self.status.emit(tr("worker_inpainting"))
         file_path, used_seed = self.engine.inpaint(self.params, callback=lambda s: self.progress.emit(s))
         self.finished.emit(file_path, used_seed)
 
@@ -89,7 +89,7 @@ class ControlNetWorker(QThread):
         self.params = params
 
     def run(self):
-        self.status.emit("ControlNet (Canny)...")
+        self.status.emit(tr("worker_controlnet"))
         file_path, used_seed = self.engine.controlnet_generate(self.params, callback=lambda s: self.progress.emit(s))
         self.finished.emit(file_path, used_seed)
 
@@ -104,11 +104,11 @@ class ADetailerWorker(QThread):
         self.params = params
 
     def run(self):
-        self.status.emit("Detekcja YOLO / Inpainting...")
+        self.status.emit(tr("worker_yolo_detection"))
         out_path = self.engine.apply_adetailer(self.params, callback=lambda s: self.progress.emit(s))
 
         if out_path and self.params.get('auto_upscale') and self.params.get('upscaler_model'):
-            self.status.emit("ADetailer -> Upscaling...")
+            self.status.emit(tr("worker_adetailer_upscale"))
             ups_path = self.engine.upscale_image(
                 out_path,
                 self.params['upscaler_model'],
@@ -225,17 +225,17 @@ class DownloadWorker(QThread):
     def _download_hf(self):
         from huggingface_hub import hf_hub_download
         log(f"HF download: repo_id={self.repo_id}, filename='{self.filename}'")
-        self.progress.emit(0, "Łączenie z HuggingFace...")
+        self.progress.emit(0, tr("dl_connecting_hf"))
 
         fn = self.filename
         if not fn:
-            self.progress.emit(0, "Szukanie plików w repozytorium...")
+            self.progress.emit(0, tr("dl_searching_repo"))
             log(f"HF auto-detect files for {self.repo_id}")
             files = _hf_list_files(self.repo_id, self.token)
             log(f"HF files found: {files}")
             if not files:
                 log(f"HF ERROR: no .safetensors in {self.repo_id}")
-                self.finished.emit(False, "Nie znaleziono plików .safetensors w repozytorium")
+                self.finished.emit(False, tr("dl_error_no_files"))
                 return
             fn = files[0]
             if len(files) > 1:
@@ -252,17 +252,17 @@ class DownloadWorker(QThread):
             local_dir=os.path.dirname(self.destination)
         )
         log(f"HF download complete: {out}")
-        self.progress.emit(100, "Gotowe!")
+        self.progress.emit(100, tr("dl_download_done"))
         self.finished.emit(True, out)
 
     def _download_civitai(self):
-        self.progress.emit(0, "Pobieranie z CivitAI...")
+        self.progress.emit(0, tr("dl_downloading_civitai"))
         log(f"CivitAI download: version_id={self.version_id}, dest={self.destination}")
 
         vid = self.version_id
         if not vid:
             log("CivitAI ERROR: no version_id")
-            self.finished.emit(False, "Brak version_id modelu CivitAI")
+            self.finished.emit(False, tr("dl_error_no_version"))
             return
 
         api_key = settings.get('Integration', 'civitai_api_key')
@@ -277,13 +277,13 @@ class DownloadWorker(QThread):
             resp = requests.get(dl_url, headers=headers, stream=True, timeout=30)
         except Exception as e:
             log(f"CivitAI connection error: {e}")
-            self.finished.emit(False, f"Błąd połączenia: {e}")
+            self.finished.emit(False, tr("dl_error_connection").format(e=e))
             return
 
         log(f"CivitAI response: {resp.status_code}")
         if resp.status_code != 200:
             log(f"CivitAI error body: {resp.text[:500]}")
-            self.finished.emit(False, f"CivitAI błąd {resp.status_code}")
+            self.finished.emit(False, tr("dl_error_server").format(code=resp.status_code))
             return
 
         total = int(resp.headers.get("content-length", 0))
@@ -298,12 +298,12 @@ class DownloadWorker(QThread):
                     now = time.time()
                     if total and now - last_emit > 0.15:
                         pct = int(downloaded / total * 100)
-                        self.progress.emit(pct, f"Pobieranie... {pct}% ({downloaded//1048576}MB / {total//1048576}MB)")
+                        self.progress.emit(pct, tr("dl_downloading_progress").format(pct=pct, downloaded=downloaded//1048576, total=total//1048576))
                         log(f"CivitAI progress: {pct}% ({downloaded}/{total})")
                         last_emit = now
 
         log(f"CivitAI download complete: {self.destination}")
-        self.progress.emit(100, "Gotowe!")
+        self.progress.emit(100, tr("dl_download_done"))
         self.finished.emit(True, self.destination)
 
 class UpscaleWorker(QThread):
@@ -318,6 +318,6 @@ class UpscaleWorker(QThread):
         self.keep_vram = keep_vram
 
     def run(self):
-        self.status.emit("Powiększanie...")
+        self.status.emit(tr("status_upscaling"))
         upscaled_path = self.engine.upscale_image(self.image_path, self.model_path, self.keep_vram)
         self.finished.emit(upscaled_path)

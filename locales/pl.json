@@ -171,5 +171,42 @@
     "dl_search_no_results": "Brak wyników",
     "dl_file_version": "Wersja",
     "dl_size": "Rozmiar",
-    "btn_close": "Zamknij"
+    "btn_close": "Zamknij",
+
+    "worker_generating": "Generowanie...",
+    "worker_img2img": "Img2Img...",
+    "worker_inpainting": "Inpainting...",
+    "worker_controlnet": "ControlNet (Canny)...",
+    "worker_yolo_detection": "Detekcja YOLO / Inpainting...",
+    "worker_adetailer_upscale": "ADetailer -> Upscaling...",
+
+    "dl_connecting_hf": "Łączenie z HuggingFace...",
+    "dl_searching_repo": "Szukanie plików w repozytorium...",
+    "dl_downloading_civitai": "Pobieranie z CivitAI...",
+    "dl_downloading_progress": "Pobieranie... {pct}% ({pobrano}MB / {total}MB)",
+    "dl_downloading": "Pobieranie...",
+    "dl_download_done": "Gotowe!",
+    "dl_error_no_files": "Nie znaleziono plików .safetensors w repozytorium",
+    "dl_error_no_version": "Brak identyfikatora wersji modelu",
+    "dl_error_connection": "Błąd połączenia: {e}",
+    "dl_error_server": "Błąd serwera {code}",
+    "dl_results_found": "Znaleziono {n} modeli - kliknij wynik by wkleić URL",
+    "dl_search_results": "Znaleziono {n} wyników",
+    "dl_file_count": "{n} plików",
+
+    "error_loading_model": "Błąd ładowania: {message}",
+    "error_load_img2img": "Załaduj obraz dla Img2Img",
+    "error_reading_file": "Błąd odczytu pliku: {e}",
+    "error_tips_missing": "Brak pliku wskazówek: {file_path}",
+
+    "monitor_ram": "RAM: {used:.1f} / {total:.1f} GB",
+    "monitor_vram": "VRAM: {used:.1f} / {total:.1f} GB",
+    "monitor_gpu": "GPU: {util}% | {temp}°C",
+    "monitor_vram_error": "VRAM: Błąd",
+    "monitor_gpu_error": "GPU: Błąd",
+    "monitor_vram_na": "VRAM: N/D (Nie-NVIDIA)",
+    "monitor_gpu_na": "GPU: N/D",
+
+    "tips_title_inpaint": "Wskazówki Inpainting",
+    "tips_title_controlnet": "Wskazówki ControlNet"
 }

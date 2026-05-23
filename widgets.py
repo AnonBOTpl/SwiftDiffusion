@@ -356,9 +356,9 @@ class FloatingTips(QDialog):
                 with open(file_path, "r", encoding="utf-8") as f:
                     content = f.read()
             except Exception as e:
-                content = f"Błąd odczytu pliku: {e}"
+                content = tr("error_reading_file").format(e=e)
         else:
-            content = f"Brak pliku wskazówek: {file_path}"
+            content = tr("error_tips_missing").format(file_path=file_path)
 
         if file_path.endswith(".html"):
             self.browser.setHtml(content)
@@ -817,7 +817,7 @@ class UrlDownloaderTab(QWidget):
             item.setData(0, Qt.ItemDataRole.UserRole, r)
             self.search_results.addTopLevelItem(item)
         self.search_results.resizeColumnToContents(2)
-        self.dl_status.setText(f"Znaleziono {len(results)} modeli — kliknij wynik by wkleić URL")
+        self.dl_status.setText(tr("dl_results_found").format(n=len(results)))
 
     def _on_result_clicked(self, item, column):
         r = item.data(0, Qt.ItemDataRole.UserRole)
@@ -860,7 +860,7 @@ class UrlDownloaderTab(QWidget):
         mt = info.get("model_type", "?")
         cat = info.get("category", "").replace("models_", "")
         n_files = len(info.get("files", []))
-        self.lbl_meta.setText(f"{mt}  |  {arch}  |  {cat}  |  {n_files} plików")
+        self.lbl_meta.setText(f"{mt}  |  {arch}  |  {cat}  |  {tr('dl_file_count').format(n=n_files)}")
 
         # Thumbnail — clear before loading new
         self.thumb_label.clear()
@@ -946,7 +946,7 @@ class UrlDownloaderTab(QWidget):
                 if dest:
                     self.finished.emit(True, dest)
                 else:
-                    self.finished.emit(False, "Błąd pobierania")
+                    self.finished.emit(False, tr("dl_error"))
         self._worker = _DownloadThread()
         self._worker.progress.connect(self._on_dl_progress)
         self._worker.finished.connect(self._on_dl_finished)
@@ -1045,7 +1045,7 @@ class ScrapingTab(QWidget):
             item = QTreeWidgetItem([r["source"], r["title"], r["url"]])
             item.setToolTip(2, r["url"])
             self.result_tree.addTopLevelItem(item)
-        self.status_label.setText(f"Znaleziono {len(results)} wyników")
+        self.status_label.setText(tr("dl_search_results").format(n=len(results)))
 
     def _on_item_clicked(self, item, column):
         self._last_url = item.text(2)

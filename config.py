@@ -80,7 +80,7 @@ class SettingsManager:
                     requires_save = True
 
         if requires_save:
-            logger.info(f"[SYSTEM] Wykryto braki w konfiguracji. Naprawianie pliku {self.filename}...")
+            logger.info(f"[SYSTEM] Detected configuration gaps. Repairing file {self.filename}...")
             self.save()
 
     def save(self):
@@ -122,7 +122,7 @@ class Translator:
                 with open(path, 'r', encoding='utf-8') as f:
                     self.data = json.load(f)
             except Exception as e:
-                logger.error(f"[SYSTEM] Błąd ładowania języka {lang}: {e}")
+                logger.error(f"[SYSTEM] Error loading language {lang}: {e}")
                 self.data = {}
         else:
             self.data = {}

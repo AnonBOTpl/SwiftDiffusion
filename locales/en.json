@@ -171,5 +171,42 @@
     "dl_search_no_results": "No results",
     "dl_file_version": "Version",
     "dl_size": "Size",
-    "btn_close": "Close"
+    "btn_close": "Close",
+
+    "worker_generating": "Generating...",
+    "worker_img2img": "Img2Img...",
+    "worker_inpainting": "Inpainting...",
+    "worker_controlnet": "ControlNet (Canny)...",
+    "worker_yolo_detection": "YOLO detection / Inpainting...",
+    "worker_adetailer_upscale": "ADetailer -> Upscaling...",
+
+    "dl_connecting_hf": "Connecting to HuggingFace...",
+    "dl_searching_repo": "Searching repository files...",
+    "dl_downloading_civitai": "Downloading from CivitAI...",
+    "dl_downloading_progress": "Downloading... {pct}% ({downloaded}MB / {total}MB)",
+    "dl_downloading": "Downloading...",
+    "dl_download_done": "Done!",
+    "dl_error_no_files": "No .safetensors files found in repository",
+    "dl_error_no_version": "No model version ID",
+    "dl_error_connection": "Connection error: {e}",
+    "dl_error_server": "Server error {code}",
+    "dl_results_found": "Found {n} models - click a result to paste URL",
+    "dl_search_results": "Found {n} results",
+    "dl_file_count": "{n} files",
+
+    "error_loading_model": "Error loading: {message}",
+    "error_load_img2img": "Load an image for Img2Img",
+    "error_reading_file": "Error reading file: {e}",
+    "error_tips_missing": "Missing tips file: {file_path}",
+
+    "monitor_ram": "RAM: {used:.1f} / {total:.1f} GB",
+    "monitor_vram": "VRAM: {used:.1f} / {total:.1f} GB",
+    "monitor_gpu": "GPU: {util}% | {temp}°C",
+    "monitor_vram_error": "VRAM: Error",
+    "monitor_gpu_error": "GPU: Error",
+    "monitor_vram_na": "VRAM: N/A (Non-NVIDIA)",
+    "monitor_gpu_na": "GPU: N/A",
+
+    "tips_title_inpaint": "Inpainting Tips",
+    "tips_title_controlnet": "ControlNet Tips"
 }
