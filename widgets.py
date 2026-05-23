@@ -476,10 +476,15 @@ class ClickableLabel(QLabel):
     def set_image(self, path_or_pixmap):
         self.pixmap_cached = QPixmap(path_or_pixmap) if isinstance(path_or_pixmap, str) else path_or_pixmap
         if self.pixmap_cached:
-            self.setPixmap(self.pixmap_cached.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            self.setPixmap(self.pixmap_cached)
     def update_scaling(self):
-        if self.pixmap_cached:
-            self.setPixmap(self.pixmap_cached.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        if self.pixmap_cached and not self.pixmap_cached.isNull():
+            s = self.size()
+            if s.isValid() and s.width() > 1 and s.height() > 1:
+                self.setPixmap(self.pixmap_cached.scaled(s, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_scaling()
     def mousePressEvent(self, e):
         if self.pixmap_cached: self.clicked.emit(self.pixmap_cached)
 
@@ -504,6 +509,7 @@ class InpaintCanvas(QGraphicsView):
 
         self.base_pixmap_item = QGraphicsPixmapItem()
         self.scene.addItem(self.base_pixmap_item)
+        self._original_pixmap = None
 
         self.undo_stack = QUndoStack(self)
         self.brush_size = 20
@@ -511,9 +517,10 @@ class InpaintCanvas(QGraphicsView):
         self.last_point = QPoint()
 
     def set_base_image(self, pixmap):
-        scaled = pixmap.scaled(512, 512, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        self.base_pixmap_item.setPixmap(scaled)
-        self.scene.setSceneRect(0, 0, scaled.width(), scaled.height())
+        self._original_pixmap = pixmap
+        self.base_pixmap_item.setPixmap(pixmap)
+        self.scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
+        self.fitInView(self.base_pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
         # Wyczyszczenie historii przy nowym obrazie
         self.undo_stack.clear()
         # Wyczyszczenie poprzednich masek
@@ -580,6 +587,8 @@ class InpaintCanvas(QGraphicsView):
         return binary_mask
 
     def get_image_pil(self):
+        if self._original_pixmap is not None and not self._original_pixmap.isNull():
+            return qimage_to_pil(self._original_pixmap.toImage())
         pix = self.base_pixmap_item.pixmap()
         if pix.isNull(): return PILImage.new("RGB", (512, 512), (0,0,0))
         return qimage_to_pil(pix.toImage())

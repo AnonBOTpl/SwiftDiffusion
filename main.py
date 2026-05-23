@@ -730,7 +730,7 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def resizeEvent(self, event):
-        super().resizeEvent(event); self.v_orig.update_scaling(); self.v_ups.update_scaling()
+        super().resizeEvent(event); self.v_orig.update_scaling(); self.v_ups.update_scaling(); self.v_adet_in.update_scaling(); self.v_adet_out.update_scaling()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv); window = MainWindow(); window.show(); sys.exit(app.exec())
