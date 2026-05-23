@@ -13,7 +13,6 @@ echo.
 choice /c 12 /m "Select language / Wybierz jezyk: "
 if errorlevel 2 set LANG=pl
 if errorlevel 1 set LANG=en
-set LANG_OK=1
 
 REM === Step 0/4: Virtual environment ===
 echo.
@@ -28,10 +27,7 @@ echo  Step 0/4: Creating virtual environment...
 echo ============================================
 :end_0
 
-if not exist "%VENV_DIR%" (
-    python -m venv %VENV_DIR%
-)
-
+if not exist "%VENV_DIR%" python -m venv %VENV_DIR%
 call %VENV_DIR%\Scripts\activate.bat
 
 REM === Step 1/4: PyTorch ===
@@ -77,66 +73,67 @@ echo  Step 4/4: Writing settings file...
 echo ============================================
 :end_4
 
-if not exist settings.ini (
-    (
-        echo [Paths]
-        echo models_sd = models/stable_diffusion
-        echo models_lora = models/lora
-        echo models_controlnet = models/controlnet
-        echo models_inpaint = models/inpaint
-        echo models_vae = models/vae
-        echo models_facerestore = models/facerestore
-        echo models_facedetection = models/facedetection
-        echo models_upscalers = models/upscalers
-        echo output_txt2img = output/txt2img
-        echo output_inpaint = output/inpaint
-        echo output_controlnet = output/controlnet
-        echo output_upscaled = output/upscaled
-        echo docs = docs
-        echo.
-        echo [UI]
-        echo theme = Dark
-        echo accent_color = #00d4ff
-        echo language = %LANG%
-        echo.
-        echo [Generation]
-        echo default_sampler = DPM++ 2M
-        echo default_scheduler = Normal
-        echo default_vae = Domyslne ^(z modelu^)
-        echo.
-        echo [Performance]
-        echo vram_slicing = False
-        echo attention_slicing = False
-        echo cpu_offload = False
-        echo auto_clear_vram = False
-        echo.
-        echo [Preview]
-        echo enabled = False
-        echo interval = 5
-        echo.
-        echo [Integration]
-        echo hf_token =
-        echo civitai_api_key =
-    ) > settings.ini
-    if "%LANG%"=="en" goto en_4a
-    echo Plik konfiguracyjny utworzony.
-    goto end_4a
-    :en_4a
-    echo Settings file created.
-    :end_4a
-) else (
-    REM Update language line in existing settings.ini
-    findstr /b "language" settings.ini >nul
-    if not errorlevel 1 (
-        powershell -Command "(gc settings.ini) -replace '^language = .*', 'language = %LANG%' | Out-File -Encoding utf8 settings.ini"
-    )
-    if "%LANG%"=="en" goto en_4b
-    echo Plik konfiguracyjny zaktualizowany na jezyk: %LANG%.
-    goto end_4b
-    :en_4b
-    echo Settings file updated with language: %LANG%.
-    :end_4b
-)
+if exist settings.ini goto update_settings
+goto create_settings
+
+:create_settings
+(
+    echo [Paths]
+    echo models_sd = models/stable_diffusion
+    echo models_lora = models/lora
+    echo models_controlnet = models/controlnet
+    echo models_inpaint = models/inpaint
+    echo models_vae = models/vae
+    echo models_facerestore = models/facerestore
+    echo models_facedetection = models/facedetection
+    echo models_upscalers = models/upscalers
+    echo output_txt2img = output/txt2img
+    echo output_inpaint = output/inpaint
+    echo output_controlnet = output/controlnet
+    echo output_upscaled = output/upscaled
+    echo docs = docs
+    echo.
+    echo [UI]
+    echo theme = Dark
+    echo accent_color = #00d4ff
+    echo language = %LANG%
+    echo.
+    echo [Generation]
+    echo default_sampler = DPM++ 2M
+    echo default_scheduler = Normal
+    echo default_vae = Domyslne ^(z modelu^)
+    echo.
+    echo [Performance]
+    echo vram_slicing = False
+    echo attention_slicing = False
+    echo cpu_offload = False
+    echo auto_clear_vram = False
+    echo.
+    echo [Preview]
+    echo enabled = False
+    echo interval = 5
+    echo.
+    echo [Integration]
+    echo hf_token =
+    echo civitai_api_key =
+) > settings.ini
+if "%LANG%"=="en" goto cs_en
+echo Plik konfiguracyjny utworzony.
+goto settings_done
+:cs_en
+echo Settings file created.
+goto settings_done
+
+:update_settings
+findstr /b "language" settings.ini >nul
+if errorlevel 1 goto settings_done
+powershell -Command "(gc settings.ini) -replace '^language = .*', 'language = %LANG%' | Out-File -Encoding utf8 settings.ini"
+if "%LANG%"=="en" goto us_en
+echo Plik konfiguracyjny zaktualizowany na jezyk: %LANG%.
+goto settings_done
+:us_en
+echo Settings file updated with language: %LANG%.
+:settings_done
 
 REM === Done ===
 echo.
