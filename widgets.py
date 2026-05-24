@@ -1161,11 +1161,13 @@ TAGS_DIR = os.path.join(os.path.dirname(__file__), "tags")
 class PromptBuilderPanel(QWidget):
     prompt_ready = pyqtSignal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, engine=None, parent=None):
         super().__init__(parent)
+        self._engine = engine
         self._categories = []
         self._selected = []
-        self._tag_btns = {}  # tag -> QPushButton
+        self._tag_btns = {}
+        self._emb_page_idx = None
         self._load_tags()
 
         main_l = QVBoxLayout(self)
@@ -1188,7 +1190,15 @@ class PromptBuilderPanel(QWidget):
                 self._tag_btns[tag] = btn
             page.setLayout(flow)
             self._stack.addWidget(page)
+
+        self._emb_page = QWidget()
+        self._emb_flow = FlowLayout(self._emb_page)
+        self._emb_flow.setSpacing(6)
+        self._emb_page.setLayout(self._emb_flow)
+        self._emb_page_idx = self._stack.addWidget(self._emb_page)
+
         self._tab_bar.currentChanged.connect(self._stack.setCurrentIndex)
+        self.refresh_embeddings()
 
         cat_row = QHBoxLayout()
         cat_row.addWidget(self._tab_bar)
@@ -1232,6 +1242,28 @@ class PromptBuilderPanel(QWidget):
                 self._categories.append(data)
             except Exception:
                 pass
+
+    def refresh_embeddings(self):
+        for w in reversed(range(self._emb_flow.count())):
+            item = self._emb_flow.takeAt(0)
+            if item and item.widget():
+                item.widget().deleteLater()
+
+        names = self._engine.get_embeddings() if self._engine else []
+        if not names:
+            self._tab_bar.setTabText(self._emb_page_idx, "")
+            self._tab_bar.setTabEnabled(self._emb_page_idx, False)
+            return
+
+        self._tab_bar.setTabText(self._emb_page_idx, tr("pb_embeddings"))
+        self._tab_bar.setTabEnabled(self._emb_page_idx, True)
+        for name in names:
+            btn = QPushButton(name)
+            btn.setCheckable(True)
+            btn.setStyleSheet("QPushButton { padding: 4px 10px; border: 1px solid #444; border-radius: 4px; background: #2a2a2a; color: #ccc; font-size: 11px; } QPushButton:checked { background: #7a4a9e; color: white; border-color: #9a6abe; }")
+            btn.clicked.connect(lambda _, t=name: self._toggle_tag(t))
+            self._emb_flow.addWidget(btn)
+            self._tag_btns[name] = btn
 
     def _toggle_tag(self, tag):
         if tag in self._selected:

@@ -32,6 +32,7 @@
     "pb_preview": "Wybrane tagi:",
     "pb_clear": "Wyczyść",
     "pb_copy": "Kopiuj do Text2Image",
+    "pb_embeddings": "Embeddingi",
 
     "header_params": "PARAMETRY",
     "header_inpaint_tools": "NARZĘDZIA INPAINTINGU",

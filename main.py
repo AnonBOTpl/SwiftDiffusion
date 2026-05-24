@@ -371,7 +371,7 @@ class MainWindow(QMainWindow):
 
         # 6. PROMPT BUILDER
         logger.info("[UI] Building Prompt Builder tab...")
-        self.pb_panel = PromptBuilderPanel()
+        self.pb_panel = PromptBuilderPanel(engine=self.engine)
         self.pb_panel.prompt_ready.connect(self._on_prompt_ready)
         self.tabs.addTab(self.pb_panel, tr("tab_prompt_builder"))
 
@@ -548,6 +548,7 @@ class MainWindow(QMainWindow):
             except ImportError:
                 self.lbl_compel.setText(tr("compel_unavailable"))
                 self.lbl_compel.setStyleSheet("color: #888; font-size: 10px;")
+            self.pb_panel.refresh_embeddings()
         else:
             self.p_bar.setFormat(tr("status_error"))
             QMessageBox.critical(self, tr("status_error"), tr("error_loading_model").format(message=message))

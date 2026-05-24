@@ -18,6 +18,7 @@ class SettingsManager:
             'models_facerestore': 'models/facerestore',
             'models_facedetection': 'models/facedetection',
             'models_upscalers': 'models/upscalers',
+            'models_embeddings': 'models/embeddings',
             'output_txt2img': 'output/txt2img',
             'output_inpaint': 'output/inpaint',
             'output_controlnet': 'output/controlnet',

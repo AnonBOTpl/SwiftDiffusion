@@ -57,6 +57,7 @@ class DiffusionEngine:
         self.upscaler_model = None
         self.upscaler_path = None
         self._stop_flag = False
+        self.embeddings = []
 
     def stop_generation(self):
         self._stop_flag = True
@@ -108,6 +109,7 @@ class DiffusionEngine:
         self.current_cn_model_path = None
         self.inpaint_pipe = None
         self.controlnet_pipe = None
+        self._load_embeddings()
 
     def load_inpaint_model(self, model_path):
         if model_path == "original":
@@ -234,6 +236,29 @@ class DiffusionEngine:
             torch.cuda.empty_cache()
             logger.info("[VRAM] Auto-clearing memory (auto_clear_vram)")
 
+    def _load_embeddings(self):
+        self.embeddings = []
+        if self.pipe is None:
+            return
+        emb_dir = settings.get('Paths', 'models_embeddings')
+        if not emb_dir or not os.path.isdir(emb_dir):
+            return
+        exts = (".pt", ".bin", ".safetensors")
+        for fname in sorted(os.listdir(emb_dir)):
+            if not fname.lower().endswith(exts):
+                continue
+            path = os.path.join(emb_dir, fname)
+            token = os.path.splitext(fname)[0].lower().replace(" ", "_")
+            try:
+                self.pipe.load_textual_inversion(path, token=token)
+                self.embeddings.append(token)
+                logger.info(f"[EMBED] Loaded: {fname} as '{token}'")
+            except Exception as e:
+                logger.warning(f"[EMBED] Failed to load {fname}: {e}")
+
+    def get_embeddings(self):
+        return self.embeddings[:]
+
     def _encode_prompt(self, prompt, neg_prompt):
         try:
             from compel import Compel
@@ -251,8 +276,10 @@ class DiffusionEngine:
                 p_emb = compel("")
             if n_emb is None:
                 n_emb = compel("")
+            logger.info(f"[COMPEL] Active - prompt embeddings shape: {p_emb.shape}")
             return True, p_emb, n_emb
-        except Exception:
+        except Exception as e:
+            logger.info(f"[COMPEL] Not available (using plain text): {e}")
             return False, prompt, neg_prompt
 
     def generate(self, params, callback=None):
