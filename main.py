@@ -15,22 +15,28 @@ from widgets import (
     SettingsDialog, WelcomeDialog, ModelDownloaderTab, UrlDownloaderTab
 )
 
-APP_VERSION = "2.18.0"
+APP_VERSION = "2.18.1"
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        logger.info("[STARTUP] Initializing MainWindow...")
         try:
             import pynvml
             pynvml.nvmlInit()
             self.nvml_active = True
+            logger.info("[STARTUP] NVIDIA management initialized")
         except Exception:
             self.nvml_active = False
+            logger.info("[STARTUP] NVIDIA management not available")
 
         self.engine = DiffusionEngine()
+        logger.info("[STARTUP] DiffusionEngine created")
         self.loras = {}
         self.setup_folders()
+        logger.info("[STARTUP] Folders ready")
         self.setup_watchers()
+        logger.info("[STARTUP] File watchers active")
         self.current_seed = None
         self.last_generated_path = None
         self.last_upscaled_path = None
@@ -39,8 +45,10 @@ class MainWindow(QMainWindow):
         self.tips_window = None
 
         self.init_ui()
+        logger.info("[STARTUP] UI initialized")
 
         if settings.is_first_run:
+            logger.info("[STARTUP] First run - showing WelcomeDialog")
             WelcomeDialog(self).exec()
             self.apply_settings_ui()
     def setup_folders(self):
@@ -67,6 +75,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle(f"Swift Diffusion v{APP_VERSION}")
+        logger.info("[UI] Building interface...")
         central_widget = QWidget(); self.setCentralWidget(central_widget); global_layout = QHBoxLayout(central_widget); global_layout.setContentsMargins(0, 0, 0, 0); global_layout.setSpacing(0)
 
         # SIDEBAR
@@ -126,6 +135,7 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget(); global_layout.addWidget(self.tabs, 1)
 
         # 1. TEXT2IMAGE
+        logger.info("[UI] Building T2I tab...")
         self.t2i_tab = QWidget(); self.tabs.addTab(self.t2i_tab, tr("tab_t2i")); t2i_l = QHBoxLayout(self.t2i_tab); t2i_params = QVBoxLayout(); t2i_params.setContentsMargins(15, 10, 15, 10); t2i_params.setSpacing(10); self.lbl_p = QLabel(tr("header_params")); self.lbl_p.setObjectName("Header"); t2i_params.addWidget(self.lbl_p); self.s_steps = ParameterSlider(tr("label_steps"), 1, 100, 20); self.s_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 6.0, 0.5, True); self.s_w = ParameterSlider(tr("label_width"), 256, 1024, 512, 64); self.s_h = ParameterSlider(tr("label_height"), 256, 1024, 512, 64); self.s_seed = QLineEdit("-1"); self.s_seed.setValidator(QIntValidator(-1, 2147483647))
         for s in [self.s_steps, self.s_cfg, self.s_w, self.s_h]: t2i_params.addWidget(s)
         self.lbl_seed_t2i = QLabel(tr("label_seed")); t2i_params.addWidget(self.lbl_seed_t2i); t2i_params.addWidget(self.s_seed)
@@ -182,6 +192,7 @@ class MainWindow(QMainWindow):
         s_box = QHBoxLayout(); self.l_status = QLabel(""); self.l_status.setStyleSheet("color: #00d4ff; font-weight: bold; font-size: 11px;"); self.btn_copy = QPushButton(tr("btn_copy")); self.btn_copy.setObjectName("CopyBtn"); self.btn_copy.hide(); self.btn_copy.clicked.connect(self.copy_seed_to_clipboard); s_box.addStretch(); s_box.addWidget(self.l_status); s_box.addWidget(self.btn_copy); s_box.addStretch(); t2i_main.addLayout(s_box); self.p_bar = QProgressBar(); t2i_main.addWidget(self.p_bar); t2i_l.addLayout(t2i_main, 1)
 
         # 2. INPAINTING
+        logger.info("[UI] Building Inpaint tab...")
         self.inpaint_tab = QWidget()
         self.tabs.addTab(self.inpaint_tab, tr("tab_inpaint"))
         inp_l = QHBoxLayout(self.inpaint_tab)
@@ -250,6 +261,7 @@ class MainWindow(QMainWindow):
         self.i_progress = QProgressBar(); inp_main.addWidget(self.i_progress); inp_l.addLayout(inp_main, 1)
 
         # 3. CONTROLNET
+        logger.info("[UI] Building ControlNet tab...")
         self.cn_tab = QWidget(); self.tabs.addTab(self.cn_tab, tr("tab_controlnet")); cn_l = QHBoxLayout(self.cn_tab); cn_params = QVBoxLayout(); cn_params.setContentsMargins(15, 10, 15, 10); cn_params.setSpacing(10); lbl_ct = QLabel(tr("header_controlnet_tools")); lbl_ct.setObjectName("Header"); cn_params.addWidget(lbl_ct); self.cn_model_combo = QComboBox(); self.refresh_cn_models(); cn_params.addWidget(self.cn_model_combo); self.cn_steps = ParameterSlider(tr("label_steps"), 1, 100, 25); self.cn_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 7.5, 0.5, True); self.cn_strength = ParameterSlider(tr("label_weight"), 0.0, 2.0, 1.0, 0.1, True); self.cn_w = ParameterSlider(tr("label_width"), 256, 1024, 512, 64); self.cn_h = ParameterSlider(tr("label_height"), 256, 1024, 512, 64); self.cn_seed = QLineEdit("-1"); self.cn_seed.setValidator(QIntValidator(-1, 2147483647))
         for s in [self.cn_steps, self.cn_cfg, self.cn_strength, self.cn_w, self.cn_h]: cn_params.addWidget(s)
         cn_params.addWidget(QLabel(tr("label_seed"))); cn_params.addWidget(self.cn_seed); self.btn_load_cn = QPushButton(tr("btn_load_ref")); self.btn_load_cn.setObjectName("SecondaryBtn"); self.btn_load_cn.clicked.connect(self.load_cn_image); cn_params.addWidget(self.btn_load_cn); self.btn_tips_cn = QPushButton(tr("btn_tips")); self.btn_tips_cn.setObjectName("SecondaryBtn"); self.btn_tips_cn.clicked.connect(lambda: self.show_tips(tr("tips_title_controlnet"), "docs/tips_controlnet.html")); cn_params.addWidget(self.btn_tips_cn); cn_params.addStretch(); self.btn_gen_cn = QPushButton(tr("btn_generate_comp")); self.btn_gen_cn.setObjectName("GenerateBtn"); self.btn_gen_cn.clicked.connect(self.start_controlnet); cn_params.addWidget(self.btn_gen_cn); cn_l.addLayout(cn_params, 0)
@@ -258,6 +270,7 @@ class MainWindow(QMainWindow):
         self.setAcceptDrops(True)
 
         # 4. ADETAILER
+        logger.info("[UI] Building ADetailer tab...")
         self.adet_tab = QWidget(); self.tabs.addTab(self.adet_tab, tr("tab_adetailer")); adet_l = QHBoxLayout(self.adet_tab)
         adet_params = QVBoxLayout(); adet_params.setContentsMargins(15, 10, 15, 10); adet_params.setSpacing(10)
         lbl_adet_h = QLabel(tr("tab_adetailer")); lbl_adet_h.setObjectName("Header"); adet_params.addWidget(lbl_adet_h)
@@ -290,14 +303,19 @@ class MainWindow(QMainWindow):
         adet_l.addLayout(adet_main, 1)
 
         # 5. GALLERY
+        logger.info("[UI] Building Gallery tab...")
         self.gal_tab = QWidget(); self.tabs.addTab(self.gal_tab, tr("tab_gallery")); gal_l = QVBoxLayout(self.gal_tab)
         h_gal = QHBoxLayout(); btn_ref = QPushButton(tr("btn_refresh_gallery")); btn_ref.setObjectName("ActionBtn"); btn_ref.clicked.connect(self.refresh_gallery); h_gal.addWidget(btn_ref); h_gal.addStretch(); gal_l.addLayout(h_gal)
         self.gal_list = QListWidget(); self.gal_list.setViewMode(QListWidget.ViewMode.IconMode); self.gal_list.setResizeMode(QListWidget.ResizeMode.Adjust); self.gal_list.setIconSize(QSize(200, 200)); self.gal_list.setSpacing(10); self.gal_list.setStyleSheet("background-color: #1a1a1a; border-radius: 8px;"); self.gal_list.itemDoubleClicked.connect(self.open_gallery_detail); gal_l.addWidget(self.gal_list)
 
         # 6. DOWNLOADER
+        logger.info("[UI] Building Downloader tab...")
         self.dl_tab = ModelDownloaderTab()
         self.tabs.addTab(self.dl_tab, "📥 Downloader")
 
+        self.tabs.currentChanged.connect(self._on_tab_changed)
+
+        logger.info("[UI] Finalizing startup...")
         self._pulse_state = False
         self._pulse_timer = None
         self._prog_anim = None
@@ -599,9 +617,9 @@ class MainWindow(QMainWindow):
         f, _ = QFileDialog.getOpenFileName(self, tr("dialog_ref"), "", "Images (*.png *.jpg *.jpeg)")
         if f: self.set_cn_ref_image(f)
     def set_cn_ref_image(self, path):
-        pix = QPixmap(path); scaled = pix.scaled(512, 512, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        logger.info(f"[SYSTEM] Scaling CN: {pix.width()}x{pix.height()} -> {scaled.width()}x{scaled.height()}"); self.cn_preview.set_image(scaled); self.cn_preview.setText("")
-        self.ref_image_pil = qimage_to_pil(scaled.toImage())
+        pix = QPixmap(path)
+        logger.info(f"[SYSTEM] Loading CN image: {pix.width()}x{pix.height()}"); self.cn_preview.set_image(pix); self.cn_preview.setText("")
+        self.ref_image_pil = qimage_to_pil(pix.toImage())
     def start_adetailer(self):
         input_img = self.v_adet_in.get_image_pil()
         if not input_img or not self.engine.pipe:
@@ -730,7 +748,13 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def resizeEvent(self, event):
-        super().resizeEvent(event); self.v_orig.update_scaling(); self.v_ups.update_scaling(); self.v_adet_in.update_scaling(); self.v_adet_out.update_scaling()
+        super().resizeEvent(event); self.v_orig.update_scaling(); self.v_ups.update_scaling(); self.v_adet_in.update_scaling(); self.v_adet_out.update_scaling(); self.cn_preview.update_scaling()
+
+    def _on_tab_changed(self, index):
+        for w in [self.v_orig, self.v_ups, self.v_adet_in, self.v_adet_out, self.cn_preview]:
+            w.update_scaling()
+        if self.canvas.base_pixmap_item.pixmap() and not self.canvas.base_pixmap_item.pixmap().isNull():
+            self.canvas.fitInView(self.canvas.base_pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv); window = MainWindow(); window.show(); sys.exit(app.exec())

@@ -1,147 +1,157 @@
 # Changelog
 
-## [2.18.0] - 2026-05-23 – Poprawki motywów i UI
-### Poprawiono
-- **Kolor akcentu:** Każdy motyw ma domyślny akcent zamiast globalnego #00d4ff. W ustawieniach checkbox "Własny akcent" – gdy odznaczony, używa koloru wbudowanego w motyw.
-- **Fade-in na zakładkach (usunięty):** `QGraphicsOpacityEffect` powodował znikanie wszystkich kontrolek – przywrócono błyskawiczne przełączanie.
-- **Pola Negative:** Wysokość zwiększona z 30→50 px we wszystkich zakładkach (Inpaint, ControlNet, ADetailer, T2I). Tekst placeholdera nie był w pełni widoczny.
-- **Marginesy:** Zmniejszony prawy margines w Inpaint i ControlNet z 20→16 px dla lepszego wykorzystania szerokości.
+## [2.18.1] - 2026-05-24 – Image scaling & startup logging
+### Fixed
+- **Upscaled preview:** Image now fits immediately into the preview widget (`ClickableLabel.update_scaling()` called right after `set_image()`), no longer waiting for manual window resize.
+- **InpaintCanvas:** Replaced hardcoded 512×512 with `fitInView()` – image fills available space; added `resizeEvent` to re-apply fit on window resize.
+- **ControlNet preview:** No longer pre-scaled to 512×512 before display – original resolution preserved in `pixmap_cached`.
+- **Tab switching:** Added `_on_tab_changed` handler that refreshes all previews (ClickableLabel + InpaintCanvas).
+- **Window resize:** ADetailer and ControlNet previews now updated on resize (were missing from `MainWindow.resizeEvent`).
+### Added
+- **Startup logging:** `[STARTUP]` and `[UI]` console messages show each initialization step (NVML, engine, folders, watchers, every UI tab).
+
+## [2.18.0] - 2026-05-23 – Theme & UI fixes
+### Fixed
+- **Accent color:** Each theme now has a built-in default accent instead of a global #00d4ff. Settings checkbox "Custom accent" – when unchecked, uses the theme's default color.
+- **Tab fade animation (removed):** `QGraphicsOpacityEffect` caused all tab controls to disappear – reverted to instant tab switching.
+- **Negative prompt fields:** Height increased from 30→50 px across all tabs (Inpaint, ControlNet, ADetailer, T2I). Placeholder text was not fully visible.
+- **Margins:** Reduced right margin in Inpaint and ControlNet from 20→16 px for better space usage.
 
 ## [2.17.3] - 2026-05-23 – UI Polish
-### Dodano
-- **7 motywów kolorystycznych:** Dark, Amber, Nord, Dracula, Monokai, Forest, Ocean – wybór w ustawieniach zamiast dark/light. Kolor akcentu niezależny.
-- **Gradient w sidebarze:** Płynne przejście koloru zamiast płaskiego tła.
-- **Cienie na panelach:** Drop shadow na ramce opcji i monitorze zasobów – głębia i warstwy.
-- **Pulsująca ramka podczas generowania:** Live preview pulsuje kolorem akcentu w trakcie pracy.
-- **Fade-in przy przełączaniu zakładek:** Delikatne pojawianie się treści (QGraphicsOpacityEffect).
-- **Animowany progress bar:** Płynne wypełnianie zamiast skoków (QPropertyAnimation + easing).
-- **Efekty hover:** Gradient na GenerateBtn, podświetlenie na checkboxach/sliderach/listach.
-- **Zakładka About w ustawieniach:** Informacje o aplikacji, środowisku, GPU, linki i licencja z użyciem koloru akcentu.
-- **Scrollbary w dark/light theme:** Cienkie 8px, stylowane na kolor tła.
-- **Separatory w sidebarze:** Cienkie linie między sekcjami Model/VAE, Sampling, LoRA, Upscaler.
-- **Grupowanie opcji:** `check_auto` i `check_vram` objęte subtelną ramką.
-### Poprawiono
-- **Progress bary:** Wysokość 4→8px, zaokrąglone rogi.
-- **Tryb jasny:** Usunięty – wszystkie motywy są dark.
-- **Panel ustawień:** Szerokość min. zwiększona z 600→920 px.
-- **Klucze locale:** `sidebar_monitor`, `settings_tab_about` dodane w obu językach.
-- **Tytuł okna:** `Swift Diffusion v2.17.3`.
+### Added
+- **7 color themes:** Dark, Amber, Nord, Dracula, Monokai, Forest, Ocean – selectable in settings instead of dark/light toggle. Independent accent color.
+- **Sidebar gradient:** Smooth color transition instead of flat background.
+- **Panel shadows:** Drop shadow on options frame and resource monitor – depth and layering.
+- **Pulsating border on live preview:** Pulsates with accent color during generation.
+- **Fade-in on tab switch:** Gentle content reveal (QGraphicsOpacityEffect) – later removed in 2.18.0.
+- **Animated progress bar:** Smooth filling instead of jumps (QPropertyAnimation + easing).
+- **Hover effects:** Gradient on GenerateBtn, highlights on checkboxes/sliders/lists.
+- **About tab in settings:** App info, environment, GPU details, links and license using accent color.
+- **Dark/light scrollbars:** Thin 8px, styled to match background color.
+- **Sidebar separators:** Thin lines between Model/VAE, Sampling, LoRA, Upscaler sections.
+- **Option grouping:** `check_auto` and `check_vram` wrapped in a subtle bordered frame.
+### Fixed
+- **Progress bars:** Height 4→8px, rounded corners.
+- **Light mode:** Removed – all themes are dark-only.
+- **Settings panel:** Min width increased from 600→920 px.
+- **Locale keys:** `sidebar_monitor`, `settings_tab_about` added in both languages.
+- **Window title:** `Swift Diffusion v2.17.3`.
 
-## [2.17.2] - 2026-05-23 – Bezpieczeństwo i porządki
-### Poprawiono
-- **6x `except:` → `except Exception:`** w `main.py`, `models_registry.py`, `worker.py` – zapobiega połykaniu `KeyboardInterrupt`/`SystemExit`.
-### Usunięto
-- **Martwy kod:** `import requests` z `widgets.py`, `translator` z importu w `main.py`, `ImageModelDescriptor` z `engine.py`.
-- **Klasa `SourceSearchPanel`** (~260 linii) – nieużywana, zastąpiona nowym URL Downloaderem.
+## [2.17.2] - 2026-05-23 – Safety & cleanup
+### Fixed
+- **6x `except:` → `except Exception:`** in `main.py`, `models_registry.py`, `worker.py` – prevents swallowing `KeyboardInterrupt`/`SystemExit`.
+### Removed
+- **Dead code:** `import requests` from `widgets.py`, `translator` import in `main.py`, `ImageModelDescriptor` from `engine.py`.
+- **`SourceSearchPanel` class** (~260 lines) – unused, replaced by URL Downloader.
 
-## [2.17.1] - 2026-05-23 – Naprawa krytycznych błędów (crash na starcie)
-### Poprawiono
-- **Brakujące metody:** Dodano `refresh_base_models`, `refresh_vae_models`, `refresh_upscalers`, `browse_model`, `add_lora_dialog`, `open_settings`, `apply_settings_ui`, `refresh_all_comboboxes`, `refresh_inpaint_models`, `explicit_load_inpaint_model`, `refresh_cn_models`.
-- **Brakujące zakładki:** Galeria i Downloader przywrócone w `init_ui`.
-- **Brakujące elementy ADetailer:** Dodano `adet_prompt`, `adet_neg`, `v_adet_in`, `v_adet_out`, `adet_progress`.
-- **`__init__`:** `apply_settings_ui()`, `refresh_gallery()`, timer i `showMaximized()` były tylko w bloku `is_first_run` – przywrócone.
-- **Import `get_style`:** Przywrócony (usunięty podczas audytu).
-- **Klucze locale:** Dodano `label_result`, `dlg_select_model`, `dlg_select_lora`.
+## [2.17.1] - 2026-05-23 – Critical startup crash fix
+### Fixed
+- **Missing methods:** Restored `refresh_base_models`, `refresh_vae_models`, `refresh_upscalers`, `browse_model`, `add_lora_dialog`, `open_settings`, `apply_settings_ui`, `refresh_all_comboboxes`, `refresh_inpaint_models`, `explicit_load_inpaint_model`, `refresh_cn_models`.
+- **Missing tabs:** Gallery and Downloader restored in `init_ui`.
+- **Missing ADetailer elements:** Added `adet_prompt`, `adet_neg`, `v_adet_in`, `v_adet_out`, `adet_progress`.
+- **`__init__`:** `apply_settings_ui()`, `refresh_gallery()`, timer and `showMaximized()` were only in `is_first_run` block – now unconditional.
+- **`get_style` import:** Restored (was removed during code audit).
+- **Locale keys:** Added `label_result`, `dlg_select_model`, `dlg_select_lora`.
 
-## [2.17.0] - 2026-05-23 – Nowa funkcjonalność
-### Dodano
-- **URL Downloader (`url_downloader.py`):** Nowy system pobierania modeli przez wklejenie linku (CivitAI / HuggingFace). Parsuje URL, pobiera metadata przez REST API, automatycznie kategoryzuje (LoRA→models_lora, VAE→models_vae, ControlNet→models_controlnet), strumieniowo pobiera z throttlingiem 0.15s.
-- **Zintegrowane wyszukiwanie:** Wyszukiwarka w zakładce Downloader przeszukująca równocześnie CivitAI + HuggingFace API, wyniki w QTreeWidget (Name, Source, Arch, Type, Author), kliknięcie → wypełnia URL → auto-analiza.
-- **Szperacz (zakładka Browse):** Eksperymentalna zakładka używająca `duckduckgo_search` + fallback do API. Przycisk "Send to Downloader" przekazuje URL do zakładki pobierania.
-- **Przycisk "Open in browser":** W panelu informacji o modelu otwiera URL modelu w przeglądarce.
-### Poprawiono
-- **CivitAI pagination:** Zmiana z `page` na `cursor` – API blokuje `page` przy `query`.
-- **Timeout CivitAI/HF:** Zwiększony z 15s do 30s dla fetch API, 60s dla stream downloadu.
-- **Przyciski Generowania:** Wyłączone do momentu załadowania modelu (`_disable_until_model_loaded`).
+## [2.17.0] - 2026-05-23 – New features
+### Added
+- **URL Downloader (`url_downloader.py`):** New model download system – paste a CivitAI / HuggingFace link, parses URL, fetches metadata via REST API, auto-categorizes (LoRA→models_lora, VAE→models_vae, ControlNet→models_controlnet), streams download with 0.15s throttling.
+- **Integrated search:** Search tab querying CivitAI + HuggingFace simultaneously, results in QTreeWidget (Name, Source, Arch, Type, Author), click → fills URL → auto-analyze.
+- **Browse tab:** Experimental tab using `duckduckgo_search` + API fallback. "Send to Downloader" button passes URL to the download tab.
+- **"Open in browser" button:** Opens model URL in default browser from the model info panel.
+### Fixed
+- **CivitAI pagination:** Changed from `page` to `cursor` – API blocks `page` when `query` is set.
+- **CivitAI/HF timeout:** Increased from 15s to 30s for API fetch, 60s for stream download.
+- **Generate buttons:** Disabled until model is loaded (`_disable_until_model_loaded`).
 
 ## [2.16.0] - 2026-05-21
-### Dodano
-- **Asynchroniczne Ładowanie Modelu:** Modele główne i LoRA są teraz wczytywane w tle, co zapobiega zamarzaniu interfejsu (GUI).
-- **Monitor Zasobów:** Interaktywny panel boczny wyświetlający realne zużycie VRAM, RAM oraz obciążenie i temperaturę GPU (NVIDIA).
-- **Pasek Postępu Ładowania:** Animowany, minimalistyczny wskaźnik pracy w tle przy ładowaniu modelu.
-### Poprawiono
-- **Płynność UI:** Odblokowanie wątku głównego podczas ciężkich operacji dyskowych.
+### Added
+- **Asynchronous Model Loading:** Main models and LoRAs now load in the background, preventing UI freezes.
+- **Resource Monitor:** Interactive sidebar panel showing real-time VRAM, RAM usage, GPU load and temperature (NVIDIA).
+- **Loading progress bar:** Animated, minimal indicator for background model loading.
+### Fixed
+- **UI smoothness:** Main thread unblocked during heavy disk operations.
 
 ## [2.15.0] - 2026-05-21
-### Dodano
-- **Moduł ADetailer:** Wdrożenie natywnej poprawy twarzy przy użyciu detekcji YOLOv8 i inpaintingu (Zero-Copy VRAM).
-- **Interfejs ADetailer:** Nowa zakładka "ADetailer" z pełnym zestawem parametrów (prompt, denoise, dilation, confidence).
-- **Logika "Wyślij do ADetailer":** Możliwość bezpośredniego przenoszenia wygenerowanych obrazów z Text2Image do ADetailera.
-### Usunięto
-- **Moduł Face Restore:** Rezygnacja z bibliotek `facexlib` oraz `basicsr` na rzecz wydajniejszej architektury ADetailera.
+### Added
+- **ADetailer module:** Native face enhancement using YOLOv8 detection + inpainting (Zero-Copy VRAM).
+- **ADetailer UI:** Dedicated tab with full parameter set (prompt, denoise, dilation, confidence).
+- **"Send to ADetailer" logic:** Direct transfer of generated images from Text2Image to ADetailer.
+### Removed
+- **Face Restore module:** Dropped `facexlib` and `basicsr` dependencies in favor of the more efficient ADetailer architecture.
 
 ## [2.14.0] - 2026-05-21
-### Dodano
-- **Moduł Face Restore (Legacy):** Wdrożenie zaawansowanej rekonstrukcji twarzy z wykorzystaniem `CodeFormer` (ładowany przez `spandrel`) oraz `facexlib`. Dodano manualne i automatyczne tryby przetwarzania oraz dedykowany trzeci podgląd w interfejsie.
+### Added
+- **Face Restore module (Legacy):** Advanced face reconstruction using `CodeFormer` (loaded via `spandrel`) and `facexlib`. Manual and automatic processing modes with a dedicated third preview panel.
 
 ## [2.13.0] - 2026-05-21
-### Dodano
-- **Obsługa niestandardowych VAE:** Dodano możliwość ładowania zewnętrznych plików VAE (.safetensors, .pt). Nowy panel wyboru w panelu bocznym oraz opcja domyślnego VAE w ustawieniach.
+### Added
+- **Custom VAE support:** External VAE files (.safetensors, .pt) can now be loaded. New VAE selection panel in sidebar + default VAE option in settings.
 
 ## [2.12.0] - 2026-05-21
-### Dodano
-- **Zaawansowana Optymalizacja VRAM:** Dodano nowe opcje w ustawieniach: Attention Slicing, Model CPU Offloading oraz automatyczne czyszczenie VRAM po generacji. Pozwala to na jeszcze stabilniejszą pracę na kartach 6GB.
+### Added
+- **Advanced VRAM Optimization:** New settings options: Attention Slicing, Model CPU Offloading, and auto VRAM clearing after generation. Enables stable operation on 6GB cards.
 
 ## [2.11.0] - 2026-05-21
-### Usunięto
-- **Moduł VRAM Oracle:** Całkowite usunięcie wskaźnika zużycia VRAM oraz przycisku Auto-Optimizer z panelu bocznego. Zmiana podyktowana przygotowaniami pod nową architekturę Resource Monitora.
+### Removed
+- **VRAM Oracle module:** Complete removal of the VRAM usage indicator and Auto-Optimizer button from the sidebar. Preparation for new Resource Monitor architecture.
 
 ## [2.10.0] - 2026-05-21
-### Dodano
-- **Automatyczne Odświeżanie List:** Wdrożenie `QFileSystemWatcher` do asynchronicznego monitorowania folderów z modelami. Listy w interfejsie aktualizują się automatycznie po dodaniu lub usunięciu plików na dysku.
-- **Inteligentna Pamięć Wyboru:** System zachowuje aktualnie wybrany model/LoRA podczas automatycznego odświeżania list, zapobiegając resetom ComboBoxów.
+### Added
+- **Auto-refresh lists:** `QFileSystemWatcher` for asynchronous monitoring of model folders. UI lists update automatically when files are added or removed on disk.
+- **Smart selection memory:** System preserves the currently selected model/LoRA during auto-refresh, preventing ComboBox resets.
 
 ## [2.9.0] - 2026-05-21
-### Dodano
-- **System i18n (Tłumaczenia):** Wdrożenie architektury wielojęzyczności opartej na plikach JSON (`locales/`).
-- **Wsparcie Językowe:** Dodano pełne tłumaczenia dla panelu bocznego (PL/EN).
-- **Dynamiczny Translator:** Globalna funkcja `tr()` z automatycznym ładowaniem słownika na podstawie ustawień.
+### Added
+- **i18n system (translations):** Multi-language architecture based on JSON files (`locales/`).
+- **Language support:** Full sidebar translations (PL/EN).
+- **Dynamic Translator:** Global `tr()` function with auto-loading dictionary based on settings.
 
 ## [2.8.0] - 2026-05-21
-### Dodano
-- **Zaawansowany Inpaint Canvas:** Przebudowa płótna na `QGraphicsView` i `QGraphicsScene`.
-- **System Undo/Redo:** Pełna historia pędzla z obsługą skrótów klawiaturowych (Ctrl+Z, Ctrl+Y).
-- **Centrowanie Obrazu:** Poprawiono logikę wyświetlania obrazu na środku pola edycji.
+### Added
+- **Advanced Inpaint Canvas:** Rewritten canvas using `QGraphicsView` and `QGraphicsScene`.
+- **Undo/Redo system:** Full brush history with keyboard shortcuts (Ctrl+Z, Ctrl+Y).
+- **Image centering:** Improved image display centering in the editing area.
 
 ## [2.7.0] - 2026-05-21
-### Dodano
-- **Optymalizacja Zero-Copy:** Wdrożenie wydajnego mechanizmu konwersji obrazów między PIL a QImage, opartego na bezpośrednich widokach pamięci.
-- **Stabilność Pamięci:** Mechanizm zapobiegający SegFault poprzez jawne zachowanie referencji do bajtów obrazu.
+### Added
+- **Zero-Copy optimization:** Efficient image conversion between PIL and QImage using direct memory views.
+- **Memory stability:** Mechanism preventing SegFaults by explicitly retaining image byte references.
 
 ## [2.6.0] - 2026-05-21
-### Dodano
-- **First Launch Wizard:** Kreator powitalny ułatwiający wstępną konfigurację (język, motyw).
-- **Zarządzanie LoRA:** Automatyczne przeładowywanie aktywnych adapterów LoRA po zmianie modelu głównego.
-- **Poprawki UI:** Rozbudowane style dla trybu jasnego (Light Mode) oraz ulepszone renderowanie list rozwijanych.
+### Added
+- **First Launch Wizard:** Welcome wizard for initial configuration (language, theme).
+- **LoRA management:** Auto-reloading active LoRA adapters when switching base models.
+- **UI improvements:** Expanded light mode styles and improved dropdown rendering.
 
 ## [2.5.0] - 2026-05-21
-### Dodano
-- **System Ustawień:** Wdrożenie `settings.ini` zarządzanego przez `SettingsManager`.
-- **Panel Konfiguracyjny:** Nowe okno ustawień pozwalające na zmianę ścieżek, kolorów i parametrów wydajności.
-- **VRAM Slicing:** Możliwość włączenia optymalizacji VAE Slicing i Tiling dla kart 6GB.
-- **Dynamiczne Style:** Całkowite przejście na generowany arkusz CSS.
+### Added
+- **Settings system:** `settings.ini` managed by `SettingsManager`.
+- **Configuration panel:** New settings dialog for paths, colors, and performance options.
+- **VRAM Slicing:** VAE Slicing and Tiling options for 6GB cards.
+- **Dynamic styles:** Full CSS-based styling engine.
 
 ## [2.4.0] - 2026-05-21
-### Dodano
-- **Fizyczne Wyładowywanie LoRA:** Dodano metodę `unload_lora`, rozwiązującą błąd `ValueError: Adapter name already in use`.
+### Added
+- **Physical LoRA unloading:** New `unload_lora` method, fixing `ValueError: Adapter name already in use`.
 
 ## [2.3.0] - 2026-05-21
-### Dodano
-- **Galeria:** Nowa zakładka do przeglądania wygenerowanych obrazów.
-- **PNG Info:** Zapis i odczyt parametrów generacji z metadanych plików PNG.
-- **Floating Tips:** System pływających okien z dokumentacją (docs/tips).
+### Added
+- **Gallery:** New tab for browsing generated images.
+- **PNG Info:** Read/write generation parameters in PNG metadata.
+- **Floating Tips:** Floating documentation windows (`docs/tips`).
 
 ## [2.2.0] - 2026-05-21
-### Dodano
-- **ControlNet Canny:** Integracja modułu ControlNet z automatycznym preprocesingiem obrazu.
-- **Upscaler:** Obsługa powiększania obrazów za pomocą biblioteki `spandrel`.
-- **Modularna Architektura:** Podział projektu na pliki `main`, `widgets`, `config`, `utils`.
+### Added
+- **ControlNet Canny:** ControlNet integration with automatic image preprocessing.
+- **Upscaler:** Image upscaling using `spandrel` library.
+- **Modular architecture:** Code split into `main`, `widgets`, `config`, `utils`.
 
 ## [2.1.0] - 2026-05-21
-### Dodano
-- **Latent Mixology Station:** Możliwość ładowania do 5 LoRA jednocześnie.
-- **VRAM Oracle:** Real-time monitoring zużycia pamięci GPU.
-- **UI Modern Dark:** Całkowita przebudowa interfejsu na nowoczesny styl.
+### Added
+- **Latent Mixology Station:** Up to 5 simultaneous LoRA adapters.
+- **VRAM Oracle:** Real-time GPU memory monitoring.
+- **UI Modern Dark:** Complete UI redesign with modern dark style.
 
 ## [1.0.0] - 2024-05-22
-- Wersja początkowa.
+- Initial release.
