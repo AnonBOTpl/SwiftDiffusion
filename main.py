@@ -5,16 +5,17 @@ import logging
 import boot
 
 from PyQt6.QtWidgets import *
-from PyQt6.QtCore import Qt, QSize, QFileSystemWatcher, QTimer, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, QSize, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QPixmap, QIcon, QIntValidator, QColor
 
 from engine import DiffusionEngine
-from worker import GenerationWorker, Img2ImgWorker, UpscaleWorker, InpaintWorker, ControlNetWorker, ADetailerWorker, ModelLoaderWorker
-from config import get_style, settings, FOLDERS, logger, tr
+from worker import GenerationWorker, Img2ImgWorker, UpscaleWorker, InpaintWorker, ControlNetWorker, ADetailerWorker
+from model_manager import ModelManager
+from config import get_style, settings, logger, tr
 from utils import qimage_to_pil
 from widgets import (
     ImageViewer, ClickableLabel, InpaintCanvas, ParameterSlider,
-    LoRAItem, LoRAVisualizer, FloatingTips, GalleryDetailWindow,
+    LoRAVisualizer, FloatingTips, GalleryDetailWindow,
     SettingsDialog, WelcomeDialog, ModelDownloaderTab, UrlDownloaderTab,
     PromptBuilderPanel, ResourceMonitor
 )
@@ -28,10 +29,10 @@ class MainWindow(QMainWindow):
         logger.info("[STARTUP] Initializing MainWindow...")
         self.engine = DiffusionEngine()
         logger.info("[STARTUP] DiffusionEngine created")
-        self.loras = {}
-        self.setup_folders()
+        self.model_mgr = ModelManager(self.engine, self)
+        self.model_mgr.setup_folders()
         logger.info("[STARTUP] Folders ready")
-        self.setup_watchers()
+        self.model_mgr.setup_watchers()
         logger.info("[STARTUP] File watchers active")
         self.current_seed = None
         self.last_generated_path = None
@@ -47,37 +48,6 @@ class MainWindow(QMainWindow):
             logger.info("[STARTUP] First run - showing WelcomeDialog")
             WelcomeDialog(self).exec()
             self.apply_settings_ui()
-    def setup_folders(self):
-        for p in FOLDERS:
-            if not os.path.exists(p): os.makedirs(p)
-    def setup_watchers(self):
-        self.model_watcher = QFileSystemWatcher()
-        paths = [
-            settings.get('Paths', 'models_sd'),
-            settings.get('Paths', 'models_lora'),
-            settings.get('Paths', 'models_controlnet'),
-            settings.get('Paths', 'models_inpaint'),
-            settings.get('Paths', 'models_vae'),
-            settings.get('Paths', 'models_facerestore'),
-            settings.get('Paths', 'models_upscalers')
-        ]
-        for p in paths:
-            if os.path.exists(p):
-                self.model_watcher.addPath(p)
-        self.model_watcher.directoryChanged.connect(self.refresh_all_comboboxes)
-        emb_dir = settings.get('Paths', 'models_embeddings')
-        if emb_dir and os.path.exists(emb_dir):
-            self.emb_watcher = QFileSystemWatcher()
-            self.emb_watcher.addPath(emb_dir)
-            self.emb_watcher.directoryChanged.connect(self._on_embeddings_changed)
-    def _on_embeddings_changed(self, path):
-        self.engine.scan_embeddings()
-        if hasattr(self, 'pb_panel') and self.pb_panel:
-            self.pb_panel.refresh_embeddings()
-    def scan_models(self, folder, exts=(".safetensors",)):
-        if not os.path.exists(folder): return []
-        return [f for f in os.listdir(folder) if f.lower().endswith(exts)]
-
     def init_ui(self):
         self.setWindowTitle(f"Swift Diffusion v{APP_VERSION}")
         logger.info("[UI] Building interface...")
@@ -87,8 +57,8 @@ class MainWindow(QMainWindow):
         sidebar = QFrame(); sidebar.setObjectName("Sidebar"); sidebar_layout = QVBoxLayout(sidebar); sidebar_layout.setContentsMargins(15, 10, 15, 10); sidebar_layout.setSpacing(10)
 
         lbl_model = QLabel(tr("sidebar_model_header")); lbl_model.setObjectName("Header"); sidebar_layout.addWidget(lbl_model)
-        model_row = QHBoxLayout(); self.model_combo = QComboBox(); self.refresh_base_models(); btn_br = QPushButton("..."); btn_br.setFixedSize(30, 28); btn_br.clicked.connect(self.browse_model); model_row.addWidget(self.model_combo); model_row.addWidget(btn_br); sidebar_layout.addLayout(model_row)
-        self.btn_load = QPushButton(tr("btn_load_model")); self.btn_load.clicked.connect(self.load_model); sidebar_layout.addWidget(self.btn_load)
+        model_row = QHBoxLayout(); self.model_combo = QComboBox(); self.model_mgr.refresh_base_models(); btn_br = QPushButton("..."); btn_br.setFixedSize(30, 28); btn_br.clicked.connect(self.model_mgr.browse_model); model_row.addWidget(self.model_combo); model_row.addWidget(btn_br); sidebar_layout.addLayout(model_row)
+        self.btn_load = QPushButton(tr("btn_load_model")); self.btn_load.clicked.connect(self.model_mgr.load_model); sidebar_layout.addWidget(self.btn_load)
 
         self.load_progress = QProgressBar(); self.load_progress.setFixedHeight(8); self.load_progress.setTextVisible(False); self.load_progress.hide(); sidebar_layout.addWidget(self.load_progress)
 
@@ -96,7 +66,7 @@ class MainWindow(QMainWindow):
 
         sidebar_layout.addWidget(QLabel(tr("lbl_vae")))
         self.vae_combo = QComboBox()
-        self.refresh_vae_models()
+        self.model_mgr.refresh_vae_models()
         sidebar_layout.addWidget(self.vae_combo)
 
         lbl_samp = QLabel(tr("lbl_sampling_header")); lbl_samp.setObjectName("Header"); sidebar_layout.addWidget(lbl_samp)
@@ -108,12 +78,12 @@ class MainWindow(QMainWindow):
         lbl_mix = QLabel(tr("lbl_latent_mixology")); lbl_mix.setObjectName("Header"); sidebar_layout.addWidget(lbl_mix)
         self.lora_visualizer = LoRAVisualizer(); sidebar_layout.addWidget(self.lora_visualizer)
         self.lora_list_widget = QWidget(); self.lora_list_layout = QVBoxLayout(self.lora_list_widget); self.lora_list_layout.setContentsMargins(0, 0, 0, 0); self.lora_list_layout.setSpacing(2); sidebar_layout.addWidget(self.lora_list_widget)
-        btn_add_lora = QPushButton(tr("btn_add_lora")); btn_add_lora.setObjectName("SecondaryBtn"); btn_add_lora.clicked.connect(self.add_lora_dialog); sidebar_layout.addWidget(btn_add_lora)
+        btn_add_lora = QPushButton(tr("btn_add_lora")); btn_add_lora.setObjectName("SecondaryBtn"); btn_add_lora.clicked.connect(self.model_mgr.add_lora_dialog); sidebar_layout.addWidget(btn_add_lora)
 
         sep3 = QFrame(); sep3.setFrameShape(QFrame.Shape.HLine); sep3.setStyleSheet("color: #333;"); sidebar_layout.addWidget(sep3)
 
         lbl_ups = QLabel(tr("lbl_global_upscaler")); lbl_ups.setObjectName("Header"); sidebar_layout.addWidget(lbl_ups)
-        self.upscaler_combo = QComboBox(); self.refresh_upscalers(); sidebar_layout.addWidget(self.upscaler_combo)
+        self.upscaler_combo = QComboBox(); self.model_mgr.refresh_upscalers(); sidebar_layout.addWidget(self.upscaler_combo)
 
         opt_frame = QFrame(); opt_frame.setStyleSheet("border: 1px solid #333; border-radius: 4px; padding: 4px;"); opt_l = QVBoxLayout(opt_frame); opt_l.setContentsMargins(6, 4, 6, 4); opt_l.setSpacing(2)
         self.check_auto = QCheckBox(tr("chk_auto_upscale")); opt_l.addWidget(self.check_auto)
@@ -203,12 +173,12 @@ class MainWindow(QMainWindow):
 
         self.inp_model_combo = QComboBox()
         self.inp_model_combo.addItem(tr("opt_use_main_model"), "original")
-        self.refresh_inpaint_models()
+        self.model_mgr.refresh_inpaint_models()
         inp_params.addWidget(self.inp_model_combo)
 
         self.btn_load_inp_model = QPushButton(tr("btn_load_inpaint_model"))
         self.btn_load_inp_model.setObjectName("SecondaryBtn")
-        self.btn_load_inp_model.clicked.connect(self.explicit_load_inpaint_model)
+        self.btn_load_inp_model.clicked.connect(self.model_mgr.explicit_load_inpaint_model)
         inp_params.addWidget(self.btn_load_inp_model)
 
         self.i_steps = ParameterSlider(tr("label_steps"), 1, 100, 30)
@@ -265,7 +235,7 @@ class MainWindow(QMainWindow):
 
         # 3. CONTROLNET
         logger.info("[UI] Building ControlNet tab...")
-        self.cn_tab = QWidget(); self.tabs.addTab(self.cn_tab, tr("tab_controlnet")); cn_l = QHBoxLayout(self.cn_tab); cn_params = QVBoxLayout(); cn_params.setContentsMargins(15, 10, 15, 10); cn_params.setSpacing(10); lbl_ct = QLabel(tr("header_controlnet_tools")); lbl_ct.setObjectName("Header"); cn_params.addWidget(lbl_ct); self.cn_model_combo = QComboBox(); self.refresh_cn_models(); cn_params.addWidget(self.cn_model_combo); self.cn_steps = ParameterSlider(tr("label_steps"), 1, 100, 25); self.cn_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 7.5, 0.5, True); self.cn_strength = ParameterSlider(tr("label_weight"), 0.0, 2.0, 1.0, 0.1, True); self.cn_w = ParameterSlider(tr("label_width"), 256, 2048, 512, 64); self.cn_h = ParameterSlider(tr("label_height"), 256, 2048, 512, 64); self.cn_seed = QLineEdit("-1"); self.cn_seed.setValidator(QIntValidator(-1, 2147483647))
+        self.cn_tab = QWidget(); self.tabs.addTab(self.cn_tab, tr("tab_controlnet")); cn_l = QHBoxLayout(self.cn_tab); cn_params = QVBoxLayout(); cn_params.setContentsMargins(15, 10, 15, 10); cn_params.setSpacing(10); lbl_ct = QLabel(tr("header_controlnet_tools")); lbl_ct.setObjectName("Header"); cn_params.addWidget(lbl_ct); self.cn_model_combo = QComboBox(); self.model_mgr.refresh_cn_models(); cn_params.addWidget(self.cn_model_combo); self.cn_steps = ParameterSlider(tr("label_steps"), 1, 100, 25); self.cn_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 7.5, 0.5, True); self.cn_strength = ParameterSlider(tr("label_weight"), 0.0, 2.0, 1.0, 0.1, True); self.cn_w = ParameterSlider(tr("label_width"), 256, 2048, 512, 64); self.cn_h = ParameterSlider(tr("label_height"), 256, 2048, 512, 64); self.cn_seed = QLineEdit("-1"); self.cn_seed.setValidator(QIntValidator(-1, 2147483647))
         for s in [self.cn_steps, self.cn_cfg, self.cn_strength, self.cn_w, self.cn_h]: cn_params.addWidget(s)
         cn_params.addWidget(QLabel(tr("label_seed"))); cn_params.addWidget(self.cn_seed); self.btn_load_cn = QPushButton(tr("btn_load_ref")); self.btn_load_cn.setObjectName("SecondaryBtn"); self.btn_load_cn.clicked.connect(self.load_cn_image); cn_params.addWidget(self.btn_load_cn); self.btn_tips_cn = QPushButton(tr("btn_tips")); self.btn_tips_cn.setObjectName("SecondaryBtn"); self.btn_tips_cn.clicked.connect(lambda: self.show_tips(tr("tips_title_controlnet"), "docs/tips_controlnet.html")); cn_params.addWidget(self.btn_tips_cn); cn_params.addStretch(); self.btn_gen_cn = QPushButton(tr("btn_generate_comp")); self.btn_gen_cn.setObjectName("GenerateBtn"); self.btn_gen_cn.setMinimumWidth(180); self.btn_gen_cn.clicked.connect(self.start_controlnet); cn_params.addWidget(self.btn_gen_cn); cn_l.addLayout(cn_params, 0)
         cn_main = QVBoxLayout(); cn_main.setContentsMargins(20, 10, 16, 0); self.cn_prompt = QPlainTextEdit(); self.cn_prompt.setPlaceholderText(tr("placeholder_prompt")); self.cn_prompt.setFixedHeight(60); self.cn_neg = QPlainTextEdit(); self.cn_neg.setPlaceholderText(tr("placeholder_negative")); self.cn_neg.setFixedHeight(50); cn_main.addWidget(QLabel(tr("label_prompt"))); self.lbl_wildcards_cn = QLabel(tr("wildcards_tooltip")); self.lbl_wildcards_cn.setStyleSheet("color: #666; font-size: 10px; margin-top: -4px;"); cn_main.addWidget(self.lbl_wildcards_cn); cn_main.addWidget(self.cn_prompt); cn_main.addWidget(QLabel(tr("label_negative"))); cn_main.addWidget(self.cn_neg);
@@ -293,7 +263,7 @@ class MainWindow(QMainWindow):
         adet_params.addStretch()
         self.btn_gen_adet = QPushButton(tr("btn_generate_adet")); self.btn_gen_adet.setObjectName("GenerateBtn"); self.btn_gen_adet.setFixedHeight(45); self.btn_gen_adet.setMinimumWidth(180); self.btn_gen_adet.clicked.connect(self.start_adetailer); adet_params.addWidget(self.btn_gen_adet)
 
-        self._disable_untils_model_loaded()
+        self.model_mgr.disable_until_model_loaded()
         adet_l.addLayout(adet_params, 0)
 
         adet_main = QVBoxLayout(); adet_main.setContentsMargins(20, 10, 20, 0)
@@ -378,125 +348,6 @@ class MainWindow(QMainWindow):
         dlg = SettingsDialog(self, APP_VERSION)
         dlg.exec()
 
-    def refresh_all_comboboxes(self, path=None):
-        logger.info(f"[SYSTEM] Detected changes in model folders, refreshing lists...")
-        self.refresh_base_models()
-        self.refresh_vae_models()
-        self.refresh_inpaint_models()
-        self.refresh_cn_models()
-        self.refresh_upscalers()
-
-    def refresh_base_models(self):
-        curr = self.model_combo.currentText()
-        self.model_combo.clear()
-        path = settings.get('Paths', 'models_sd')
-        for f in self.scan_models(path): self.model_combo.addItem(f, os.path.join(path, f))
-        if curr:
-            idx = self.model_combo.findText(curr)
-            if idx >= 0: self.model_combo.setCurrentIndex(idx)
-
-    def refresh_vae_models(self):
-        curr = self.vae_combo.currentText()
-        self.vae_combo.clear()
-        self.vae_combo.addItem(tr("opt_default_vae"), "Domyślne (z modelu)")
-        path = settings.get('Paths', 'models_vae')
-        vae_exts = (".safetensors", ".pt", ".ckpt")
-        for f in self.scan_models(path, exts=vae_exts):
-            self.vae_combo.addItem(f, os.path.join(path, f))
-        if curr:
-            idx = self.vae_combo.findText(curr)
-            if idx >= 0: self.vae_combo.setCurrentIndex(idx)
-
-    def explicit_load_inpaint_model(self):
-        m = self.inp_model_combo.currentData()
-        if m: self.btn_gen_inp.setEnabled(False); self.i_progress.setFormat(tr("status_loading_inpaint")); self.engine.load_inpaint_model(m); self.btn_gen_inp.setEnabled(True); self.i_progress.setFormat(tr("status_inpaint_ready"))
-    def refresh_upscalers(self):
-        curr = self.upscaler_combo.currentText()
-        self.upscaler_combo.clear(); self.upscaler_combo.addItem(tr("opt_no_upscaler"), "")
-        path = settings.get('Paths', 'models_upscalers')
-        ups_exts = (".pth", ".pt", ".bin", ".onnx", ".safetensors", ".ckpt")
-        for f in self.scan_models(path, exts=ups_exts):
-            self.upscaler_combo.addItem(f, os.path.join(path, f))
-        if curr:
-            idx = self.upscaler_combo.findText(curr)
-            if idx >= 0: self.upscaler_combo.setCurrentIndex(idx)
-
-    def refresh_inpaint_models(self):
-        curr = self.inp_model_combo.currentText()
-        # zachowaj statyczny wpis
-        self.inp_model_combo.clear()
-        self.inp_model_combo.addItem(tr("opt_use_main_model"), "original")
-        path = settings.get('Paths', 'models_inpaint')
-        for f in self.scan_models(path): self.inp_model_combo.addItem(f, os.path.join(path, f))
-        if curr:
-            idx = self.inp_model_combo.findText(curr)
-            if idx >= 0: self.inp_model_combo.setCurrentIndex(idx)
-
-    def refresh_cn_models(self):
-        curr = self.cn_model_combo.currentText()
-        self.cn_model_combo.clear()
-        path = settings.get('Paths', 'models_controlnet')
-        for f in self.scan_models(path): self.cn_model_combo.addItem(f, os.path.join(path, f))
-        if curr:
-            idx = self.cn_model_combo.findText(curr)
-            if idx >= 0: self.cn_model_combo.setCurrentIndex(idx)
-    def browse_model(self):
-        file, _ = QFileDialog.getOpenFileName(self, tr("dialog_model"), "", "Safetensors (*.safetensors);;All Files (*)")
-        if file: name = os.path.basename(file); self.model_combo.insertItem(0, name, file); self.model_combo.setCurrentIndex(0)
-    def add_lora_dialog(self):
-        if len(self.loras) >= 5: return
-        file, _ = QFileDialog.getOpenFileName(self, tr("dialog_lora"), "", "Safetensors (*.safetensors)")
-        if file:
-            name = os.path.basename(file).split('.')[0]
-            if name in self.loras: name += f"_{len(self.loras)}"
-            self.engine.load_lora(file, name); item = LoRAItem(name, file); item.removed.connect(self.remove_lora); item.changed.connect(self.update_lora_visualizer); self.lora_list_layout.addWidget(item); self.loras[name] = item; self.update_lora_visualizer()
-    def remove_lora(self, name):
-        if name in self.loras:
-            self.engine.unload_lora(name)
-            item = self.loras.pop(name); self.lora_list_layout.removeWidget(item); item.deleteLater(); self.update_lora_visualizer()
-    def update_lora_visualizer(self): self.lora_visualizer.update_weights([(n, i.weight()) for n, i in self.loras.items()])
-    def _disable_untils_model_loaded(self):
-        self.btn_gen_t2i.setEnabled(False)
-        self.btn_gen_inp.setEnabled(False)
-        self.btn_gen_cn.setEnabled(False)
-        self.btn_gen_adet.setEnabled(False)
-
-    def _enable_generate_buttons(self):
-        self.btn_gen_t2i.setEnabled(True)
-        self.btn_gen_inp.setEnabled(True)
-        self.btn_gen_cn.setEnabled(True)
-        self.btn_gen_adet.setEnabled(True)
-
-    def load_model(self):
-        m = self.model_combo.currentData()
-        if m:
-            self.btn_load.setEnabled(False); self.model_combo.setEnabled(False)
-            self.load_progress.setRange(0, 0); self.load_progress.show()
-            self.p_bar.setFormat(tr("status_loading_model"))
-
-            self.load_worker = ModelLoaderWorker(self.engine, m, self.loras)
-            self.load_worker.finished.connect(self.on_model_loaded)
-            self.load_worker.start()
-
-    def on_model_loaded(self, success, message):
-        self.btn_load.setEnabled(True); self.model_combo.setEnabled(True)
-        self.load_progress.hide(); self.load_progress.setRange(0, 100)
-
-        if success:
-            self.p_bar.setFormat(tr("status_model_ready"))
-            self._enable_generate_buttons()
-            logger.info("[SYSTEM] Model loaded asynchronously.")
-            try:
-                import compel
-                self.lbl_compel.setText(tr("compel_available"))
-                self.lbl_compel.setStyleSheet("color: #4caf50; font-size: 10px;")
-            except ImportError:
-                self.lbl_compel.setText(tr("compel_unavailable"))
-                self.lbl_compel.setStyleSheet("color: #888; font-size: 10px;")
-            self.pb_panel.refresh_embeddings()
-        else:
-            self.p_bar.setFormat(tr("status_error"))
-            QMessageBox.critical(self, tr("status_error"), tr("error_loading_model").format(message=message))
     def toggle_img2img_ui(self, enabled):
         self.img2img_strength.setVisible(enabled)
         self.btn_load_img2img.setVisible(enabled)
@@ -539,7 +390,7 @@ class MainWindow(QMainWindow):
             "auto_upscale": self.check_auto.isChecked(),
             "upscaler_model": self.upscaler_combo.currentData(),
             "keep_upscaler_vram": self.check_vram.isChecked(),
-            "loras": [{'name': n, 'weight': i.weight()} for n, i in self.loras.items()],
+            "loras": [{'name': n, 'weight': i.weight()} for n, i in self.model_mgr.loras.items()],
             "sampler": self.sampler_combo.currentText(),
             "scheduler": self.scheduler_combo.currentText(),
             "vae_path": self.vae_combo.currentData()
