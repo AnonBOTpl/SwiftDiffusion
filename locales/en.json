@@ -33,6 +33,7 @@
     "pb_clear": "Clear",
     "pb_copy": "Copy to Text2Image",
     "pb_embeddings": "Embeddings",
+    "pb_embeddings_empty": "No embeddings found.\nPlace .pt / .bin / .safetensors files in models/embeddings/",
 
     "header_params": "PARAMETERS",
     "header_inpaint_tools": "INPAINTING TOOLS",

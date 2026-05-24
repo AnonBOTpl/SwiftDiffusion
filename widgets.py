@@ -1194,9 +1194,10 @@ class PromptBuilderPanel(QWidget):
         self._emb_page = QWidget()
         self._emb_flow = FlowLayout(self._emb_page)
         self._emb_flow.setSpacing(6)
+        self._emb_flow.setContentsMargins(10, 10, 10, 10)
         self._emb_page.setLayout(self._emb_flow)
         self._stack.addWidget(self._emb_page)
-        self._emb_tab_idx = self._tab_bar.addTab("")
+        self._emb_tab_idx = self._tab_bar.addTab(tr("pb_embeddings"))
         self._tab_bar.setTabEnabled(self._emb_tab_idx, False)
 
         self._tab_bar.currentChanged.connect(self._stack.setCurrentIndex)
@@ -1252,14 +1253,16 @@ class PromptBuilderPanel(QWidget):
                 item.widget().deleteLater()
 
         names = self._engine.get_embeddings() if self._engine else []
-        if not names:
-            self._tab_bar.setTabText(self._emb_tab_idx, "")
-            self._tab_bar.setTabEnabled(self._emb_tab_idx, False)
-            return
-
         self._tab_bar.setTabText(self._emb_tab_idx, tr("pb_embeddings"))
         self._tab_bar.setTabEnabled(self._emb_tab_idx, True)
+        if not names:
+            lbl = QLabel(tr("pb_embeddings_empty"))
+            lbl.setStyleSheet("color: #666; font-size: 11px; padding: 20px;")
+            self._emb_flow.addWidget(lbl)
+            return
+
         for name in names:
+            btn = QPushButton(name)
             btn = QPushButton(name)
             btn.setCheckable(True)
             btn.setStyleSheet("QPushButton { padding: 4px 10px; border: 1px solid #444; border-radius: 4px; background: #2a2a2a; color: #ccc; font-size: 11px; } QPushButton:checked { background: #7a4a9e; color: white; border-color: #9a6abe; }")
