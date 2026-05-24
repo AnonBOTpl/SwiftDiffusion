@@ -256,6 +256,31 @@ class DiffusionEngine:
             except Exception as e:
                 logger.warning(f"[EMBED] Failed to load {fname}: {e}")
 
+    def scan_embeddings(self):
+        if self.pipe is None:
+            return []
+        emb_dir = settings.get('Paths', 'models_embeddings')
+        if not emb_dir or not os.path.isdir(emb_dir):
+            return []
+        exts = (".pt", ".bin", ".safetensors")
+        existing = set(self.embeddings)
+        new_ones = []
+        for fname in sorted(os.listdir(emb_dir)):
+            if not fname.lower().endswith(exts):
+                continue
+            token = os.path.splitext(fname)[0].lower().replace(" ", "_")
+            if token in existing:
+                continue
+            path = os.path.join(emb_dir, fname)
+            try:
+                self.pipe.load_textual_inversion(path, token=token)
+                self.embeddings.append(token)
+                new_ones.append(token)
+                logger.info(f"[EMBED] Loaded new: {fname} as '{token}'")
+            except Exception as e:
+                logger.warning(f"[EMBED] Failed to load {fname}: {e}")
+        return self.embeddings[:]
+
     def get_embeddings(self):
         return self.embeddings[:]
 

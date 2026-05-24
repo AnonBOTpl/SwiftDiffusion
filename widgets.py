@@ -1195,7 +1195,9 @@ class PromptBuilderPanel(QWidget):
         self._emb_flow = FlowLayout(self._emb_page)
         self._emb_flow.setSpacing(6)
         self._emb_page.setLayout(self._emb_flow)
-        self._emb_page_idx = self._stack.addWidget(self._emb_page)
+        self._stack.addWidget(self._emb_page)
+        self._emb_tab_idx = self._tab_bar.addTab("")
+        self._tab_bar.setTabEnabled(self._emb_tab_idx, False)
 
         self._tab_bar.currentChanged.connect(self._stack.setCurrentIndex)
         self.refresh_embeddings()
@@ -1251,12 +1253,12 @@ class PromptBuilderPanel(QWidget):
 
         names = self._engine.get_embeddings() if self._engine else []
         if not names:
-            self._tab_bar.setTabText(self._emb_page_idx, "")
-            self._tab_bar.setTabEnabled(self._emb_page_idx, False)
+            self._tab_bar.setTabText(self._emb_tab_idx, "")
+            self._tab_bar.setTabEnabled(self._emb_tab_idx, False)
             return
 
-        self._tab_bar.setTabText(self._emb_page_idx, tr("pb_embeddings"))
-        self._tab_bar.setTabEnabled(self._emb_page_idx, True)
+        self._tab_bar.setTabText(self._emb_tab_idx, tr("pb_embeddings"))
+        self._tab_bar.setTabEnabled(self._emb_tab_idx, True)
         for name in names:
             btn = QPushButton(name)
             btn.setCheckable(True)

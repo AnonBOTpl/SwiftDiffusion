@@ -120,6 +120,15 @@ class MainWindow(QMainWindow):
             if os.path.exists(p):
                 self.model_watcher.addPath(p)
         self.model_watcher.directoryChanged.connect(self.refresh_all_comboboxes)
+        emb_dir = settings.get('Paths', 'models_embeddings')
+        if emb_dir and os.path.exists(emb_dir):
+            self.emb_watcher = QFileSystemWatcher()
+            self.emb_watcher.addPath(emb_dir)
+            self.emb_watcher.directoryChanged.connect(self._on_embeddings_changed)
+    def _on_embeddings_changed(self, path):
+        self.engine.scan_embeddings()
+        if hasattr(self, 'pb_panel') and self.pb_panel:
+            self.pb_panel.refresh_embeddings()
     def scan_models(self, folder, exts=(".safetensors",)):
         if not os.path.exists(folder): return []
         return [f for f in os.listdir(folder) if f.lower().endswith(exts)]
