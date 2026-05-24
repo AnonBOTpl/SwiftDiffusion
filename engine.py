@@ -241,12 +241,14 @@ class DiffusionEngine:
         if self.pipe is None:
             return
         emb_dir = settings.get('Paths', 'models_embeddings')
+        logger.info(f"[EMBED] Looking for embeddings in: {emb_dir}")
         if not emb_dir or not os.path.isdir(emb_dir):
+            logger.warning(f"[EMBED] Directory not found: {emb_dir}")
             return
         exts = (".pt", ".bin", ".safetensors")
-        for fname in sorted(os.listdir(emb_dir)):
-            if not fname.lower().endswith(exts):
-                continue
+        found = [f for f in os.listdir(emb_dir) if f.lower().endswith(exts)]
+        logger.info(f"[EMBED] Found {len(found)} embedding files: {found}")
+        for fname in sorted(found):
             path = os.path.join(emb_dir, fname)
             token = os.path.splitext(fname)[0].lower().replace(" ", "_")
             try:
@@ -254,7 +256,7 @@ class DiffusionEngine:
                 self.embeddings.append(token)
                 logger.info(f"[EMBED] Loaded: {fname} as '{token}'")
             except Exception as e:
-                logger.warning(f"[EMBED] Failed to load {fname}: {e}")
+                logger.error(f"[EMBED] Failed to load {fname}: {e}")
 
     def scan_embeddings(self):
         if self.pipe is None:
