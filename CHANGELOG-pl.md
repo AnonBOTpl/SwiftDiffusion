@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.20.0] - 2026-05-24 – Wildcards, Tiled VAE, Prompt Builder, Prompt weighting (compel), Embeddingi Textual Inversion
+### Dodano
+- **Wildcards:** Składnia `__token__` zastępowana losową linią z `wildcards/token.txt`. Tooltip przy polach promptu wyjaśnia użycie.
+- **Tiled VAE:** Nowy checkbox w Ustawienia → Wydajność, niezależny od VRAM Slicing. `enable_tiling()` / `disable_tiling()` stosowane oddzielnie.
+- **Prompt Builder:** Osobna zakładka z `FlowLayout` i przełączanymi przyciskami tagów z `tags/*.json`. Podgląd + przycisk "Kopiuj do Text2Image". Kategorie: quality, style, lighting, artists.
+- **Prompt weighting (compel):** Biblioteka `compel` zintegrowana. `_encode_prompt()` z `try/except ImportError` fallback; status w nagłówku T2I pokazuje dostępność compel.
+- **Embeddingi Textual Inversion:** Skanowanie `models/embeddings/` przy ładowaniu modelu. `_load_embeddings()` + `scan_embeddings()` obsługują `.pt`, `.bin`, `.safetensors`. Dynamiczna zakładka Embeddingów w Prompt Builderze, auto-odświeżana przez `QFileSystemWatcher`.
+- **Tooltip na zakładce Embeddingów** – hover pokazuje opis.
+- **Połączone komunikaty** dla pustej listy embeddingów.
+### Poprawiono
+- **Brakujący newline w `widgets.py`** powodujący `SyntaxError` podczas importu.
+
 ## [2.19.0] - 2026-05-24 – Przycisk STOP, podział podglądów, proporcje obrazu, usunięto SDXL
 ### Dodano
 - **Przycisk STOP dla wszystkich zakładek:** Każdy przycisk generowania zmienia się na "STOP" (czerwony) podczas pracy; kliknięcie przerywa generowanie.

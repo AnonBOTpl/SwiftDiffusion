@@ -39,6 +39,13 @@
 
 ## 🚀 What can it do?
 
+### ✍️ Prompting Tools
+
+- **Wildcards** — use `__token__` syntax in your prompt; replaced with a random line from `wildcards/token.txt` each generation
+- **Prompt Builder** — compose prompts visually from tag categories (quality, style, lighting, artists) with a single click
+- **Prompt weighting (compel)** — fine-tune the influence of words and phrases using standard `(word:1.2)` syntax, no extra setup required
+- **Textual Inversion embeddings** — drop `.pt` / `.bin` / `.safetensors` files into `models/embeddings/`; they appear automatically in the Prompt Builder and are ready to use after model load
+
 ### 🖌️ Generation Modes
 
 | Mode | What it's for |
@@ -54,13 +61,13 @@
 
 - **First Launch Wizard** — choose your language and theme before anything else
 - **7 dark themes** — Dark, Amber, Nord, Dracula, Monokai, Forest, Ocean — with optional custom accent color
-- **Performance controls** — VRAM Slicing, Attention Slicing, CPU Offloading, auto VRAM clear
+- **Performance controls** — VRAM Slicing, Attention Slicing, Tiled VAE, CPU Offloading, auto VRAM clear
 - **Fully translatable** — add any language by dropping a JSON file into `locales/`
 
 ### 📦 Model Management
 
 - **URL Downloader** — paste a CivitAI or HuggingFace link and SwiftDiffusion handles the rest: downloads, categorizes, and makes the model available instantly
-- **Live refresh** — add a model to disk and the UI picks it up automatically, no restart needed (`QFileSystemWatcher`)
+- **Live refresh** — add a model or embedding to disk and the UI picks it up automatically, no restart needed (`QFileSystemWatcher`)
 - **Latent Mixology Station** — blend up to 5 LoRA adapters simultaneously with a visual weight mixer
 - **Auto-detects** `.safetensors`, `.pth`, `.onnx`, and other common formats
 

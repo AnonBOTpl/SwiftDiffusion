@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.20.0] - 2026-05-24 – Wildcards, Tiled VAE, Prompt Builder, Prompt weighting (compel), Textual Inversion embeddings
+### Added
+- **Wildcards:** `__token__` syntax replaced with a random line from `wildcards/token.txt`. Tooltip near prompt fields explains usage.
+- **Tiled VAE:** New checkbox in Settings → Performance, independent from VRAM Slicing. `enable_tiling()` / `disable_tiling()` applied separately.
+- **Prompt Builder:** Dedicated tab with `FlowLayout` and toggleable tag buttons loaded from `tags/*.json`. Preview pane + "Copy to Text2Image" button. Categories: quality, style, lighting, artists.
+- **Prompt weighting (compel):** `compel` library integrated. `_encode_prompt()` with `try/except ImportError` fallback; status label in T2I header shows whether compel is available.
+- **Textual Inversion embeddings:** `models/embeddings/` scanned at model load. `_load_embeddings()` + `scan_embeddings()` support `.pt`, `.bin`, `.safetensors`. Dynamic Embeddings tab in Prompt Builder auto-refreshed via `QFileSystemWatcher`.
+- **Embeddings tab tooltip** – hover shows description.
+- **Tooltip on Prompt Builder Embeddings tab** and merged empty-state message for clarity.
+### Fixed
+- **Missing newline in `widgets.py`** causing `SyntaxError` during import.
+
 ## [2.19.0] - 2026-05-24 – Stop button, split previews, aspect ratio fix, SDXL removed
 ### Added
 - **Stop button for all tabs:** Each generate button toggles to "STOP" (red) when running; clicking stops generation mid-way.

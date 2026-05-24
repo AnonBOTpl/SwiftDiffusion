@@ -1198,6 +1198,7 @@ class PromptBuilderPanel(QWidget):
         self._emb_page.setLayout(self._emb_flow)
         self._stack.addWidget(self._emb_page)
         self._emb_tab_idx = self._tab_bar.addTab(tr("pb_embeddings"))
+        self._tab_bar.setTabToolTip(self._emb_tab_idx, tr("pb_embeddings_tip"))
         self._tab_bar.setTabEnabled(self._emb_tab_idx, False)
 
         self._tab_bar.currentChanged.connect(self._stack.setCurrentIndex)
@@ -1262,7 +1263,6 @@ class PromptBuilderPanel(QWidget):
             return
 
         for name in names:
-            btn = QPushButton(name)
             btn = QPushButton(name)
             btn.setCheckable(True)
             btn.setStyleSheet("QPushButton { padding: 4px 10px; border: 1px solid #444; border-radius: 4px; background: #2a2a2a; color: #ccc; font-size: 11px; } QPushButton:checked { background: #7a4a9e; color: white; border-color: #9a6abe; }")

@@ -33,7 +33,8 @@
     "pb_clear": "Wyczyść",
     "pb_copy": "Kopiuj do Text2Image",
     "pb_embeddings": "Embeddingi",
-    "pb_embeddings_empty": "Brak embeddingów.\nUmieść pliki .pt / .bin / .safetensors w models/embeddings/",
+    "pb_embeddings_tip": "Wymaga załadowanego modelu. Dodaj .pt / .bin / .safetensors do models/embeddings/",
+    "pb_embeddings_empty": "Brak załadowanych embeddingów.\nWymaga załadowanego modelu.\nUmieść pliki .pt / .bin / .safetensors w models/embeddings/",
 
     "header_params": "PARAMETRY",
     "header_inpaint_tools": "NARZĘDZIA INPAINTINGU",

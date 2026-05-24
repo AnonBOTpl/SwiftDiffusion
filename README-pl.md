@@ -38,6 +38,13 @@
 
 ## 🚀 Co potrafi?
 
+### ✍️ Narzędzia promptowania
+
+- **Wildcards** — użyj składni `__token__` w prompcie; zastępowana losową linią z `wildcards/token.txt` przy każdym generowaniu
+- **Prompt Builder** — komponuj prompty wizualnie z kategorii tagów (quality, style, lighting, artists) jednym kliknięciem
+- **Prompt weighting (compel)** — precyzyjnie kontroluj wagę słów i fraz standardową składnią `(word:1.2)`, bez dodatkowej konfiguracji
+- **Embeddingi Textual Inversion** — wrzuć pliki `.pt` / `.bin` / `.safetensors` do `models/embeddings/`; pojawiają się automatycznie w Prompt Builderze i są gotowe do użycia po załadowaniu modelu
+
 ### 🖌️ Tryby generowania
 
 | Tryb | Do czego służy |
@@ -53,13 +60,13 @@
 
 - **Kreator powitalny** — wybierz język i motyw zanim cokolwiek inne
 - **7 ciemnych motywów** — Dark, Amber, Nord, Dracula, Monokai, Forest, Ocean — z opcjonalnym własnym kolorem akcentu
-- **Kontrola wydajności** — VRAM Slicing, Attention Slicing, CPU Offloading, auto czyszczenie VRAM
+- **Kontrola wydajności** — VRAM Slicing, Attention Slicing, Tiled VAE, CPU Offloading, auto czyszczenie VRAM
 - **Pełna wielojęzyczność** — dodaj dowolny język, wrzucając plik JSON do folderu `locales/`
 
 ### 📦 Zarządzanie modelami
 
 - **URL Downloader** — wklej link z CivitAI lub HuggingFace, resztą zajmuje się SwiftDiffusion: pobiera, kategoryzuje i udostępnia model od razu
-- **Live refresh** — dodaj model do folderu i UI wykrywa go automatycznie, bez restartu (`QFileSystemWatcher`)
+- **Live refresh** — dodaj model lub embedding do folderu i UI wykrywa go automatycznie, bez restartu (`QFileSystemWatcher`)
 - **Latent Mixology Station** — łącz do 5 adapterów LoRA jednocześnie z wizualnym mikserem wag
 - **Automatyczne wykrywanie** formatów `.safetensors`, `.pth`, `.onnx` i innych
 
