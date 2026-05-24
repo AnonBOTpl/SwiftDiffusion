@@ -121,18 +121,32 @@ python main.py
 
 ```
 SwiftDiffusion/
-├── main.py            # UI & application entry point
-├── engine.py          # Diffusion pipeline logic
-├── worker.py          # Background QThread workers
-├── widgets.py         # Reusable UI components
-├── config.py          # Settings & i18n loader
-├── models_registry.py # Model scanner & registry
-├── url_downloader.py  # CivitAI / HuggingFace downloader
-├── scraper.py         # Model search scraper
-├── install.bat        # Windows installer
-├── start.bat          # Windows launcher
-├── locales/           # Translation files (en, pl, ...)
-└── docs/              # Floating HTML guides
+├── main.py                    # UI skeleton & entry point
+├── boot.py                    # CUDA health check on import
+├── engine.py                  # Diffusion pipeline logic
+├── worker.py                  # Background QThread workers
+├── model_manager.py           # Model loading, LoRA, file watchers
+├── generation_controller.py   # T2I / Img2Img / Upscale orchestration
+├── mode_controllers.py        # Inpaint / ControlNet / ADetailer controllers
+├── config.py                  # Settings & i18n loader
+├── widgets/                   # UI component package
+│   ├── __init__.py
+│   ├── dialogs.py             # Settings, gallery, about dialogs
+│   ├── inpaint_canvas.py      # Mask editor canvas
+│   ├── widgets_common.py      # ClickableLabel, sliders, LoRA items
+│   ├── model_downloader.py    # CivitAI / HF downloaders
+│   ├── flow_layout.py         # Custom FlowLayout for Prompt Builder
+│   ├── prompt_builder.py      # Prompt Builder tab
+│   └── resource_monitor.py    # Live VRAM/RAM monitor widget
+├── models_registry.py         # Model scanner & registry
+├── url_downloader.py          # Legacy downloader helpers
+├── scraper.py                 # Model search scraper
+├── install.bat                # Windows installer (bilingual)
+├── start.bat                  # Windows launcher
+├── locales/                   # Translation files (en, pl, …)
+├── wildcards/                 # Wildcard text files
+├── tags/                      # Prompt Builder tag categories
+└── docs/                      # Floating HTML guides
 ```
 
 ---

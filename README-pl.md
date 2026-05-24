@@ -120,18 +120,32 @@ python main.py
 
 ```
 SwiftDiffusion/
-├── main.py            # UI i punkt wejścia aplikacji
-├── engine.py          # Logika pipeline'ów dyfuzji
-├── worker.py          # Wątki QThread działające w tle
-├── widgets.py         # Komponenty interfejsu
-├── config.py          # Ustawienia i loader i18n
-├── models_registry.py # Skaner i rejestr modeli
-├── url_downloader.py  # Pobieracz z CivitAI / HuggingFace
-├── scraper.py         # Wyszukiwarka modeli
-├── install.bat        # Instalator Windows
-├── start.bat          # Launcher Windows
-├── locales/           # Pliki tłumaczeń (en, pl, ...)
-└── docs/              # Pływające okna z dokumentacją HTML
+├── main.py                    # Szkielet UI i punkt wejścia
+├── boot.py                    # CUDA health check przy imporcie
+├── engine.py                  # Logika pipeline'ów dyfuzji
+├── worker.py                  # Wątki QThread działające w tle
+├── model_manager.py           # Ładowanie modeli, LoRA, file watchery
+├── generation_controller.py   # T2I / Img2Img / Upscale
+├── mode_controllers.py        # Inpaint / ControlNet / ADetailer
+├── config.py                  # Ustawienia i loader i18n
+├── widgets/                   # Pakiet komponentów UI
+│   ├── __init__.py
+│   ├── dialogs.py             # Okna dialogowe (settings, galeria, about)
+│   ├── inpaint_canvas.py      # Edytor maski
+│   ├── widgets_common.py      # ClickableLabel, suwaki, LoRA
+│   ├── model_downloader.py    # Pobieracze z CivitAI / HF
+│   ├── flow_layout.py         # FlowLayout dla Prompt Builder
+│   ├── prompt_builder.py      # Zakładka Prompt Builder
+│   └── resource_monitor.py    # Monitor VRAM/RAM na żywo
+├── models_registry.py         # Skaner i rejestr modeli
+├── url_downloader.py          # Pomocnicze pobieranie
+├── scraper.py                 # Wyszukiwarka modeli
+├── install.bat                # Instalator Windows (dwujęzyczny)
+├── start.bat                  # Launcher Windows
+├── locales/                   # Pliki tłumaczeń (en, pl, …)
+├── wildcards/                 # Pliki tekstowe wildcardów
+├── tags/                      # Kategorie tagów Prompt Buildera
+└── docs/                      # Pływające okna z dokumentacją HTML
 ```
 
 ---
