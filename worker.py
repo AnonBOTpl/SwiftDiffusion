@@ -18,7 +18,9 @@ def resolve_wildcards(text):
         if not lines:
             return m.group(0)
         return random.choice(lines)
-    return re.sub(r"__(\w+)__", _replace, text)
+    result = re.sub(r"__(\w+)__", _replace, text)
+    print(f"[Wildcards] resolved: {result}")
+    return result
 
 def log(msg):
     """Print to console for debugging."""
