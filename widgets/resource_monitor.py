@@ -1,7 +1,8 @@
 import logging
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFrame, QLabel, QProgressBar
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QColor, QGraphicsDropShadowEffect
+from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 from config import tr
 
 
