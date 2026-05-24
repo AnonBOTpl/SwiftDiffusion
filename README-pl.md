@@ -10,7 +10,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/license/AnonBOTpl/SwiftDiffusion?color=blue" alt="Licencja">
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
+  <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey" alt="Platforma">
   <a href="https://ko-fi.com/anonbotpl"><img src="https://img.shields.io/badge/wsparcie-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
 </p>
@@ -103,7 +103,7 @@ python main.py
 
 | | |
 |---|---|
-| **Python** | 3.10+ |
+| **Python** | 3.12.10 |
 | **GPU** | Kompatybilna z CUDA, zalecane min. 6 GB VRAM (GTX 1060 lub lepsza) |
 | **System** | Windows / Linux (wymagany PyQt6) |
 
