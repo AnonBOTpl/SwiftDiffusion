@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.20.1] - 2026-05-24 – Refactor phase 1: widgets.py split into package
+### Changed
+- **`widgets.py` (1297 lines) split into `widgets/` package** with 6 modules: `dialogs.py`, `inpaint_canvas.py`, `widgets_common.py`, `model_downloader.py`, `flow_layout.py`, `prompt_builder.py` + `__init__.py` re-exporting all classes.
+- **Zero changes to `main.py`, `engine.py`, `worker.py`, `config.py`** – all imports preserved via `__init__.py`.
+### Fixed
+- **Missing `QRect` import** in `widgets_common.py` causing `NameError` in `LoRAVisualizer.paintEvent`.
+
 ## [2.20.0] - 2026-05-24 – Wildcards, Tiled VAE, Prompt Builder, Prompt weighting (compel), Textual Inversion embeddings
 ### Added
 - **Wildcards:** `__token__` syntax replaced with a random line from `wildcards/token.txt`. Tooltip near prompt fields explains usage.
