@@ -27,7 +27,19 @@ echo  Step 0/4: Creating virtual environment...
 echo ============================================
 :end_0
 
-if not exist "%VENV_DIR%" python -m venv %VENV_DIR%
+py -3.12 --version >nul 2>&1
+if not errorlevel 1 goto py_found
+echo.
+if "%LANG%"=="en" goto en_py_err
+echo  BLAD: Python 3.12 nie jest zainstalowany.
+echo  Pobierz i zainstaluj: https://www.python.org/downloads/release/python-31210/
+goto end
+:en_py_err
+echo  ERROR: Python 3.12 is not installed.
+echo  Download from: https://www.python.org/downloads/release/python-31210/
+goto end
+:py_found
+if not exist "%VENV_DIR%" py -3.12 -m venv %VENV_DIR%
 call %VENV_DIR%\Scripts\activate.bat
 
 REM === Step 1/4: PyTorch ===
