@@ -1,6 +1,30 @@
 import sys
 import os
 import logging
+import threading
+import subprocess
+
+print("[BOOT] Swift Diffusion starting...")
+
+# Test if Python+torch loads before importing anything torch-related
+_test_proc = subprocess.Popen(
+    [sys.executable, "-c", "import torch; torch.cuda.device_count(); print('OK')"],
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE
+)
+try:
+    _out, _ = _test_proc.communicate(timeout=15)
+    if _out.strip() != b"OK":
+        print(f"[BOOT] torch test failed: {_out.decode()}")
+        _test_proc.terminate()
+except subprocess.TimeoutExpired:
+    _test_proc.kill()
+    _test_proc.communicate()
+    print("[BOOT] torch/CUDA hangs at startup. GPU driver in bad state.")
+    print("[BOOT] Please restart your computer to reset the GPU driver.")
+    sys.exit(1)
+
+print("[BOOT] torch/CUDA initialized successfully.")
+
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt, QSize, QFileSystemWatcher, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QPixmap, QIcon, QIntValidator, QColor
@@ -15,7 +39,33 @@ from widgets import (
     SettingsDialog, WelcomeDialog, ModelDownloaderTab, UrlDownloaderTab
 )
 
-APP_VERSION = "2.18.1"
+APP_VERSION = "2.19.0"
+
+
+def _check_cuda_health():
+    print("[STARTUP] Checking CUDA health...")
+    result = [True]
+    done = threading.Event()
+    def test():
+        try:
+            import torch
+            if torch.cuda.is_available():
+                _ = torch.cuda.get_device_properties(0)
+            result[0] = True
+        except Exception:
+            result[0] = False
+        done.set()
+    t = threading.Thread(target=test, daemon=True)
+    t.start()
+    if not done.wait(timeout=8):
+        print("[STARTUP] CUDA not responding (8s timeout). GPU driver in bad state.")
+        print("[STARTUP] Please restart your computer to reset the GPU driver.")
+        sys.exit(1)
+    print("[STARTUP] CUDA health check passed.")
+
+print("[STARTUP] Running CUDA health check...")
+_check_cuda_health()
+print("[STARTUP] CUDA health check done. Initializing Qt...")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -136,7 +186,7 @@ class MainWindow(QMainWindow):
 
         # 1. TEXT2IMAGE
         logger.info("[UI] Building T2I tab...")
-        self.t2i_tab = QWidget(); self.tabs.addTab(self.t2i_tab, tr("tab_t2i")); t2i_l = QHBoxLayout(self.t2i_tab); t2i_params = QVBoxLayout(); t2i_params.setContentsMargins(15, 10, 15, 10); t2i_params.setSpacing(10); self.lbl_p = QLabel(tr("header_params")); self.lbl_p.setObjectName("Header"); t2i_params.addWidget(self.lbl_p); self.s_steps = ParameterSlider(tr("label_steps"), 1, 100, 20); self.s_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 6.0, 0.5, True); self.s_w = ParameterSlider(tr("label_width"), 256, 1024, 512, 64); self.s_h = ParameterSlider(tr("label_height"), 256, 1024, 512, 64); self.s_seed = QLineEdit("-1"); self.s_seed.setValidator(QIntValidator(-1, 2147483647))
+        self.t2i_tab = QWidget(); self.tabs.addTab(self.t2i_tab, tr("tab_t2i")); t2i_l = QHBoxLayout(self.t2i_tab); t2i_params = QVBoxLayout(); t2i_params.setContentsMargins(15, 10, 15, 10); t2i_params.setSpacing(10); self.lbl_p = QLabel(tr("header_params")); self.lbl_p.setObjectName("Header"); t2i_params.addWidget(self.lbl_p); self.s_steps = ParameterSlider(tr("label_steps"), 1, 100, 20); self.s_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 6.0, 0.5, True); self.s_w = ParameterSlider(tr("label_width"), 256, 2048, 512, 64); self.s_h = ParameterSlider(tr("label_height"), 256, 2048, 512, 64); self.s_seed = QLineEdit("-1"); self.s_seed.setValidator(QIntValidator(-1, 2147483647))
         for s in [self.s_steps, self.s_cfg, self.s_w, self.s_h]: t2i_params.addWidget(s)
         self.lbl_seed_t2i = QLabel(tr("label_seed")); t2i_params.addWidget(self.lbl_seed_t2i); t2i_params.addWidget(self.s_seed)
 
@@ -173,7 +223,7 @@ class MainWindow(QMainWindow):
         self.live_preview.hide()
         t2i_params.addWidget(self.live_preview)
 
-        self.btn_gen_t2i = QPushButton(tr("btn_generate")); self.btn_gen_t2i.setObjectName("GenerateBtn"); self.btn_gen_t2i.setFixedHeight(45); self.btn_gen_t2i.clicked.connect(self.start_generation); t2i_params.addWidget(self.btn_gen_t2i); t2i_l.addLayout(t2i_params, 0)
+        self.btn_gen_t2i = QPushButton(tr("btn_generate")); self.btn_gen_t2i.setObjectName("GenerateBtn"); self.btn_gen_t2i.setFixedHeight(45); self.btn_gen_t2i.setMinimumWidth(180); self.btn_gen_t2i.clicked.connect(self.start_generation); t2i_params.addWidget(self.btn_gen_t2i); t2i_l.addLayout(t2i_params, 0)
         t2i_main = QVBoxLayout(); t2i_main.setContentsMargins(20, 10, 20, 0); self.t2i_prompt = QPlainTextEdit(); self.t2i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.t2i_prompt.setFixedHeight(60); self.t2i_neg = QPlainTextEdit(); self.t2i_neg.setPlaceholderText(tr("placeholder_negative")); self.t2i_neg.setFixedHeight(50); self.lbl_prompt_t2i = QLabel(tr("label_prompt")); t2i_main.addWidget(self.lbl_prompt_t2i); t2i_main.addWidget(self.t2i_prompt); self.lbl_neg_t2i = QLabel(tr("label_negative")); t2i_main.addWidget(self.lbl_neg_t2i); t2i_main.addWidget(self.t2i_neg)
 
         self.preview_container = QWidget(); self.preview_layout = QHBoxLayout(self.preview_container); self.preview_layout.setContentsMargins(0, 0, 0, 0); self.preview_layout.setSpacing(20)
@@ -251,21 +301,31 @@ class MainWindow(QMainWindow):
 
         self.btn_gen_inp = QPushButton(tr("btn_generate_fix"))
         self.btn_gen_inp.setObjectName("GenerateBtn")
+        self.btn_gen_inp.setMinimumWidth(180)
         self.btn_gen_inp.clicked.connect(self.start_inpaint)
         inp_params.addWidget(self.btn_gen_inp)
 
         inp_l.addLayout(inp_params, 0)
-        inp_main = QVBoxLayout(); inp_main.setContentsMargins(20, 10, 16, 0); self.i_prompt = QPlainTextEdit(); self.i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.i_prompt.setFixedHeight(60); self.i_neg = QPlainTextEdit(); self.i_neg.setPlaceholderText(tr("placeholder_negative")); self.i_neg.setFixedHeight(50); inp_main.addWidget(QLabel(tr("label_prompt"))); inp_main.addWidget(self.i_prompt); inp_main.addWidget(QLabel(tr("label_negative"))); inp_main.addWidget(self.i_neg); self.canvas_scroll = QScrollArea(); self.canvas_scroll.setWidgetResizable(True); self.canvas = InpaintCanvas(); self.canvas_scroll.setWidget(self.canvas); inp_main.addWidget(self.canvas_scroll, 1); self.brush_sl.valueChanged.connect(lambda v: setattr(self.canvas, 'brush_size', v));
+        inp_main = QVBoxLayout(); inp_main.setContentsMargins(20, 10, 16, 0); self.i_prompt = QPlainTextEdit(); self.i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.i_prompt.setFixedHeight(60); self.i_neg = QPlainTextEdit(); self.i_neg.setPlaceholderText(tr("placeholder_negative")); self.i_neg.setFixedHeight(50); inp_main.addWidget(QLabel(tr("label_prompt"))); inp_main.addWidget(self.i_prompt); inp_main.addWidget(QLabel(tr("label_negative"))); inp_main.addWidget(self.i_neg);
+        inp_previews = QHBoxLayout()
+        self.canvas_scroll = QScrollArea(); self.canvas_scroll.setWidgetResizable(True); self.canvas = InpaintCanvas(); self.canvas_scroll.setWidget(self.canvas); inp_previews.addWidget(self.canvas_scroll, 1)
+        self.v_inpaint_out = ClickableLabel(); self.v_inpaint_out.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_inpaint_out.setObjectName("PreviewArea"); self.v_inpaint_out.setStyleSheet("background-color: #1a1a1a;"); self.v_inpaint_out.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_inpaint_out.setMinimumSize(1, 1); self.v_inpaint_out.clicked.connect(self.open_fullscreen); inp_previews.addWidget(self.v_inpaint_out, 1)
+        inp_main.addLayout(inp_previews, 1)
+        self.brush_sl.valueChanged.connect(lambda v: setattr(self.canvas, 'brush_size', v));
         self.btn_undo.clicked.connect(self.canvas.undo_stack.undo)
         self.btn_redo.clicked.connect(self.canvas.undo_stack.redo)
         self.i_progress = QProgressBar(); inp_main.addWidget(self.i_progress); inp_l.addLayout(inp_main, 1)
 
         # 3. CONTROLNET
         logger.info("[UI] Building ControlNet tab...")
-        self.cn_tab = QWidget(); self.tabs.addTab(self.cn_tab, tr("tab_controlnet")); cn_l = QHBoxLayout(self.cn_tab); cn_params = QVBoxLayout(); cn_params.setContentsMargins(15, 10, 15, 10); cn_params.setSpacing(10); lbl_ct = QLabel(tr("header_controlnet_tools")); lbl_ct.setObjectName("Header"); cn_params.addWidget(lbl_ct); self.cn_model_combo = QComboBox(); self.refresh_cn_models(); cn_params.addWidget(self.cn_model_combo); self.cn_steps = ParameterSlider(tr("label_steps"), 1, 100, 25); self.cn_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 7.5, 0.5, True); self.cn_strength = ParameterSlider(tr("label_weight"), 0.0, 2.0, 1.0, 0.1, True); self.cn_w = ParameterSlider(tr("label_width"), 256, 1024, 512, 64); self.cn_h = ParameterSlider(tr("label_height"), 256, 1024, 512, 64); self.cn_seed = QLineEdit("-1"); self.cn_seed.setValidator(QIntValidator(-1, 2147483647))
+        self.cn_tab = QWidget(); self.tabs.addTab(self.cn_tab, tr("tab_controlnet")); cn_l = QHBoxLayout(self.cn_tab); cn_params = QVBoxLayout(); cn_params.setContentsMargins(15, 10, 15, 10); cn_params.setSpacing(10); lbl_ct = QLabel(tr("header_controlnet_tools")); lbl_ct.setObjectName("Header"); cn_params.addWidget(lbl_ct); self.cn_model_combo = QComboBox(); self.refresh_cn_models(); cn_params.addWidget(self.cn_model_combo); self.cn_steps = ParameterSlider(tr("label_steps"), 1, 100, 25); self.cn_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 7.5, 0.5, True); self.cn_strength = ParameterSlider(tr("label_weight"), 0.0, 2.0, 1.0, 0.1, True); self.cn_w = ParameterSlider(tr("label_width"), 256, 2048, 512, 64); self.cn_h = ParameterSlider(tr("label_height"), 256, 2048, 512, 64); self.cn_seed = QLineEdit("-1"); self.cn_seed.setValidator(QIntValidator(-1, 2147483647))
         for s in [self.cn_steps, self.cn_cfg, self.cn_strength, self.cn_w, self.cn_h]: cn_params.addWidget(s)
-        cn_params.addWidget(QLabel(tr("label_seed"))); cn_params.addWidget(self.cn_seed); self.btn_load_cn = QPushButton(tr("btn_load_ref")); self.btn_load_cn.setObjectName("SecondaryBtn"); self.btn_load_cn.clicked.connect(self.load_cn_image); cn_params.addWidget(self.btn_load_cn); self.btn_tips_cn = QPushButton(tr("btn_tips")); self.btn_tips_cn.setObjectName("SecondaryBtn"); self.btn_tips_cn.clicked.connect(lambda: self.show_tips(tr("tips_title_controlnet"), "docs/tips_controlnet.html")); cn_params.addWidget(self.btn_tips_cn); cn_params.addStretch(); self.btn_gen_cn = QPushButton(tr("btn_generate_comp")); self.btn_gen_cn.setObjectName("GenerateBtn"); self.btn_gen_cn.clicked.connect(self.start_controlnet); cn_params.addWidget(self.btn_gen_cn); cn_l.addLayout(cn_params, 0)
-        cn_main = QVBoxLayout(); cn_main.setContentsMargins(20, 10, 16, 0); self.cn_prompt = QPlainTextEdit(); self.cn_prompt.setPlaceholderText(tr("placeholder_prompt")); self.cn_prompt.setFixedHeight(60); self.cn_neg = QPlainTextEdit(); self.cn_neg.setPlaceholderText(tr("placeholder_negative")); self.cn_neg.setFixedHeight(50); cn_main.addWidget(QLabel(tr("label_prompt"))); cn_main.addWidget(self.cn_prompt); cn_main.addWidget(QLabel(tr("label_negative"))); cn_main.addWidget(self.cn_neg); self.cn_preview = ClickableLabel(tr("placeholder_drop")); self.cn_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.cn_preview.setObjectName("PreviewArea"); self.cn_preview.setStyleSheet("border: 2px dashed #333; color: #555;"); cn_main.addWidget(self.cn_preview, 1); self.cn_progress = QProgressBar(); cn_main.addWidget(self.cn_progress); cn_l.addLayout(cn_main, 1)
+        cn_params.addWidget(QLabel(tr("label_seed"))); cn_params.addWidget(self.cn_seed); self.btn_load_cn = QPushButton(tr("btn_load_ref")); self.btn_load_cn.setObjectName("SecondaryBtn"); self.btn_load_cn.clicked.connect(self.load_cn_image); cn_params.addWidget(self.btn_load_cn); self.btn_tips_cn = QPushButton(tr("btn_tips")); self.btn_tips_cn.setObjectName("SecondaryBtn"); self.btn_tips_cn.clicked.connect(lambda: self.show_tips(tr("tips_title_controlnet"), "docs/tips_controlnet.html")); cn_params.addWidget(self.btn_tips_cn); cn_params.addStretch(); self.btn_gen_cn = QPushButton(tr("btn_generate_comp")); self.btn_gen_cn.setObjectName("GenerateBtn"); self.btn_gen_cn.setMinimumWidth(180); self.btn_gen_cn.clicked.connect(self.start_controlnet); cn_params.addWidget(self.btn_gen_cn); cn_l.addLayout(cn_params, 0)
+        cn_main = QVBoxLayout(); cn_main.setContentsMargins(20, 10, 16, 0); self.cn_prompt = QPlainTextEdit(); self.cn_prompt.setPlaceholderText(tr("placeholder_prompt")); self.cn_prompt.setFixedHeight(60); self.cn_neg = QPlainTextEdit(); self.cn_neg.setPlaceholderText(tr("placeholder_negative")); self.cn_neg.setFixedHeight(50); cn_main.addWidget(QLabel(tr("label_prompt"))); cn_main.addWidget(self.cn_prompt); cn_main.addWidget(QLabel(tr("label_negative"))); cn_main.addWidget(self.cn_neg);
+        cn_prev_layout = QHBoxLayout()
+        self.cn_preview = ClickableLabel(tr("placeholder_drop")); self.cn_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.cn_preview.setObjectName("PreviewArea"); self.cn_preview.setStyleSheet("border: 2px dashed #333; color: #555;"); self.cn_preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.cn_preview.setMinimumSize(1, 1); cn_prev_layout.addWidget(self.cn_preview, 1)
+        self.v_cn_out = ClickableLabel(); self.v_cn_out.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_cn_out.setObjectName("PreviewArea"); self.v_cn_out.setStyleSheet("background-color: #1a1a1a;"); self.v_cn_out.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_cn_out.setMinimumSize(1, 1); self.v_cn_out.clicked.connect(self.open_fullscreen); cn_prev_layout.addWidget(self.v_cn_out, 1)
+        cn_main.addLayout(cn_prev_layout, 1); self.cn_progress = QProgressBar(); cn_main.addWidget(self.cn_progress); cn_l.addLayout(cn_main, 1)
 
         self.setAcceptDrops(True)
 
@@ -284,7 +344,7 @@ class MainWindow(QMainWindow):
         self.btn_load_adet = QPushButton(tr("btn_load_image")); self.btn_load_adet.setObjectName("SecondaryBtn"); self.btn_load_adet.clicked.connect(self.load_adet_image); adet_params.addWidget(self.btn_load_adet)
         self.check_adet_upscale = QCheckBox(tr("chk_auto_upscale_adet")); adet_params.addWidget(self.check_adet_upscale)
         adet_params.addStretch()
-        self.btn_gen_adet = QPushButton(tr("btn_generate_adet")); self.btn_gen_adet.setObjectName("GenerateBtn"); self.btn_gen_adet.setFixedHeight(45); self.btn_gen_adet.clicked.connect(self.start_adetailer); adet_params.addWidget(self.btn_gen_adet)
+        self.btn_gen_adet = QPushButton(tr("btn_generate_adet")); self.btn_gen_adet.setObjectName("GenerateBtn"); self.btn_gen_adet.setFixedHeight(45); self.btn_gen_adet.setMinimumWidth(180); self.btn_gen_adet.clicked.connect(self.start_adetailer); adet_params.addWidget(self.btn_gen_adet)
 
         self._disable_untils_model_loaded()
         adet_l.addLayout(adet_params, 0)
@@ -497,6 +557,10 @@ class MainWindow(QMainWindow):
             self.img2img_preview.setText("")
 
     def start_generation(self):
+        if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
+            self.worker.stop()
+            self.btn_gen_t2i.setText(tr("btn_generate")); self.btn_gen_t2i.setStyleSheet("")
+            return
         if not self.engine.pipe: return QMessageBox.warning(self, tr("status_error"), tr("status_model_error"))
         try: sv = int(self.s_seed.text())
         except Exception: sv = -1
@@ -520,6 +584,7 @@ class MainWindow(QMainWindow):
             "scheduler": self.scheduler_combo.currentText(),
             "vae_path": self.vae_combo.currentData()
         }
+        self.btn_gen_t2i.setText(tr("btn_stop")); self.btn_gen_t2i.setStyleSheet("background: #cc3333; color: white; font-weight: bold;")
         self.btn_gen_t2i.setEnabled(False); self.p_bar.setMaximum(params["steps"]); self.p_bar.setValue(0)
         self.live_preview.setStyleSheet("border: 1px solid #333; border-radius: 8px; background-color: #1a1a1a; color: #555; font-size: 12px;")
         self.live_preview.setText(tr("worker_generating"))
@@ -534,6 +599,7 @@ class MainWindow(QMainWindow):
             if not self.img2img_image_pil:
                 self.live_preview.hide()
                 QMessageBox.warning(self, tr("status_error"), tr("error_load_img2img"))
+                self.btn_gen_t2i.setText(tr("btn_generate")); self.btn_gen_t2i.setStyleSheet("")
                 self.btn_gen_t2i.setEnabled(True)
                 return
             params["image"] = self.img2img_image_pil
@@ -549,6 +615,7 @@ class MainWindow(QMainWindow):
         self.worker.progress.connect(self.on_preview_update)
         self.worker.status.connect(self.l_status.setText)
         self.worker.start()
+        self.btn_gen_t2i.setEnabled(True)
 
     def on_preview_update(self, step, preview):
         self._animate_progress(step)
@@ -569,6 +636,7 @@ class MainWindow(QMainWindow):
         if isinstance(seed, int): self.current_seed = seed; self.l_status.setText(f"{tr('status_seed')}{seed}"); self.btn_copy.show()
         else: self.l_status.setText(str(seed)); self.btn_copy.hide()
     def on_generation_finished(self, path, seed):
+        self.btn_gen_t2i.setText(tr("btn_generate")); self.btn_gen_t2i.setStyleSheet("")
         self.btn_gen_t2i.setEnabled(True); self.p_bar.setFormat(tr("status_done")); self.p_bar.setMaximum(100); self.p_bar.setValue(100); self.live_preview.hide()
         if self._pulse_timer and self._pulse_timer.isActive():
             self._pulse_timer.stop()
@@ -594,8 +662,12 @@ class MainWindow(QMainWindow):
         if self.last_generated_path: self.canvas.set_base_image(QPixmap(self.last_generated_path)); self.tabs.setCurrentIndex(1)
     def load_inpaint_image(self):
         f, _ = QFileDialog.getOpenFileName(self, tr("dialog_image"), "", "Images (*.png *.jpg *.jpeg)")
-        if f: self.canvas.set_base_image(QPixmap(f))
+        if f: self.canvas.set_base_image(QPixmap(f)); self.v_inpaint_out.clear(); self.v_inpaint_out.setText("")
     def start_inpaint(self):
+        if hasattr(self, 'in_worker') and self.in_worker and self.in_worker.isRunning():
+            self.in_worker.stop()
+            self.btn_gen_inp.setText(tr("btn_generate_fix")); self.btn_gen_inp.setStyleSheet("")
+            return
         if not self.engine.inpaint_pipe and not self.engine.pipe: return QMessageBox.warning(self, tr("status_error"), tr("status_model_error"))
         params = {
             "prompt": self.i_prompt.toPlainText(),
@@ -610,17 +682,24 @@ class MainWindow(QMainWindow):
             "scheduler": self.scheduler_combo.currentText(),
             "vae_path": self.vae_combo.currentData()
         }
+        self.btn_gen_inp.setText(tr("btn_stop")); self.btn_gen_inp.setStyleSheet("background: #cc3333; color: white; font-weight: bold;")
         self.btn_gen_inp.setEnabled(False); self.i_progress.setMaximum(0); self.i_progress.setValue(0); self.in_worker = InpaintWorker(self.engine, params); self.in_worker.status.connect(self.i_progress.setFormat); self.in_worker.finished.connect(self.on_inpaint_finished); self.in_worker.start()
+        self.btn_gen_inp.setEnabled(True)
     def on_inpaint_finished(self, path, seed):
-        self.btn_gen_inp.setEnabled(True); self.i_progress.setMaximum(100); self.i_progress.setValue(100); self.i_progress.setFormat(f"{tr('status_done')} ({seed})"); ImageViewer(QPixmap(path), self).exec()
+        self.btn_gen_inp.setText(tr("btn_generate_fix")); self.btn_gen_inp.setStyleSheet("")
+        self.btn_gen_inp.setEnabled(True); self.i_progress.setMaximum(100); self.i_progress.setValue(100); self.i_progress.setFormat(f"{tr('status_done')} ({seed})"); self.v_inpaint_out.set_image(path); self.v_inpaint_out.setText("")
     def load_cn_image(self):
         f, _ = QFileDialog.getOpenFileName(self, tr("dialog_ref"), "", "Images (*.png *.jpg *.jpeg)")
-        if f: self.set_cn_ref_image(f)
+        if f: self.set_cn_ref_image(f); self.v_cn_out.clear(); self.v_cn_out.setText("")
     def set_cn_ref_image(self, path):
         pix = QPixmap(path)
         logger.info(f"[SYSTEM] Loading CN image: {pix.width()}x{pix.height()}"); self.cn_preview.set_image(pix); self.cn_preview.setText("")
         self.ref_image_pil = qimage_to_pil(pix.toImage())
     def start_adetailer(self):
+        if hasattr(self, 'adet_worker') and self.adet_worker and self.adet_worker.isRunning():
+            self.adet_worker.stop()
+            self.btn_gen_adet.setText(tr("btn_generate_adet")); self.btn_gen_adet.setStyleSheet("")
+            return
         input_img = self.v_adet_in.get_image_pil()
         if not input_img or not self.engine.pipe:
             return QMessageBox.warning(self, tr("status_error"), tr("status_no_data"))
@@ -638,8 +717,9 @@ class MainWindow(QMainWindow):
             "keep_upscaler_vram": self.check_vram.isChecked()
         }
 
+        self.btn_gen_adet.setText(tr("btn_stop")); self.btn_gen_adet.setStyleSheet("background: #cc3333; color: white; font-weight: bold;")
         self.btn_gen_adet.setEnabled(False)
-        self.adet_progress.setMaximum(30) # inpainting steps
+        self.adet_progress.setMaximum(30)
         self.adet_progress.setValue(0)
 
         self.adet_worker = ADetailerWorker(self.engine, params)
@@ -647,8 +727,10 @@ class MainWindow(QMainWindow):
         self.adet_worker.status.connect(self.l_status.setText)
         self.adet_worker.finished.connect(self.on_adetailer_finished)
         self.adet_worker.start()
+        self.btn_gen_adet.setEnabled(True)
 
     def on_adetailer_finished(self, path):
+        self.btn_gen_adet.setText(tr("btn_generate_adet")); self.btn_gen_adet.setStyleSheet("")
         self.btn_gen_adet.setEnabled(True)
         if path:
             self.v_adet_out.set_image(path)
@@ -660,6 +742,10 @@ class MainWindow(QMainWindow):
             self.adet_progress.setFormat(tr("status_error"))
 
     def start_controlnet(self):
+        if hasattr(self, 'cn_wkr') and self.cn_wkr and self.cn_wkr.isRunning():
+            self.cn_wkr.stop()
+            self.btn_gen_cn.setText(tr("btn_generate_cn")); self.btn_gen_cn.setStyleSheet("")
+            return
         if not self.engine.pipe or not self.ref_image_pil: return QMessageBox.warning(self, tr("status_error"), tr("status_no_data"))
         try: sv = int(self.cn_seed.text())
         except Exception: sv = -1
@@ -678,9 +764,12 @@ class MainWindow(QMainWindow):
             "scheduler": self.scheduler_combo.currentText(),
             "vae_path": self.vae_combo.currentData()
         }
+        self.btn_gen_cn.setText(tr("btn_stop")); self.btn_gen_cn.setStyleSheet("background: #cc3333; color: white; font-weight: bold;")
         self.btn_gen_cn.setEnabled(False); self.cn_progress.setMaximum(0); self.cn_progress.setValue(0); self.cn_wkr = ControlNetWorker(self.engine, params); self.cn_wkr.status.connect(self.cn_progress.setFormat); self.cn_wkr.finished.connect(self.on_cn_finished); self.cn_wkr.start()
+        self.btn_gen_cn.setEnabled(True)
     def on_cn_finished(self, path, seed):
-        self.btn_gen_cn.setEnabled(True); self.cn_progress.setMaximum(100); self.cn_progress.setValue(100); self.cn_progress.setFormat(f"{tr('status_done')} ({seed})"); ImageViewer(QPixmap(path), self).exec()
+        self.btn_gen_cn.setText(tr("btn_generate_cn")); self.btn_gen_cn.setStyleSheet("")
+        self.btn_gen_cn.setEnabled(True); self.cn_progress.setMaximum(100); self.cn_progress.setValue(100); self.cn_progress.setFormat(f"{tr('status_done')} ({seed})"); self.v_cn_out.set_image(path); self.v_cn_out.setText("")
 
     def refresh_gallery(self):
         self.gal_list.clear()
@@ -740,6 +829,7 @@ class MainWindow(QMainWindow):
         label.setStyleSheet(f"font-size: 10px; color: {color}; font-weight: bold;")
 
     def closeEvent(self, event):
+        self.engine._clear_vram()
         if self.nvml_active:
             try:
                 import pynvml
@@ -748,10 +838,10 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def resizeEvent(self, event):
-        super().resizeEvent(event); self.v_orig.update_scaling(); self.v_ups.update_scaling(); self.v_adet_in.update_scaling(); self.v_adet_out.update_scaling(); self.cn_preview.update_scaling()
+        super().resizeEvent(event); self.v_orig.update_scaling(); self.v_ups.update_scaling(); self.v_adet_in.update_scaling(); self.v_adet_out.update_scaling(); self.v_inpaint_out.update_scaling(); self.v_cn_out.update_scaling()
 
     def _on_tab_changed(self, index):
-        for w in [self.v_orig, self.v_ups, self.v_adet_in, self.v_adet_out, self.cn_preview]:
+        for w in [self.v_orig, self.v_ups, self.v_adet_in, self.v_adet_out, self.cn_preview, self.v_inpaint_out, self.v_cn_out]:
             w.update_scaling()
         if self.canvas.base_pixmap_item.pixmap() and not self.canvas.base_pixmap_item.pixmap().isNull():
             self.canvas.fitInView(self.canvas.base_pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)

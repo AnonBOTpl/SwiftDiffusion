@@ -70,6 +70,9 @@
 - **One-click recall** — read prompt, seed, and all settings from PNG metadata and restore them to the pipeline instantly
 - Floating HTML guides for ControlNet and Inpainting
 
+### ⚠️ Known limitations
+- **SDXL** was evaluated but dropped — `from_single_file()` crashes on 6 GB GPUs without an error message. SwiftDiffusion is optimized and tested exclusively for **SD 1.5**.
+
 ### 📊 Live Resource Monitor
 
 Real-time VRAM, RAM, GPU load, and temperature — visible in the sidebar at all times.

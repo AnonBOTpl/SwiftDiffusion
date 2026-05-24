@@ -1,6 +1,36 @@
 # Changelog
 
-## [2.18.0] - 2026-05-23 – Poprawki motywów i UI
+## [2.19.0] - 2026-05-24 – Przycisk STOP, podział podglądów, proporcje obrazu, usunięto SDXL
+### Dodano
+- **Przycisk STOP dla wszystkich zakładek:** Każdy przycisk generowania zmienia się na "STOP" (czerwony) podczas pracy; kliknięcie przerywa generowanie.
+- **Podział podglądu Inpaint:** Lewa strona = edytor maski, prawa = wynik (zamiast popupu).
+- **Podział podglądu ControlNet:** Lewa strona = obraz referencyjny, prawa = wynik (zamiast popupu).
+- **Czystsze zamykanie:** Zamknięcie okna czyści VRAM przed wyjściem.
+- **Health check CUDA przy starcie:** Test w subprocess przed importem engine (zapobiega zawieszeniu na zablokowanym sterowniku GPU).
+- **Klucz `btn_stop`** w plikach locale EN/PL.
+### Poprawiono
+- **Proporcje obrazu w Inpaint/ADetailer:** Wynik generowania dopasowuje się do wymiarów obrazu wejściowego zamiast wymuszać 512×512.
+- **Błąd nieskończonego powiększania ControlNet:** `setMinimumSize(1,1)` + polityka `Expanding` na `cn_preview`.
+- **Nieskończone powiększanie ClickableLabel:** Usunięto zbędne `setPixmap(original)` przed `update_scaling()`.
+- **Jakość InpaintCanvas:** Dodano `SmoothTransformation` + hint renderowania `SmoothPixmapTransform`.
+- **Kontrola sanity `detect_model_type`:** Odrzuca nagłówki >50 MB aby zapobiec OOM.
+### Zmieniono
+- **Maksymalna rozdzielczość:** Zachowano suwaki 256–2048 (wprowadzone wraz z SDXL, pozostawione po jego usunięciu).
+- **Usunięto `detect_model_type()`** – engine zawsze używa pipeline'ów SD 1.5.
+- **Logowanie engine** zmienione z polskiego na angielski.
+- **`install.bat` przepisany** – dwujęzyczny, bez bloków `if-else`.
+### Usunięto
+- **Cały kod SDXL:** `StableDiffusionXLPipeline` / `XLInpaint` / `XLControlNet` / `XLImg2Img`, śledzenie `model_type`, `VramWarningDialog`, `_check_vram_warning()`, `_update_model_type_ui()`, `dont_ask_vram` – wszystko usunięte. SDXL powodował ciche zamykanie procesu na 6 GB GPU (`from_single_file()` wychodzi bez błędu przy OOM). Projekt skupia się na SD 1.5, gdzie jest w pełni przetestowany i stabilny.
+
+## [2.18.1] - 2026-05-24 – Skalowanie obrazu i logowanie startowe
+### Poprawiono
+- **Podgląd Upscale:** Obraz dopasowuje się natychmiast (`ClickableLabel.update_scaling()` wywoływane zaraz po `set_image()`).
+- **InpaintCanvas:** Zastąpiono twarde 512×512 funkcją `fitInView()`; dodano `resizeEvent` do ponownego dopasowania przy zmianie rozmiaru okna.
+- **Podgląd ControlNet:** Nie jest już skalowany do 512×512 przed wyświetleniem – oryginalna rozdzielczość zachowana.
+- **Przełączanie zakładek:** Dodano handler `_on_tab_changed` odświeżający wszystkie podglądy.
+- **Zmiana rozmiaru okna:** Podglądy ADetailer i ControlNet teraz aktualizowane (brakowało ich w `MainWindow.resizeEvent`).
+### Dodano
+- **Logowanie startowe:** Komunikaty `[STARTUP]` i `[UI]` pokazują każdy krok inicjalizacji.
 ### Poprawiono
 - **Kolor akcentu:** Każdy motyw ma domyślny akcent zamiast globalnego #00d4ff. W ustawieniach checkbox "Własny akcent" – gdy odznaczony, używa koloru wbudowanego w motyw.
 - **Fade-in na zakładkach (usunięty):** `QGraphicsOpacityEffect` powodował znikanie wszystkich kontrolek – przywrócono błyskawiczne przełączanie.

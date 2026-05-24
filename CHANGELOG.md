@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.19.0] - 2026-05-24 – Stop button, split previews, aspect ratio fix, SDXL removed
+### Added
+- **Stop button for all tabs:** Each generate button toggles to "STOP" (red) when running; clicking stops generation mid-way.
+- **Inpaint split preview:** Left = mask editor, right = result (was popup-only).
+- **ControlNet split preview:** Left = reference image, right = result (was popup-only).
+- **Clean shutdown:** Closing the window clears VRAM before exit.
+- **CUDA health check at boot:** Subprocess test before importing engine (prevents hang on stuck GPU driver).
+- **`btn_stop` key** in EN/PL locale files.
+### Fixed
+- **Inpaint/ADetailer aspect ratio:** Output now matches input image dimensions instead of forcing 512×512.
+- **ControlNet infinite-enlarge bug:** `setMinimumSize(1,1)` + `Expanding` policy on `cn_preview`.
+- **ClickableLabel infinite enlargement:** Removed redundant `setPixmap(original)` before `update_scaling()`.
+- **InpaintCanvas quality:** `SmoothTransformation` + `SmoothPixmapTransform` render hint.
+- **`detect_model_type` sanity check:** Rejects headers >50 MB to prevent OOM.
+### Changed
+- **Max resolution sliders** kept at 256–2048 (introduced alongside SDXL support, retained after SDXL removal).
+- **`detect_model_type()` removed** – engine always uses SD 1.5 pipelines.
+- **Engine logging** changed from Polish to English.
+- **`install.bat` rewritten** – bilingual, no `if-else` blocks.
+
 ## [2.18.1] - 2026-05-24 – Image scaling & startup logging
 ### Fixed
 - **Upscaled preview:** Image now fits immediately into the preview widget (`ClickableLabel.update_scaling()` called right after `set_image()`), no longer waiting for manual window resize.

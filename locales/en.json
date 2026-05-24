@@ -21,6 +21,7 @@
     "lbl_sampling_header": "SAMPLING",
     "btn_settings": "⚙️ Settings",
     "btn_generate": "GENERATE IMAGE",
+    "btn_stop": "STOP",
 
     "tab_t2i": "Text2Image",
     "tab_inpaint": "Inpainting",
@@ -195,5 +196,14 @@
     "monitor_gpu_na": "GPU: N/A",
 
     "tips_title_inpaint": "Inpainting Tips",
-    "tips_title_controlnet": "ControlNet Tips"
+    "tips_title_controlnet": "ControlNet Tips",
+
+    "vram_warning_header": "SDXL model detected on {vram:.1f} GB VRAM",
+    "vram_warning_desc": "SDXL models require more VRAM than available. It is strongly recommended to enable the following optimizations:",
+    "opt_attention_slicing": "Attention Slicing (Lower VRAM, slower)",
+    "opt_cpu_offload": "Model CPU Offload (Aggressive VRAM saving)",
+    "opt_vram_slicing": "VAE Slicing / Tiling",
+    "vram_dont_ask": "Don't show this warning again",
+    "vram_apply": "Enable optimizations",
+    "vram_skip": "Skip"
 }

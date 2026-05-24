@@ -3,8 +3,8 @@ import gc
 import uuid
 import random
 import os
-import logging
 import json
+import logging
 import numpy as np
 import cv2
 from PIL import Image
@@ -13,17 +13,16 @@ from config import settings
 from diffusers import (
     StableDiffusionPipeline,
     StableDiffusionImg2ImgPipeline,
+    StableDiffusionInpaintPipeline,
+    StableDiffusionControlNetPipeline,
     AutoencoderKL,
     DPMSolverMultistepScheduler,
-    StableDiffusionInpaintPipeline,
     ControlNetModel,
-    StableDiffusionControlNetPipeline,
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
     DDIMScheduler
 )
 
-# --- LOGGING CONFIG ---
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger("SD-Controller")
 
@@ -40,6 +39,13 @@ except ImportError:
     logger.error("[SYSTEM] Missing ultralytics (YOLO) library")
 
 
+def get_vram_gb():
+    try:
+        return torch.cuda.get_device_properties(0).total_memory / (1024**3)
+    except Exception:
+        return 0
+
+
 class DiffusionEngine:
     def __init__(self):
         self.pipe = None
@@ -50,8 +56,14 @@ class DiffusionEngine:
         self.current_cn_model_path = None
         self.upscaler_model = None
         self.upscaler_path = None
+        self._stop_flag = False
+
+    def stop_generation(self):
+        self._stop_flag = True
+        logger.info("[SYSTEM] Generation stop requested")
 
     def _clear_vram(self):
+        gc.collect()
         torch.cuda.empty_cache()
         logger.info("[VRAM] GPU memory cleared (torch.cuda.empty_cache())")
 
@@ -62,21 +74,32 @@ class DiffusionEngine:
         if self.pipe: del self.pipe
         if self.inpaint_pipe: del self.inpaint_pipe
         if self.controlnet_pipe: del self.controlnet_pipe
-
         self._clear_vram()
 
-        logger.info(f"[SYSTEM] Loading base model: {model_path}")
-        if model_path.endswith('.safetensors'):
-            self.pipe = StableDiffusionPipeline.from_single_file(
-                model_path, torch_dtype=torch.float16, use_safetensors=True
-            )
-        else:
-            self.pipe = StableDiffusionPipeline.from_pretrained(
-                model_path, torch_dtype=torch.float16, use_safetensors=True
-            )
+        logger.info(f"[SYSTEM] Loading model: {model_path}")
 
-        self.pipe.safety_checker = None
-        self.pipe.feature_extractor = None
+        try:
+            if model_path.endswith('.safetensors'):
+                self.pipe = StableDiffusionPipeline.from_single_file(
+                    model_path, torch_dtype=torch.float16, use_safetensors=True
+                )
+            else:
+                self.pipe = StableDiffusionPipeline.from_pretrained(
+                    model_path, torch_dtype=torch.float16, use_safetensors=True
+                )
+        except torch.cuda.OutOfMemoryError:
+            logger.error("[SYSTEM] CUDA OOM while loading model - not enough VRAM")
+            self._clear_vram()
+            raise
+        except Exception as e:
+            logger.error(f"[SYSTEM] Failed to load model: {e}")
+            self._clear_vram()
+            raise
+
+        if hasattr(self.pipe, "safety_checker"):
+            self.pipe.safety_checker = None
+        if hasattr(self.pipe, "feature_extractor"):
+            self.pipe.feature_extractor = None
         self.pipe.enable_xformers_memory_efficient_attention()
         self._apply_performance_settings(self.pipe)
         self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe.scheduler.config)
@@ -190,7 +213,7 @@ class DiffusionEngine:
         self._apply_performance_settings(pipe)
 
     def _apply_custom_vae(self, pipe, vae_path):
-        if not vae_path or vae_path == "Domyślne (z modelu)":
+        if not vae_path or vae_path == "Domy\u015blne (z modelu)":
             return
 
         logger.info(f"[SYSTEM] Loading custom VAE: {vae_path}")
@@ -209,6 +232,7 @@ class DiffusionEngine:
             logger.info("[VRAM] Auto-clearing memory (auto_clear_vram)")
 
     def generate(self, params, callback=None):
+        self._stop_flag = False
         if 'sampler' in params and 'scheduler' in params:
             self._set_scheduler(self.pipe, params['sampler'], params['scheduler'])
 
@@ -225,6 +249,8 @@ class DiffusionEngine:
         total_steps = params['steps']
 
         def progress_callback(pipe, step, timestep, callback_kwargs):
+            if self._stop_flag:
+                raise RuntimeError("STOPPED")
             if callback:
                 preview = None
                 if preview_enabled and (step % preview_interval == 0 or step == total_steps - 1):
@@ -240,7 +266,7 @@ class DiffusionEngine:
             return callback_kwargs
 
         logger.info(f"[SYSTEM] Generating image (txt2img), seed: {seed}")
-        image = self.pipe(
+        gen_kwargs = dict(
             prompt=params['prompt'],
             negative_prompt=params['neg_prompt'],
             num_inference_steps=params['steps'],
@@ -249,12 +275,18 @@ class DiffusionEngine:
             height=params['height'],
             generator=generator,
             callback_on_step_end=progress_callback
-        ).images[0]
+        )
+        try:
+            image = self.pipe(**gen_kwargs).images[0]
+        except RuntimeError as e:
+            if "STOPPED" in str(e):
+                self._clear_vram()
+                raise
+            raise
 
         filename = f"gen_{uuid.uuid4().hex[:8]}.png"
         file_path = os.path.join(settings.get('Paths', 'output_txt2img'), filename)
 
-        # Zapis metadanych
         metadata = PngInfo()
         metadata_dict = {
             "prompt": params['prompt'],
@@ -274,6 +306,7 @@ class DiffusionEngine:
         return file_path, seed
 
     def img2img(self, params, callback=None):
+        self._stop_flag = False
         pipe = StableDiffusionImg2ImgPipeline(**self.pipe.components)
         self._apply_performance_settings(pipe)
 
@@ -293,6 +326,8 @@ class DiffusionEngine:
         total_steps = params['steps']
 
         def progress_callback(pipe, step, timestep, callback_kwargs):
+            if self._stop_flag:
+                raise RuntimeError("STOPPED")
             if callback:
                 preview = None
                 if preview_enabled and (step % preview_interval == 0 or step == total_steps - 1):
@@ -308,7 +343,7 @@ class DiffusionEngine:
             return callback_kwargs
 
         logger.info(f"[SYSTEM] Generating image (img2img), seed: {seed}")
-        result = pipe(
+        pipe_kwargs = dict(
             prompt=params['prompt'],
             negative_prompt=params['neg_prompt'],
             image=params['image'],
@@ -317,7 +352,14 @@ class DiffusionEngine:
             guidance_scale=params['cfg'],
             generator=generator,
             callback_on_step_end=progress_callback
-        ).images[0]
+        )
+        try:
+            result = pipe(**pipe_kwargs).images[0]
+        except RuntimeError as e:
+            if "STOPPED" in str(e):
+                self._clear_vram()
+                raise
+            raise
 
         filename = f"img2img_{uuid.uuid4().hex[:8]}.png"
         file_path = os.path.join(settings.get('Paths', 'output_txt2img'), filename)
@@ -339,6 +381,7 @@ class DiffusionEngine:
         return file_path, seed
 
     def inpaint(self, params, callback=None):
+        self._stop_flag = False
         self._clear_vram()
         if params.get('inpaint_model') == "original":
             self.load_inpaint_model("original")
@@ -354,24 +397,37 @@ class DiffusionEngine:
         generator = torch.Generator(device="cuda").manual_seed(seed)
 
         def progress_callback(pipe, step, timestep, callback_kwargs):
+            if self._stop_flag:
+                raise RuntimeError("STOPPED")
             if callback: callback(step + 1)
             return callback_kwargs
 
         mask_img = params['mask']
         orig_img = params['image']
         logger.info(f"[DEBUG INPAINT] Mode: {orig_img.mode}/{mask_img.mode}, Size: {orig_img.size}, Strength: {params.get('strength')}, Steps: {params.get('steps')}, Seed: {seed}")
+        w = orig_img.width - orig_img.width % 8
+        h = orig_img.height - orig_img.height % 8
 
-        image = self.inpaint_pipe(
+        pipe_kwargs = dict(
             prompt=params['prompt'],
             negative_prompt=params['neg_prompt'],
             image=orig_img,
             mask_image=mask_img,
+            width=w,
+            height=h,
             num_inference_steps=params['steps'],
             guidance_scale=params['cfg'],
             strength=params.get('strength', 0.75),
             generator=generator,
             callback_on_step_end=progress_callback
-        ).images[0]
+        )
+        try:
+            image = self.inpaint_pipe(**pipe_kwargs).images[0]
+        except RuntimeError as e:
+            if "STOPPED" in str(e):
+                self._clear_vram()
+                raise
+            raise
 
         filename = f"inpaint_{uuid.uuid4().hex[:8]}.png"
         file_path = os.path.join(settings.get('Paths', 'output_inpaint'), filename)
@@ -380,6 +436,7 @@ class DiffusionEngine:
         return file_path, seed
 
     def controlnet_generate(self, params, callback=None):
+        self._stop_flag = False
         self._clear_vram()
         self.load_controlnet_model(params['cn_model'])
 
@@ -400,11 +457,13 @@ class DiffusionEngine:
         generator = torch.Generator(device="cuda").manual_seed(seed)
 
         def progress_callback(pipe, step, timestep, callback_kwargs):
+            if self._stop_flag:
+                raise RuntimeError("STOPPED")
             if callback: callback(step + 1)
             return callback_kwargs
 
         logger.info(f"[SYSTEM] Starting ControlNet generation, seed: {seed}")
-        image = self.controlnet_pipe(
+        cn_kwargs = dict(
             prompt=params['prompt'],
             negative_prompt=params['neg_prompt'],
             image=canny_image,
@@ -413,7 +472,14 @@ class DiffusionEngine:
             controlnet_conditioning_scale=params.get('strength', 1.0),
             generator=generator,
             callback_on_step_end=progress_callback
-        ).images[0]
+        )
+        try:
+            image = self.controlnet_pipe(**cn_kwargs).images[0]
+        except RuntimeError as e:
+            if "STOPPED" in str(e):
+                self._clear_vram()
+                raise
+            raise
 
         filename = f"cn_{uuid.uuid4().hex[:8]}.png"
         file_path = os.path.join(settings.get('Paths', 'output_controlnet'), filename)
@@ -435,13 +501,12 @@ class DiffusionEngine:
             logger.error("[ADETAILER] YOLO or SD pipeline not initialized")
             return None
 
-        # 1. Detekcja YOLO i generowanie maski
+        self._stop_flag = False
         logger.info(f"[ADETAILER] Starting detection: {model_path}")
         try:
             yolo_model = YOLO(model_path)
             results = yolo_model(image, conf=threshold)
 
-            # Tworzenie maski w numpy (BGR/Grayscale dla OpenCV)
             img_np = np.array(image)
             mask_np = np.zeros(img_np.shape[:2], dtype=np.uint8)
 
@@ -458,36 +523,43 @@ class DiffusionEngine:
                 logger.info("[ADETAILER] No face detected. Skipping.")
                 return image
 
-            # Dylatacja maski
             if dilation > 0:
                 kernel = np.ones((dilation, dilation), np.uint8)
                 mask_np = cv2.dilate(mask_np, kernel, iterations=1)
 
             mask_pil = Image.fromarray(mask_np).convert("L")
 
-            # 2. Inpainting (Zero-Copy VRAM)
             logger.info(f"[ADETAILER] Starting Inpainting ({faces_found} faces)")
             inpaint_pipe = StableDiffusionInpaintPipeline(**self.pipe.components)
-
-            # Aplikacja ustawień wydajności
             self._apply_performance_settings(inpaint_pipe)
 
-            # Wykonanie Inpaintingu
             def progress_wrap(pipe, step, timestep, callback_kwargs):
+                if self._stop_flag:
+                    raise RuntimeError("STOPPED")
                 if callback: callback(step + 1)
                 return callback_kwargs
 
-            result_img = inpaint_pipe(
+            w = image.width - image.width % 8
+            h = image.height - image.height % 8
+            ad_kwargs = dict(
                 prompt=prompt,
                 negative_prompt=neg_prompt,
                 image=image,
                 mask_image=mask_pil,
-                num_inference_steps=30, # Stała liczba kroków dla detali
+                width=w,
+                height=h,
+                num_inference_steps=30,
                 guidance_scale=7.5,
                 strength=strength,
                 generator=torch.Generator(device="cuda").manual_seed(random.randint(0, 2**32-1)),
                 callback_on_step_end=progress_wrap
-            ).images[0]
+            )
+            try:
+                result_img = inpaint_pipe(**ad_kwargs).images[0]
+            except RuntimeError as e:
+                if "STOPPED" in str(e):
+                    raise
+                raise
 
             filename = f"adet_{uuid.uuid4().hex[:8]}.png"
             out_path = os.path.join(settings.get('Paths', 'output_txt2img'), filename)
@@ -496,6 +568,9 @@ class DiffusionEngine:
             return out_path
 
         except Exception as e:
+            if "STOPPED" in str(e):
+                logger.info("[ADETAILER] Generation stopped by user")
+                return None
             logger.error(f"[ADETAILER] Critical error: {e}")
             return None
         finally:

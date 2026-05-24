@@ -21,6 +21,7 @@
     "lbl_sampling_header": "PRÓBKOWANIE",
     "btn_settings": "⚙️ Ustawienia",
     "btn_generate": "GENERUJ OBRAZ",
+    "btn_stop": "STOP",
 
     "tab_t2i": "Text2Image",
     "tab_inpaint": "Inpainting",
@@ -195,5 +196,14 @@
     "monitor_gpu_na": "GPU: N/A",
 
     "tips_title_inpaint": "Porady Inpainting",
-    "tips_title_controlnet": "Porady ControlNet"
+    "tips_title_controlnet": "Porady ControlNet",
+
+    "vram_warning_header": "Wykryto model SDXL na karcie {vram:.1f} GB VRAM",
+    "vram_warning_desc": "Modele SDXL wymagają więcej VRAM niż posiadasz. Zaleca się włączenie następujących optymalizacji:",
+    "opt_attention_slicing": "Attention Slicing (mniej VRAM, wolniej)",
+    "opt_cpu_offload": "Model CPU Offload (agresywne oszczędzanie VRAM)",
+    "opt_vram_slicing": "VAE Slicing / Tiling",
+    "vram_dont_ask": "Nie pokazuj więcej tego ostrzeżenia",
+    "vram_apply": "Włącz optymalizacje",
+    "vram_skip": "Pomiń"
 }

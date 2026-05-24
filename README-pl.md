@@ -69,6 +69,9 @@
 - **Recall jednym kliknięciem** — odczytaj prompt, seed i wszystkie ustawienia z metadanych PNG i przywróć je do potoku natychmiast
 - Pływające okna z dokumentacją HTML do ControlNet i Inpaintingu
 
+### ⚠️ Znane ograniczenia
+- **SDXL** został przetestowany, ale usunięty — `from_single_file()` crashuje na 6 GB GPU bez komunikatu błędu. SwiftDiffusion jest zoptymalizowany i testowany wyłącznie dla **SD 1.5**.
+
 ### 📊 Monitor zasobów na żywo
 
 VRAM, RAM, obciążenie i temperatura GPU — widoczne w pasku bocznym przez cały czas.
