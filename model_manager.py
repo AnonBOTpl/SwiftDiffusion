@@ -1,6 +1,7 @@
 import os
 import logging
-from PyQt6.QtWidgets import QFileSystemWatcher, QFileDialog, QMessageBox
+from PyQt6.QtCore import QFileSystemWatcher
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
 from config import FOLDERS, settings, tr
 from worker import ModelLoaderWorker
 

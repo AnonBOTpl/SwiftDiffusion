@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.20.2] - 2026-05-24 – Refactor phase 2: extract boot, resource monitor, model manager
+### Changed
+- **`boot.py`** extracted from `main.py` — CUDA health check + subprocess torch test run at import time, keeps `main.py` clean.
+- **`widgets/resource_monitor.py`** — new `ResourceMonitor(QWidget)` class with own timer, NVML init/shutdown, replacing inline monitor code in `MainWindow` (~60 lines removed).
+- **`model_manager.py`** — new `ModelManager` class handling model loading, scanning, refresh, LoRA management, file watchers, and generate button state (~240 lines moved out of `MainWindow`).
+- **`main.py`** reduced from 881→536 lines (**-39%**).
+### Fixed
+- **`QGraphicsDropShadowEffect`** import — was in `PyQt6.QtGui`, belongs in `PyQt6.QtWidgets`.
+- **`QFileSystemWatcher`** import — was in `PyQt6.QtWidgets`, belongs in `PyQt6.QtCore`.
+
 ## [2.20.1] - 2026-05-24 – Refactor phase 1: widgets.py split into package
 ### Changed
 - **`widgets.py` (1297 lines) split into `widgets/` package** with 6 modules: `dialogs.py`, `inpaint_canvas.py`, `widgets_common.py`, `model_downloader.py`, `flow_layout.py`, `prompt_builder.py` + `__init__.py` re-exporting all classes.
