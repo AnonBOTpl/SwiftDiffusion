@@ -7,6 +7,7 @@
 - **`main.py`** zredukowany z 536→317 linii (**-41%**, **-64%** od 881 linii przed refaktorem).
 - Wszystkie połączenia przycisków przekierowane przez kontrolery.
 - Wyczyszczono nieużywane importy (`logging`, `qimage_to_pil`, `UrlDownloaderTab`, klasy workerów).
+- **`install.bat`** — walidacja Pythona 3.12 przez `py -3.12 --version` przed tworzeniem venv; używa `py -3.12 -m venv` zamiast `python -m venv`; wyświetla link do pobrania w razie braku.
 
 ## [2.20.2] - 2026-05-24 – Refactor phase 2: ekstrakcja boot, monitora, managera modeli
 ### Zmieniono

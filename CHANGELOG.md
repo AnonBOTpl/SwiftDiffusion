@@ -7,6 +7,7 @@
 - **`main.py`** reduced from 536→317 lines (**-41%**, **-64%** from pre-refactor 881 lines).
 - All button connections (`btn_gen_t2i`, `btn_gen_inp`, `btn_gen_cn`, `btn_gen_adet`, `btn_up`, `btn_copy`, `btn_face`, `btn_to_inpaint`, `btn_load_i`, `btn_load_cn`, `btn_load_adet`) now routed through controllers.
 - Unused imports cleaned up (`logging`, `qimage_to_pil`, `UrlDownloaderTab`, worker classes).
+- **`install.bat`** — validates Python 3.12 via `py -3.12 --version` before creating venv; uses `py -3.12 -m venv` instead of `python -m venv` to ensure correct version; shows download link if missing.
 
 ## [2.20.2] - 2026-05-24 – Refactor phase 2: extract boot, resource monitor, model manager
 ### Changed
