@@ -4,3 +4,4 @@ from .widgets_common import ClickableLabel, ParameterSlider, LoRAItem, LoRAVisua
 from .model_downloader import UrlDownloaderTab, ScrapingTab, ModelDownloaderTab
 from .flow_layout import FlowLayout
 from .prompt_builder import PromptBuilderPanel
+from .resource_monitor import ResourceMonitor

@@ -37,7 +37,7 @@ from widgets import (
     ImageViewer, ClickableLabel, InpaintCanvas, ParameterSlider,
     LoRAItem, LoRAVisualizer, FloatingTips, GalleryDetailWindow,
     SettingsDialog, WelcomeDialog, ModelDownloaderTab, UrlDownloaderTab,
-    PromptBuilderPanel
+    PromptBuilderPanel, ResourceMonitor
 )
 
 APP_VERSION = "2.19.0"
@@ -72,15 +72,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         logger.info("[STARTUP] Initializing MainWindow...")
-        try:
-            import pynvml
-            pynvml.nvmlInit()
-            self.nvml_active = True
-            logger.info("[STARTUP] NVIDIA management initialized")
-        except Exception:
-            self.nvml_active = False
-            logger.info("[STARTUP] NVIDIA management not available")
-
         self.engine = DiffusionEngine()
         logger.info("[STARTUP] DiffusionEngine created")
         self.loras = {}
@@ -178,16 +169,8 @@ class MainWindow(QMainWindow):
 
         sidebar_layout.addStretch()
 
-        # MONITOR ZASOBÓW
-        mon_frame = QFrame(); mon_l = QVBoxLayout(mon_frame); mon_l.setContentsMargins(0, 5, 0, 0); mon_l.setSpacing(4)
-        lbl_mon = QLabel(tr("sidebar_monitor")); lbl_mon.setObjectName("Header"); mon_l.addWidget(lbl_mon)
-
-        self.lbl_vram_info = QLabel("VRAM: -"); self.lbl_vram_info.setStyleSheet("font-size: 10px; color: #aaa;"); self.vram_bar = QProgressBar(); self.vram_bar.setFixedHeight(12); self.vram_bar.setTextVisible(False); mon_l.addWidget(self.lbl_vram_info); mon_l.addWidget(self.vram_bar)
-        self.lbl_gpu_info = QLabel("GPU: -"); self.lbl_gpu_info.setStyleSheet("font-size: 10px; color: #aaa;"); self.gpu_bar = QProgressBar(); self.gpu_bar.setFixedHeight(12); self.gpu_bar.setTextVisible(False); mon_l.addWidget(self.lbl_gpu_info); mon_l.addWidget(self.gpu_bar)
-        self.lbl_ram_info = QLabel("RAM: -"); self.lbl_ram_info.setStyleSheet("font-size: 10px; color: #aaa;"); self.ram_bar = QProgressBar(); self.ram_bar.setFixedHeight(12); self.ram_bar.setTextVisible(False); mon_l.addWidget(self.lbl_ram_info); mon_l.addWidget(self.ram_bar)
-
-        sidebar_layout.addWidget(mon_frame)
-        mon_shadow = QGraphicsDropShadowEffect(); mon_shadow.setBlurRadius(15); mon_shadow.setColor(QColor(0, 0, 0, 80)); mon_shadow.setOffset(0, 3); mon_frame.setGraphicsEffect(mon_shadow)
+        self.resource_monitor = ResourceMonitor()
+        sidebar_layout.addWidget(self.resource_monitor)
 
         btn_settings = QPushButton(tr("btn_settings")); btn_settings.setObjectName("ActionBtn"); btn_settings.clicked.connect(self.open_settings); sidebar_layout.addWidget(btn_settings)
         global_layout.addWidget(sidebar)
@@ -399,7 +382,6 @@ class MainWindow(QMainWindow):
         self.apply_settings_ui()
         self.refresh_gallery()
 
-        self.mon_timer = QTimer(); self.mon_timer.timeout.connect(self.update_resource_monitor); self.mon_timer.start(1000)
         self.showMaximized()
 
     def _animate_progress(self, target):
@@ -821,51 +803,9 @@ class MainWindow(QMainWindow):
         if path: self.gallery_detail = GalleryDetailWindow(path, self); self.gallery_detail.show()
     def show_tips(self, title, path):
         self.tips_window = FloatingTips(title, path, self); self.tips_window.show()
-    def update_resource_monitor(self):
-        try:
-            import psutil
-            ram = psutil.virtual_memory()
-            self.ram_bar.setValue(int(ram.percent))
-            self.lbl_ram_info.setText(tr("monitor_ram").format(used=ram.used/1024**3, total=ram.total/1024**3))
-            self._set_mon_color(self.lbl_ram_info, ram.percent)
-
-            if self.nvml_active:
-                try:
-                    import pynvml
-                    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-                    info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-                    vram_used = info.used / 1024**3
-                    vram_total = info.total / 1024**3
-                    vram_perc = (info.used / info.total) * 100
-                    self.vram_bar.setValue(int(vram_perc))
-                    self.lbl_vram_info.setText(tr("monitor_vram").format(used=vram_used, total=vram_total))
-                    self._set_mon_color(self.lbl_vram_info, vram_perc)
-
-                    util = pynvml.nvmlDeviceGetUtilizationRates(handle)
-                    temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
-                    self.gpu_bar.setValue(int(util.gpu))
-                    self.lbl_gpu_info.setText(tr("monitor_gpu").format(util=util.gpu, temp=temp))
-                    self._set_mon_color(self.lbl_gpu_info, util.gpu)
-                except Exception as e:
-                    self.nvml_active = False
-                    self.lbl_vram_info.setText(tr("monitor_vram_error")); self.lbl_gpu_info.setText(tr("monitor_gpu_error"))
-            else:
-                self.lbl_vram_info.setText(tr("monitor_vram_na")); self.lbl_gpu_info.setText(tr("monitor_gpu_na"))
-
-        except Exception as e:
-            logging.debug(f"Monitor error: {e}")
-
-    def _set_mon_color(self, label, percent):
-        color = "#00ff00" if percent < 80 else "#ffaa00" if percent < 95 else "#ff4444"
-        label.setStyleSheet(f"font-size: 10px; color: {color}; font-weight: bold;")
-
     def closeEvent(self, event):
         self.engine._clear_vram()
-        if self.nvml_active:
-            try:
-                import pynvml
-                pynvml.nvmlShutdown()
-            except Exception: pass
+        self.resource_monitor.shutdown()
         super().closeEvent(event)
 
     def resizeEvent(self, event):
