@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.20.3] - 2026-05-24 – Refactor phase 3: ekstrakcja kontrolerów generacji i trybów
+### Zmieniono
+- **`generation_controller.py`** — nowa klasa `GenerationController` obsługująca T2I/Img2Img, upscaling, animację podglądu, zarządzanie seedem (~180 linii).
+- **`mode_controllers.py`** — nowe klasy `InpaintController`, `ControlNetController`, `ADetailerController` obsługujące generację, ładowanie obrazów i wyniki dla każdego trybu (~210 linii).
+- **`main.py`** zredukowany z 536→317 linii (**-41%**, **-64%** od 881 linii przed refaktorem).
+- Wszystkie połączenia przycisków przekierowane przez kontrolery.
+- Wyczyszczono nieużywane importy (`logging`, `qimage_to_pil`, `UrlDownloaderTab`, klasy workerów).
+
 ## [2.20.2] - 2026-05-24 – Refactor phase 2: ekstrakcja boot, monitora, managera modeli
 ### Zmieniono
 - **`boot.py`** wyodrębniony z `main.py` — health check CUDA + test torch w subprocess przy imporcie.

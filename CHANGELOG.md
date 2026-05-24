@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.20.3] - 2026-05-24 – Refactor phase 3: extract generation & mode controllers
+### Changed
+- **`generation_controller.py`** — new `GenerationController` class handling T2I/Img2Img generation, upscaling, preview animation, seed management (~180 lines).
+- **`mode_controllers.py`** — new `InpaintController`, `ControlNetController`, `ADetailerController` classes handling each mode's generation, image loading, and results (~210 lines total).
+- **`main.py`** reduced from 536→317 lines (**-41%**, **-64%** from pre-refactor 881 lines).
+- All button connections (`btn_gen_t2i`, `btn_gen_inp`, `btn_gen_cn`, `btn_gen_adet`, `btn_up`, `btn_copy`, `btn_face`, `btn_to_inpaint`, `btn_load_i`, `btn_load_cn`, `btn_load_adet`) now routed through controllers.
+- Unused imports cleaned up (`logging`, `qimage_to_pil`, `UrlDownloaderTab`, worker classes).
+
 ## [2.20.2] - 2026-05-24 – Refactor phase 2: extract boot, resource monitor, model manager
 ### Changed
 - **`boot.py`** extracted from `main.py` — CUDA health check + subprocess torch test run at import time, keeps `main.py` clean.
