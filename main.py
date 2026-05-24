@@ -36,7 +36,8 @@ from utils import qimage_to_pil
 from widgets import (
     ImageViewer, ClickableLabel, InpaintCanvas, ParameterSlider,
     LoRAItem, LoRAVisualizer, FloatingTips, GalleryDetailWindow,
-    SettingsDialog, WelcomeDialog, ModelDownloaderTab, UrlDownloaderTab
+    SettingsDialog, WelcomeDialog, ModelDownloaderTab, UrlDownloaderTab,
+    PromptBuilderPanel
 )
 
 APP_VERSION = "2.19.0"
@@ -224,7 +225,7 @@ class MainWindow(QMainWindow):
         t2i_params.addWidget(self.live_preview)
 
         self.btn_gen_t2i = QPushButton(tr("btn_generate")); self.btn_gen_t2i.setObjectName("GenerateBtn"); self.btn_gen_t2i.setFixedHeight(45); self.btn_gen_t2i.setMinimumWidth(180); self.btn_gen_t2i.clicked.connect(self.start_generation); t2i_params.addWidget(self.btn_gen_t2i); t2i_l.addLayout(t2i_params, 0)
-        t2i_main = QVBoxLayout(); t2i_main.setContentsMargins(20, 10, 20, 0); self.t2i_prompt = QPlainTextEdit(); self.t2i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.t2i_prompt.setFixedHeight(60); self.t2i_neg = QPlainTextEdit(); self.t2i_neg.setPlaceholderText(tr("placeholder_negative")); self.t2i_neg.setFixedHeight(50); self.lbl_prompt_t2i = QLabel(tr("label_prompt")); t2i_main.addWidget(self.lbl_prompt_t2i); t2i_main.addWidget(self.t2i_prompt); self.lbl_neg_t2i = QLabel(tr("label_negative")); t2i_main.addWidget(self.lbl_neg_t2i); t2i_main.addWidget(self.t2i_neg)
+        t2i_main = QVBoxLayout(); t2i_main.setContentsMargins(20, 10, 20, 0); self.t2i_prompt = QPlainTextEdit(); self.t2i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.t2i_prompt.setFixedHeight(60); self.t2i_neg = QPlainTextEdit(); self.t2i_neg.setPlaceholderText(tr("placeholder_negative")); self.t2i_neg.setFixedHeight(50); self.lbl_prompt_t2i = QLabel(tr("label_prompt")); self.lbl_compel = QLabel(); self.lbl_compel.setStyleSheet("color: #666; font-size: 10px;"); t2i_main.addWidget(self.lbl_prompt_t2i); t2i_main.addWidget(self.lbl_compel); self.lbl_wildcards_t2i = QLabel(tr("wildcards_tooltip")); self.lbl_wildcards_t2i.setStyleSheet("color: #666; font-size: 10px; margin-top: -4px;"); t2i_main.addWidget(self.lbl_wildcards_t2i); t2i_main.addWidget(self.t2i_prompt); self.lbl_neg_t2i = QLabel(tr("label_negative")); t2i_main.addWidget(self.lbl_neg_t2i); t2i_main.addWidget(self.t2i_neg)
 
         self.preview_container = QWidget(); self.preview_layout = QHBoxLayout(self.preview_container); self.preview_layout.setContentsMargins(0, 0, 0, 0); self.preview_layout.setSpacing(20)
 
@@ -306,7 +307,7 @@ class MainWindow(QMainWindow):
         inp_params.addWidget(self.btn_gen_inp)
 
         inp_l.addLayout(inp_params, 0)
-        inp_main = QVBoxLayout(); inp_main.setContentsMargins(20, 10, 16, 0); self.i_prompt = QPlainTextEdit(); self.i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.i_prompt.setFixedHeight(60); self.i_neg = QPlainTextEdit(); self.i_neg.setPlaceholderText(tr("placeholder_negative")); self.i_neg.setFixedHeight(50); inp_main.addWidget(QLabel(tr("label_prompt"))); inp_main.addWidget(self.i_prompt); inp_main.addWidget(QLabel(tr("label_negative"))); inp_main.addWidget(self.i_neg);
+        inp_main = QVBoxLayout(); inp_main.setContentsMargins(20, 10, 16, 0); self.i_prompt = QPlainTextEdit(); self.i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.i_prompt.setFixedHeight(60); self.i_neg = QPlainTextEdit(); self.i_neg.setPlaceholderText(tr("placeholder_negative")); self.i_neg.setFixedHeight(50); inp_main.addWidget(QLabel(tr("label_prompt"))); self.lbl_wildcards_inp = QLabel(tr("wildcards_tooltip")); self.lbl_wildcards_inp.setStyleSheet("color: #666; font-size: 10px; margin-top: -4px;"); inp_main.addWidget(self.lbl_wildcards_inp); inp_main.addWidget(self.i_prompt); inp_main.addWidget(QLabel(tr("label_negative"))); inp_main.addWidget(self.i_neg);
         inp_previews = QHBoxLayout()
         self.canvas_scroll = QScrollArea(); self.canvas_scroll.setWidgetResizable(True); self.canvas = InpaintCanvas(); self.canvas_scroll.setWidget(self.canvas); inp_previews.addWidget(self.canvas_scroll, 1)
         self.v_inpaint_out = ClickableLabel(); self.v_inpaint_out.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_inpaint_out.setObjectName("PreviewArea"); self.v_inpaint_out.setStyleSheet("background-color: #1a1a1a;"); self.v_inpaint_out.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_inpaint_out.setMinimumSize(1, 1); self.v_inpaint_out.clicked.connect(self.open_fullscreen); inp_previews.addWidget(self.v_inpaint_out, 1)
@@ -321,7 +322,7 @@ class MainWindow(QMainWindow):
         self.cn_tab = QWidget(); self.tabs.addTab(self.cn_tab, tr("tab_controlnet")); cn_l = QHBoxLayout(self.cn_tab); cn_params = QVBoxLayout(); cn_params.setContentsMargins(15, 10, 15, 10); cn_params.setSpacing(10); lbl_ct = QLabel(tr("header_controlnet_tools")); lbl_ct.setObjectName("Header"); cn_params.addWidget(lbl_ct); self.cn_model_combo = QComboBox(); self.refresh_cn_models(); cn_params.addWidget(self.cn_model_combo); self.cn_steps = ParameterSlider(tr("label_steps"), 1, 100, 25); self.cn_cfg = ParameterSlider(tr("label_cfg"), 1.0, 20.0, 7.5, 0.5, True); self.cn_strength = ParameterSlider(tr("label_weight"), 0.0, 2.0, 1.0, 0.1, True); self.cn_w = ParameterSlider(tr("label_width"), 256, 2048, 512, 64); self.cn_h = ParameterSlider(tr("label_height"), 256, 2048, 512, 64); self.cn_seed = QLineEdit("-1"); self.cn_seed.setValidator(QIntValidator(-1, 2147483647))
         for s in [self.cn_steps, self.cn_cfg, self.cn_strength, self.cn_w, self.cn_h]: cn_params.addWidget(s)
         cn_params.addWidget(QLabel(tr("label_seed"))); cn_params.addWidget(self.cn_seed); self.btn_load_cn = QPushButton(tr("btn_load_ref")); self.btn_load_cn.setObjectName("SecondaryBtn"); self.btn_load_cn.clicked.connect(self.load_cn_image); cn_params.addWidget(self.btn_load_cn); self.btn_tips_cn = QPushButton(tr("btn_tips")); self.btn_tips_cn.setObjectName("SecondaryBtn"); self.btn_tips_cn.clicked.connect(lambda: self.show_tips(tr("tips_title_controlnet"), "docs/tips_controlnet.html")); cn_params.addWidget(self.btn_tips_cn); cn_params.addStretch(); self.btn_gen_cn = QPushButton(tr("btn_generate_comp")); self.btn_gen_cn.setObjectName("GenerateBtn"); self.btn_gen_cn.setMinimumWidth(180); self.btn_gen_cn.clicked.connect(self.start_controlnet); cn_params.addWidget(self.btn_gen_cn); cn_l.addLayout(cn_params, 0)
-        cn_main = QVBoxLayout(); cn_main.setContentsMargins(20, 10, 16, 0); self.cn_prompt = QPlainTextEdit(); self.cn_prompt.setPlaceholderText(tr("placeholder_prompt")); self.cn_prompt.setFixedHeight(60); self.cn_neg = QPlainTextEdit(); self.cn_neg.setPlaceholderText(tr("placeholder_negative")); self.cn_neg.setFixedHeight(50); cn_main.addWidget(QLabel(tr("label_prompt"))); cn_main.addWidget(self.cn_prompt); cn_main.addWidget(QLabel(tr("label_negative"))); cn_main.addWidget(self.cn_neg);
+        cn_main = QVBoxLayout(); cn_main.setContentsMargins(20, 10, 16, 0); self.cn_prompt = QPlainTextEdit(); self.cn_prompt.setPlaceholderText(tr("placeholder_prompt")); self.cn_prompt.setFixedHeight(60); self.cn_neg = QPlainTextEdit(); self.cn_neg.setPlaceholderText(tr("placeholder_negative")); self.cn_neg.setFixedHeight(50); cn_main.addWidget(QLabel(tr("label_prompt"))); self.lbl_wildcards_cn = QLabel(tr("wildcards_tooltip")); self.lbl_wildcards_cn.setStyleSheet("color: #666; font-size: 10px; margin-top: -4px;"); cn_main.addWidget(self.lbl_wildcards_cn); cn_main.addWidget(self.cn_prompt); cn_main.addWidget(QLabel(tr("label_negative"))); cn_main.addWidget(self.cn_neg);
         cn_prev_layout = QHBoxLayout()
         self.cn_preview = ClickableLabel(tr("placeholder_drop")); self.cn_preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.cn_preview.setObjectName("PreviewArea"); self.cn_preview.setStyleSheet("border: 2px dashed #333; color: #555;"); self.cn_preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.cn_preview.setMinimumSize(1, 1); cn_prev_layout.addWidget(self.cn_preview, 1)
         self.v_cn_out = ClickableLabel(); self.v_cn_out.setAlignment(Qt.AlignmentFlag.AlignCenter); self.v_cn_out.setObjectName("PreviewArea"); self.v_cn_out.setStyleSheet("background-color: #1a1a1a;"); self.v_cn_out.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding); self.v_cn_out.setMinimumSize(1, 1); self.v_cn_out.clicked.connect(self.open_fullscreen); cn_prev_layout.addWidget(self.v_cn_out, 1)
@@ -352,7 +353,7 @@ class MainWindow(QMainWindow):
         adet_main = QVBoxLayout(); adet_main.setContentsMargins(20, 10, 20, 0)
         self.adet_prompt = QPlainTextEdit(); self.adet_prompt.setPlaceholderText(tr("placeholder_prompt")); self.adet_prompt.setFixedHeight(50)
         self.adet_neg = QPlainTextEdit(); self.adet_neg.setPlaceholderText(tr("placeholder_negative")); self.adet_neg.setFixedHeight(50)
-        adet_main.addWidget(QLabel(tr("lbl_adetailer_prompt"))); adet_main.addWidget(self.adet_prompt)
+        adet_main.addWidget(QLabel(tr("lbl_adetailer_prompt"))); self.lbl_wildcards_adet = QLabel(tr("wildcards_tooltip")); self.lbl_wildcards_adet.setStyleSheet("color: #666; font-size: 10px; margin-top: -4px;"); adet_main.addWidget(self.lbl_wildcards_adet); adet_main.addWidget(self.adet_prompt)
         adet_main.addWidget(QLabel(tr("lbl_adetailer_neg"))); adet_main.addWidget(self.adet_neg)
 
         adet_previews = QHBoxLayout()
@@ -368,7 +369,13 @@ class MainWindow(QMainWindow):
         h_gal = QHBoxLayout(); btn_ref = QPushButton(tr("btn_refresh_gallery")); btn_ref.setObjectName("ActionBtn"); btn_ref.clicked.connect(self.refresh_gallery); h_gal.addWidget(btn_ref); h_gal.addStretch(); gal_l.addLayout(h_gal)
         self.gal_list = QListWidget(); self.gal_list.setViewMode(QListWidget.ViewMode.IconMode); self.gal_list.setResizeMode(QListWidget.ResizeMode.Adjust); self.gal_list.setIconSize(QSize(200, 200)); self.gal_list.setSpacing(10); self.gal_list.setStyleSheet("background-color: #1a1a1a; border-radius: 8px;"); self.gal_list.itemDoubleClicked.connect(self.open_gallery_detail); gal_l.addWidget(self.gal_list)
 
-        # 6. DOWNLOADER
+        # 6. PROMPT BUILDER
+        logger.info("[UI] Building Prompt Builder tab...")
+        self.pb_panel = PromptBuilderPanel()
+        self.pb_panel.prompt_ready.connect(self._on_prompt_ready)
+        self.tabs.addTab(self.pb_panel, tr("tab_prompt_builder"))
+
+        # 7. DOWNLOADER
         logger.info("[UI] Building Downloader tab...")
         self.dl_tab = ModelDownloaderTab()
         self.tabs.addTab(self.dl_tab, "📥 Downloader")
@@ -534,6 +541,13 @@ class MainWindow(QMainWindow):
             self.p_bar.setFormat(tr("status_model_ready"))
             self._enable_generate_buttons()
             logger.info("[SYSTEM] Model loaded asynchronously.")
+            try:
+                import compel
+                self.lbl_compel.setText(tr("compel_available"))
+                self.lbl_compel.setStyleSheet("color: #4caf50; font-size: 10px;")
+            except ImportError:
+                self.lbl_compel.setText(tr("compel_unavailable"))
+                self.lbl_compel.setStyleSheet("color: #888; font-size: 10px;")
         else:
             self.p_bar.setFormat(tr("status_error"))
             QMessageBox.critical(self, tr("status_error"), tr("error_loading_model").format(message=message))
@@ -647,6 +661,13 @@ class MainWindow(QMainWindow):
         else: self.btn_up.setEnabled(True); self.p_bar.setFormat(tr("status_upscale_error"))
     def copy_seed_to_clipboard(self):
         if self.current_seed is not None: QApplication.clipboard().setText(str(self.current_seed))
+    def _on_prompt_ready(self, text):
+        current = self.t2i_prompt.toPlainText().strip()
+        if current:
+            self.t2i_prompt.setPlainText(f"{current}, {text}")
+        else:
+            self.t2i_prompt.setPlainText(text)
+        self.tabs.setCurrentWidget(self.t2i_tab)
     def load_adet_image(self):
         f, _ = QFileDialog.getOpenFileName(self, tr("dialog_image"), "", "Images (*.png *.jpg *.jpeg)")
         if f: self.v_adet_in.set_image(f); self.v_adet_in.setText("")

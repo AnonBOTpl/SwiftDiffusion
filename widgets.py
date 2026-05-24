@@ -76,11 +76,15 @@ class SettingsDialog(QDialog):
         self.cb_cpu_offload.setChecked(settings.get_bool('Performance', 'cpu_offload'))
         self.cb_auto_clear = QCheckBox(tr("perf_auto_clear_vram"))
         self.cb_auto_clear.setChecked(settings.get_bool('Performance', 'auto_clear_vram'))
+        self.cb_tiled_vae = QCheckBox(tr("perf_tiled_vae"))
+        self.cb_tiled_vae.setChecked(settings.get_bool('Performance', 'tiled_vae'))
+        self.cb_tiled_vae.setToolTip(tr("perf_tiled_vae_tip"))
 
         perf_l.addWidget(self.vram_slice)
         perf_l.addWidget(self.cb_attention_slicing)
         perf_l.addWidget(self.cb_cpu_offload)
         perf_l.addWidget(self.cb_auto_clear)
+        perf_l.addWidget(self.cb_tiled_vae)
 
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine); sep.setStyleSheet("color: #333;"); perf_l.addWidget(sep)
         self.cb_preview = QCheckBox(tr("settings_preview_enable"))
@@ -305,6 +309,7 @@ class SettingsDialog(QDialog):
         settings.set('Performance', 'attention_slicing', self.cb_attention_slicing.isChecked())
         settings.set('Performance', 'cpu_offload', self.cb_cpu_offload.isChecked())
         settings.set('Performance', 'auto_clear_vram', self.cb_auto_clear.isChecked())
+        settings.set('Performance', 'tiled_vae', self.cb_tiled_vae.isChecked())
         for k, edit in self.path_edits.items():
             p = edit.text()
             settings.set('Paths', k, p)
@@ -476,7 +481,7 @@ class ClickableLabel(QLabel):
     def set_image(self, path_or_pixmap):
         self.pixmap_cached = QPixmap(path_or_pixmap) if isinstance(path_or_pixmap, str) else path_or_pixmap
         if self.pixmap_cached:
-            self.setPixmap(self.pixmap_cached)
+            self.update_scaling()
     def update_scaling(self):
         if self.pixmap_cached and not self.pixmap_cached.isNull():
             s = self.size()
@@ -505,9 +510,11 @@ class InpaintCanvas(QGraphicsView):
         self.setScene(self.scene)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         self.setBackgroundBrush(QBrush(QColor(26, 26, 26)))
 
         self.base_pixmap_item = QGraphicsPixmapItem()
+        self.base_pixmap_item.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
         self.scene.addItem(self.base_pixmap_item)
         self._original_pixmap = None
 
@@ -527,6 +534,11 @@ class InpaintCanvas(QGraphicsView):
         for item in self.scene.items():
             if isinstance(item, QGraphicsPathItem):
                 self.scene.removeItem(item)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.base_pixmap_item.pixmap() and not self.base_pixmap_item.pixmap().isNull():
+            self.fitInView(self.base_pixmap_item, Qt.AspectRatioMode.KeepAspectRatio)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -611,6 +623,7 @@ class ParameterSlider(QWidget):
     def on_spin_move(self, v):
         self.slider.blockSignals(True); self.slider.setValue(int(v * 100) if isinstance(self.spin, QDoubleSpinBox) else v); self.slider.blockSignals(False); self.changed.emit()
     def value(self): return self.spin.value()
+    def setValue(self, v): self.spin.setValue(v)
 
 class LoRAItem(QWidget):
     removed = pyqtSignal(str); changed = pyqtSignal()
@@ -1083,3 +1096,165 @@ class ModelDownloaderTab(QWidget):
         self.tab_widget.setCurrentWidget(self.url_tab)
         self.url_tab.url_input.setText(url)
         self.url_tab.do_analyze()
+
+
+class FlowLayout(QLayout):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._items = []
+
+    def addItem(self, item):
+        self._items.append(item)
+
+    def count(self):
+        return len(self._items)
+
+    def itemAt(self, index):
+        return self._items[index] if 0 <= index < len(self._items) else None
+
+    def takeAt(self, index):
+        if 0 <= index < len(self._items):
+            return self._items.pop(index)
+        return None
+
+    def expandingDirections(self):
+        return Qt.Orientation(0)
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, width):
+        return self._do_layout(QRect(0, 0, width, 0), True)
+
+    def sizeHint(self):
+        return QSize(200, 100)
+
+    def minimumSize(self):
+        return QSize(100, 50)
+
+    def setGeometry(self, rect):
+        super().setGeometry(rect)
+        self._do_layout(rect, False)
+
+    def _do_layout(self, rect, test_only):
+        x, y = rect.x(), rect.y()
+        line_h = 0
+        spacing = self.spacing()
+        if spacing < 0: spacing = 4
+        for item in self._items:
+            hint = item.sizeHint()
+            if x + hint.width() > rect.right() and x > rect.x():
+                x = rect.x()
+                y += line_h + spacing
+                line_h = 0
+            if not test_only:
+                item.setGeometry(QRect(x, y, hint.width(), hint.height()))
+            x += hint.width() + spacing
+            line_h = max(line_h, hint.height())
+        if test_only:
+            return y + line_h - rect.y()
+        return 0
+
+
+TAGS_DIR = os.path.join(os.path.dirname(__file__), "tags")
+
+class PromptBuilderPanel(QWidget):
+    prompt_ready = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._categories = []
+        self._selected = []
+        self._tag_btns = {}  # tag -> QPushButton
+        self._load_tags()
+
+        main_l = QVBoxLayout(self)
+        main_l.setContentsMargins(15, 10, 15, 10)
+        main_l.setSpacing(8)
+
+        self._tab_bar = QTabBar()
+        self._stack = QStackedWidget()
+        for cat in self._categories:
+            idx = self._tab_bar.addTab(cat["label"])
+            page = QWidget()
+            flow = FlowLayout(page)
+            flow.setSpacing(6)
+            for tag in cat["tags"]:
+                btn = QPushButton(tag)
+                btn.setCheckable(True)
+                btn.setStyleSheet("QPushButton { padding: 4px 10px; border: 1px solid #444; border-radius: 4px; background: #2a2a2a; color: #ccc; font-size: 11px; } QPushButton:checked { background: #3a6ea5; color: white; border-color: #5a8ec5; }")
+                btn.clicked.connect(lambda _, t=tag: self._toggle_tag(t))
+                flow.addWidget(btn)
+                self._tag_btns[tag] = btn
+            page.setLayout(flow)
+            self._stack.addWidget(page)
+        self._tab_bar.currentChanged.connect(self._stack.setCurrentIndex)
+
+        cat_row = QHBoxLayout()
+        cat_row.addWidget(self._tab_bar)
+        cat_row.addStretch()
+        main_l.addLayout(cat_row)
+        main_l.addWidget(self._stack, 1)
+
+        preview_lbl = QLabel(tr("pb_preview"))
+        preview_lbl.setStyleSheet("color: #aaa; font-size: 11px;")
+        main_l.addWidget(preview_lbl)
+
+        self._preview = QTextEdit()
+        self._preview.setReadOnly(True)
+        self._preview.setFixedHeight(80)
+        self._preview.setStyleSheet("background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: #ccc; padding: 6px;")
+        main_l.addWidget(self._preview)
+
+        btn_row = QHBoxLayout()
+        self._btn_clear = QPushButton(tr("pb_clear"))
+        self._btn_clear.setObjectName("SecondaryBtn")
+        self._btn_clear.clicked.connect(self._clear_all)
+        self._btn_copy = QPushButton(tr("pb_copy"))
+        self._btn_copy.setObjectName("GenerateBtn")
+        self._btn_copy.setFixedHeight(40)
+        self._btn_copy.clicked.connect(self._copy_to_t2i)
+        btn_row.addWidget(self._btn_clear)
+        btn_row.addStretch()
+        btn_row.addWidget(self._btn_copy)
+        main_l.addLayout(btn_row)
+
+    def _load_tags(self):
+        if not os.path.isdir(TAGS_DIR):
+            return
+        for fname in sorted(os.listdir(TAGS_DIR)):
+            if not fname.endswith(".json"):
+                continue
+            path = os.path.join(TAGS_DIR, fname)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                self._categories.append(data)
+            except Exception:
+                pass
+
+    def _toggle_tag(self, tag):
+        if tag in self._selected:
+            self._selected.remove(tag)
+            self._tag_btns[tag].setChecked(False)
+        else:
+            self._selected.append(tag)
+            self._tag_btns[tag].setChecked(True)
+        self._update_preview()
+
+    def _update_preview(self):
+        self._preview.setPlainText(", ".join(self._selected))
+
+    def _clear_all(self):
+        self._selected.clear()
+        for btn in self._tag_btns.values():
+            btn.setChecked(False)
+        self._preview.clear()
+
+    def _copy_to_t2i(self):
+        text = self._preview.toPlainText().strip()
+        if text:
+            self.prompt_ready.emit(text)
+
+
+

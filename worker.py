@@ -1,7 +1,24 @@
 from PyQt6.QtCore import QThread, pyqtSignal
-import os, time
+import os, time, random, re
 import requests
 from config import settings, tr
+
+WILDCARDS_DIR = os.path.join(os.path.dirname(__file__), "wildcards")
+
+def resolve_wildcards(text):
+    if not text:
+        return text
+    def _replace(m):
+        token = m.group(1)
+        path = os.path.join(WILDCARDS_DIR, f"{token}.txt")
+        if not os.path.isfile(path):
+            return m.group(0)
+        with open(path, "r", encoding="utf-8") as f:
+            lines = [l.strip() for l in f if l.strip()]
+        if not lines:
+            return m.group(0)
+        return random.choice(lines)
+    return re.sub(r"__(\w+)__", _replace, text)
 
 def log(msg):
     """Print to console for debugging."""
@@ -18,9 +35,21 @@ class GenerationWorker(QThread):
         self.engine = engine
         self.params = params
 
+    def stop(self):
+        self.engine.stop_generation()
+
     def run(self):
         self.status.emit(tr("worker_generating"))
-        file_path, used_seed = self.engine.generate(self.params, callback=lambda s, p: self.progress.emit(s, p))
+        self.params['prompt'] = resolve_wildcards(self.params.get('prompt', ''))
+        self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
+        try:
+            file_path, used_seed = self.engine.generate(self.params, callback=lambda s, p: self.progress.emit(s, p))
+        except RuntimeError as e:
+            if "STOPPED" in str(e):
+                self.finished.emit("", 0)
+                return
+            self.finished.emit("", 0)
+            return
         self.part_finished.emit(file_path, used_seed)
 
         if self.params.get('auto_upscale') and self.params.get('upscaler_model'):
@@ -46,9 +75,21 @@ class Img2ImgWorker(QThread):
         self.engine = engine
         self.params = params
 
+    def stop(self):
+        self.engine.stop_generation()
+
     def run(self):
         self.status.emit(tr("worker_img2img"))
-        file_path, used_seed = self.engine.img2img(self.params, callback=lambda s, p: self.progress.emit(s, p))
+        self.params['prompt'] = resolve_wildcards(self.params.get('prompt', ''))
+        self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
+        try:
+            file_path, used_seed = self.engine.img2img(self.params, callback=lambda s, p: self.progress.emit(s, p))
+        except RuntimeError as e:
+            if "STOPPED" in str(e):
+                self.finished.emit("", 0)
+                return
+            self.finished.emit("", 0)
+            return
         self.part_finished.emit(file_path, used_seed)
 
         if self.params.get('auto_upscale') and self.params.get('upscaler_model'):
@@ -73,9 +114,21 @@ class InpaintWorker(QThread):
         self.engine = engine
         self.params = params
 
+    def stop(self):
+        self.engine.stop_generation()
+
     def run(self):
         self.status.emit(tr("worker_inpainting"))
-        file_path, used_seed = self.engine.inpaint(self.params, callback=lambda s: self.progress.emit(s))
+        self.params['prompt'] = resolve_wildcards(self.params.get('prompt', ''))
+        self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
+        try:
+            file_path, used_seed = self.engine.inpaint(self.params, callback=lambda s: self.progress.emit(s))
+        except RuntimeError as e:
+            if "STOPPED" in str(e):
+                self.finished.emit("", 0)
+                return
+            self.finished.emit("", 0)
+            return
         self.finished.emit(file_path, used_seed)
 
 class ControlNetWorker(QThread):
@@ -88,9 +141,21 @@ class ControlNetWorker(QThread):
         self.engine = engine
         self.params = params
 
+    def stop(self):
+        self.engine.stop_generation()
+
     def run(self):
         self.status.emit(tr("worker_controlnet"))
-        file_path, used_seed = self.engine.controlnet_generate(self.params, callback=lambda s: self.progress.emit(s))
+        self.params['prompt'] = resolve_wildcards(self.params.get('prompt', ''))
+        self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
+        try:
+            file_path, used_seed = self.engine.controlnet_generate(self.params, callback=lambda s: self.progress.emit(s))
+        except RuntimeError as e:
+            if "STOPPED" in str(e):
+                self.finished.emit("", 0)
+                return
+            self.finished.emit("", 0)
+            return
         self.finished.emit(file_path, used_seed)
 
 class ADetailerWorker(QThread):
@@ -103,8 +168,13 @@ class ADetailerWorker(QThread):
         self.engine = engine
         self.params = params
 
+    def stop(self):
+        self.engine.stop_generation()
+
     def run(self):
         self.status.emit(tr("worker_yolo_detection"))
+        self.params['prompt'] = resolve_wildcards(self.params.get('prompt', ''))
+        self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
         out_path = self.engine.apply_adetailer(self.params, callback=lambda s: self.progress.emit(s))
 
         if out_path and self.params.get('auto_upscale') and self.params.get('upscaler_model'):

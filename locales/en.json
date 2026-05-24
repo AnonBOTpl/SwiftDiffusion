@@ -27,6 +27,11 @@
     "tab_inpaint": "Inpainting",
     "tab_controlnet": "ControlNet",
     "tab_gallery": "Gallery",
+    "tab_prompt_builder": "Prompt Builder",
+
+    "pb_preview": "Selected tags:",
+    "pb_clear": "Clear",
+    "pb_copy": "Copy to Text2Image",
 
     "header_params": "PARAMETERS",
     "header_inpaint_tools": "INPAINTING TOOLS",
@@ -48,6 +53,9 @@
 
     "placeholder_prompt": "Prompt...",
     "placeholder_negative": "Negative...",
+    "wildcards_tooltip": "Use __word__ to insert a random line from wildcards/word.txt",
+    "compel_available": "⚡ Weighted prompts active (use (word:1.3))",
+    "compel_unavailable": "Weighted prompts not available (install compel)",
     "placeholder_drop": "Drop image here",
 
     "btn_apply_upscaler": "APPLY UPSCALER",
@@ -78,10 +86,12 @@
     "settings_tab_paths": "Paths",
     "settings_tab_pref": "Preferences",
     "settings_tab_ui": "Appearance",
-    "settings_vram_slice": "Enable VRAM Slicing / Tiled VAE",
+    "settings_vram_slice": "Enable VRAM Slicing",
     "perf_attention_slicing": "Enable Attention Slicing (Lower VRAM usage, slower generation)",
     "perf_cpu_offload": "Enable Model CPU Offloading (Aggressive VRAM saving)",
     "perf_auto_clear_vram": "Auto-clear VRAM after each generation",
+    "perf_tiled_vae": "Tiled VAE (high resolution)",
+    "perf_tiled_vae_tip": "Decode high-res images in tiles to avoid OOM. May slow down generation.",
     "settings_preview_enable": "Live Preview",
     "settings_preview_interval": "Preview interval (every N steps):",
     "settings_lang": "Language:",

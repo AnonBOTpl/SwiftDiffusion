@@ -189,9 +189,12 @@ class DiffusionEngine:
         if hasattr(pipe, "vae") and pipe.vae is not None:
             if settings.get_bool('Performance', 'vram_slicing'):
                 pipe.vae.enable_slicing()
-                pipe.vae.enable_tiling()
             else:
                 pipe.vae.disable_slicing()
+
+            if settings.get_bool('Performance', 'tiled_vae'):
+                pipe.vae.enable_tiling()
+            else:
                 pipe.vae.disable_tiling()
 
     def _set_scheduler(self, pipe, sampler_name, scheduler_name):
@@ -231,6 +234,27 @@ class DiffusionEngine:
             torch.cuda.empty_cache()
             logger.info("[VRAM] Auto-clearing memory (auto_clear_vram)")
 
+    def _encode_prompt(self, prompt, neg_prompt):
+        try:
+            from compel import Compel
+            if not prompt and not neg_prompt:
+                return False, prompt, neg_prompt
+            pipe = self.pipe
+            if pipe is None or not hasattr(pipe, 'tokenizer') or not hasattr(pipe, 'text_encoder'):
+                return False, prompt, neg_prompt
+            compel = Compel(tokenizer=pipe.tokenizer, text_encoder=pipe.text_encoder)
+            p_emb = compel(prompt) if prompt else None
+            n_emb = compel(neg_prompt) if neg_prompt else None
+            if p_emb is None and n_emb is None:
+                return False, prompt, neg_prompt
+            if p_emb is None:
+                p_emb = compel("")
+            if n_emb is None:
+                n_emb = compel("")
+            return True, p_emb, n_emb
+        except Exception:
+            return False, prompt, neg_prompt
+
     def generate(self, params, callback=None):
         self._stop_flag = False
         if 'sampler' in params and 'scheduler' in params:
@@ -266,9 +290,8 @@ class DiffusionEngine:
             return callback_kwargs
 
         logger.info(f"[SYSTEM] Generating image (txt2img), seed: {seed}")
+        use_emb, p_data, n_data = self._encode_prompt(params['prompt'], params['neg_prompt'])
         gen_kwargs = dict(
-            prompt=params['prompt'],
-            negative_prompt=params['neg_prompt'],
             num_inference_steps=params['steps'],
             guidance_scale=params['cfg'],
             width=params['width'],
@@ -276,6 +299,12 @@ class DiffusionEngine:
             generator=generator,
             callback_on_step_end=progress_callback
         )
+        if use_emb:
+            gen_kwargs['prompt_embeds'] = p_data
+            gen_kwargs['negative_prompt_embeds'] = n_data
+        else:
+            gen_kwargs['prompt'] = params['prompt']
+            gen_kwargs['negative_prompt'] = params['neg_prompt']
         try:
             image = self.pipe(**gen_kwargs).images[0]
         except RuntimeError as e:
@@ -343,9 +372,8 @@ class DiffusionEngine:
             return callback_kwargs
 
         logger.info(f"[SYSTEM] Generating image (img2img), seed: {seed}")
+        use_emb, p_data, n_data = self._encode_prompt(params['prompt'], params['neg_prompt'])
         pipe_kwargs = dict(
-            prompt=params['prompt'],
-            negative_prompt=params['neg_prompt'],
             image=params['image'],
             strength=params.get('strength', 0.75),
             num_inference_steps=params['steps'],
@@ -353,6 +381,12 @@ class DiffusionEngine:
             generator=generator,
             callback_on_step_end=progress_callback
         )
+        if use_emb:
+            pipe_kwargs['prompt_embeds'] = p_data
+            pipe_kwargs['negative_prompt_embeds'] = n_data
+        else:
+            pipe_kwargs['prompt'] = params['prompt']
+            pipe_kwargs['negative_prompt'] = params['neg_prompt']
         try:
             result = pipe(**pipe_kwargs).images[0]
         except RuntimeError as e:
@@ -408,9 +442,8 @@ class DiffusionEngine:
         w = orig_img.width - orig_img.width % 8
         h = orig_img.height - orig_img.height % 8
 
+        use_emb, p_data, n_data = self._encode_prompt(params['prompt'], params['neg_prompt'])
         pipe_kwargs = dict(
-            prompt=params['prompt'],
-            negative_prompt=params['neg_prompt'],
             image=orig_img,
             mask_image=mask_img,
             width=w,
@@ -421,6 +454,12 @@ class DiffusionEngine:
             generator=generator,
             callback_on_step_end=progress_callback
         )
+        if use_emb:
+            pipe_kwargs['prompt_embeds'] = p_data
+            pipe_kwargs['negative_prompt_embeds'] = n_data
+        else:
+            pipe_kwargs['prompt'] = params['prompt']
+            pipe_kwargs['negative_prompt'] = params['neg_prompt']
         try:
             image = self.inpaint_pipe(**pipe_kwargs).images[0]
         except RuntimeError as e:
@@ -463,9 +502,8 @@ class DiffusionEngine:
             return callback_kwargs
 
         logger.info(f"[SYSTEM] Starting ControlNet generation, seed: {seed}")
+        use_emb, p_data, n_data = self._encode_prompt(params['prompt'], params['neg_prompt'])
         cn_kwargs = dict(
-            prompt=params['prompt'],
-            negative_prompt=params['neg_prompt'],
             image=canny_image,
             num_inference_steps=params.get('steps', 25),
             guidance_scale=params.get('cfg', 7.5),
@@ -473,6 +511,12 @@ class DiffusionEngine:
             generator=generator,
             callback_on_step_end=progress_callback
         )
+        if use_emb:
+            cn_kwargs['prompt_embeds'] = p_data
+            cn_kwargs['negative_prompt_embeds'] = n_data
+        else:
+            cn_kwargs['prompt'] = params['prompt']
+            cn_kwargs['negative_prompt'] = params['neg_prompt']
         try:
             image = self.controlnet_pipe(**cn_kwargs).images[0]
         except RuntimeError as e:
@@ -541,9 +585,8 @@ class DiffusionEngine:
 
             w = image.width - image.width % 8
             h = image.height - image.height % 8
+            use_emb, p_data, n_data = self._encode_prompt(prompt, neg_prompt)
             ad_kwargs = dict(
-                prompt=prompt,
-                negative_prompt=neg_prompt,
                 image=image,
                 mask_image=mask_pil,
                 width=w,
@@ -554,6 +597,12 @@ class DiffusionEngine:
                 generator=torch.Generator(device="cuda").manual_seed(random.randint(0, 2**32-1)),
                 callback_on_step_end=progress_wrap
             )
+            if use_emb:
+                ad_kwargs['prompt_embeds'] = p_data
+                ad_kwargs['negative_prompt_embeds'] = n_data
+            else:
+                ad_kwargs['prompt'] = prompt
+                ad_kwargs['negative_prompt'] = neg_prompt
             try:
                 result_img = inpaint_pipe(**ad_kwargs).images[0]
             except RuntimeError as e:

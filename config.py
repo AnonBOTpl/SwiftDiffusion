@@ -38,7 +38,8 @@ class SettingsManager:
             'vram_slicing': 'False',
             'attention_slicing': 'False',
             'cpu_offload': 'False',
-            'auto_clear_vram': 'False'
+            'auto_clear_vram': 'False',
+            'tiled_vae': 'False'
         },
         'Preview': {
             'enabled': 'False',
