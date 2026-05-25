@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.20.6] - 2026-05-25 – Style Presets, side-by-side preview, exclusive presets, refactored file structure
+### Added
+- **Style Presets** — `QGroupBox("Style Presets")` below tag tabs with one-click preset buttons. Each preset lives in its own file under `tags/presets/{name}.json` with format `{"name": "...", "icon": "🎬", "tags": [...]}`. Drop a new file → new preset appears instantly via `QFileSystemWatcher`. 6 built-in presets.
+- **Exclusive presets** — `_active_preset` tracking: selecting a new preset replaces the previous one; clicking the same preset deselects it.
+- **Side-by-side preview** — positive and negative QTextEdit fields placed next to each other (50/50 split, both 70px fixed height) instead of stacked vertically.
+- **Unguarded tags** — preset tags are added to `_selected` even if no corresponding button exists in the tag categories (they still appear in the preview).
+- **`tags/presets/` directory** watched by `QFileSystemWatcher` alongside `tags/`.
+- Locale key: `pb_presets` (EN + PL).
+### Changed
+- **Preset file structure** — `tags/presets.json` replaced by `tags/presets/` folder with one file per preset. `_load_presets()` scans the directory instead of reading a single file.
+
 ## [2.20.5] - 2026-05-25 – Prompt Builder: negative tags, history/favorites extended, random button
 ### Added
 - **Negative tags** — separate tab category in the top QTabBar (red-styled buttons). `tags/negative.json` with 30 tags.

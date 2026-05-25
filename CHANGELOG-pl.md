@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.20.6] - 2026-05-25 – Style Presets, podgląd obok siebie, presety ekskluzywne, zmiana struktury plików
+### Dodano
+- **Style Presets** — `QGroupBox("Style Presets")` poniżej zakładek z przyciskami presetów jednym kliknięciem. Każdy preset w osobnym pliku `tags/presets/{nazwa}.json` z formatem `{"name": "...", "icon": "🎬", "tags": [...]}`. Nowy plik → nowy preset natychmiast przez `QFileSystemWatcher`. 6 wbudowanych presetów.
+- **Presety ekskluzywne** — `_active_preset` śledzi aktywny preset; kliknięcie innego zastępuje poprzedni; kliknięcie tego samego odznacza.
+- **Podgląd obok siebie** — pola QTextEdit dla pozytywnych i negatywnych tagów umieszczone obok siebie (50/50, oba 70px stała wysokość) zamiast pionowo.
+- **Tagi bez kategorii** — tagi presetów dodawane do `_selected` nawet jeśli nie mają przycisku w kategoriach (pojawiają się w podglądzie).
+- **Folder `tags/presets/`** monitorowany przez `QFileSystemWatcher`.
+- Klucz locale: `pb_presets` (EN + PL).
+### Zmieniono
+- **Struktura presetów** — `tags/presets.json` zastąpiony folderem `tags/presets/` z jednym plikiem na preset. `_load_presets()` skanuje folder zamiast czytać jeden plik.
+
 ## [2.20.5] - 2026-05-25 – Prompt Builder: tagi negatywne, rozszerzona historia/ulubione, przycisk losowania
 ### Dodano
 - **Tagi negatywne** — osobna kategoria w górnym QTabBar (czerwone przyciski). `tags/negative.json` z 30 tagami.

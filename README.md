@@ -47,6 +47,7 @@
 - **Textual Inversion embeddings** — drop `.pt` / `.bin` / `.safetensors` files into `models/embeddings/`; they appear automatically in the Prompt Builder and are ready to use after model load
 - **Prompt Builder** — built-in tag manager with categorized tags (positive and negative), live preview for both, and one-click copy to T2I. Save and restore prompt combinations via **history** (`prompts_history.json`, last 20) and **favorites** (`prompts_favorites.json`, unlimited). Separate Load/Copy/Delete actions per entry per both tag sets. 🎲 Random button picks configurable tags per positive category.
 - **Custom tag categories** — drop your own `.json` file into `tags/` with `{"label": "My Tags", "tags": ["tag1", "tag2"]}` and it appears as a new tab immediately, no restart needed. Built-in categories stay in their original order; your files are added alphabetically below them.
+- **Style Presets** — one-click tag sets in `tags/presets/`. Each file is one preset: `{"name": "My Style", "icon": "✨", "tags": ["tag1", "tag2"]}`. Add or remove files anytime — changes appear instantly. Presets are exclusive (selecting one replaces the other).
 
 ### 🖌️ Generation Modes
 
