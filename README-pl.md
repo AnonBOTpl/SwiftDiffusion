@@ -45,6 +45,7 @@
 - **Prompt weighting (compel)** — precyzyjnie kontroluj wagę słów i fraz standardową składnią `(word:1.2)`, bez dodatkowej konfiguracji
 - **Embeddingi Textual Inversion** — wrzuć pliki `.pt` / `.bin` / `.safetensors` do `models/embeddings/`; pojawiają się automatycznie w Prompt Builderze i są gotowe do użycia po załadowaniu modelu
 - **Prompt Builder** — wbudowany menedżer tagów z kategoriami (pozytywne i negatywne), podglądem na żywo dla obu i kopiowaniem jednym kliknięciem do T2I. Zapisuj i przywracaj kombinacje tagów przez **historię** (`prompts_history.json`, ostatnie 20) i **ulubione** (`prompts_favorites.json`, bez limitu). Osobne akcje Wczytaj/Kopiuj/Usuń na wpis dla obu zestawów. 🎲 Przycisk Losuj wybiera konfigurowalną liczbę tagów na kategorię.
+- **Własne kategorie tagów** — wrzuć własny plik `.json` do `tags/` z `{"label": "Moje Tagi", "tags": ["tag1", "tag2"]}` i pojawi się jako nowa zakładka natychmiast, bez restartu. Wbudowane kategorie zachowują swoją kolejność; twoje pliki dodawane są alfabetycznie poniżej.
 
 ### 🖌️ Tryby generowania
 

@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QTextEdit, QLabel, QDialog, QListWidget, QListWidgetItem,
     QInputDialog, QMessageBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QFileSystemWatcher
 from PyQt6.QtGui import QFont, QIcon
 from config import tr, settings
 from .flow_layout import FlowLayout
@@ -35,42 +35,18 @@ class PromptBuilderPanel(QWidget):
         self._emb_page_idx = None
         self._load_tags()
 
+        self._watcher = QFileSystemWatcher(self)
+        if os.path.isdir(TAGS_DIR):
+            self._watcher.addPath(TAGS_DIR)
+        self._watcher.directoryChanged.connect(self.refresh_tags)
+
         main_l = QVBoxLayout(self)
         main_l.setContentsMargins(15, 10, 15, 10)
         main_l.setSpacing(8)
 
         self._tab_bar = QTabBar()
         self._stack = QStackedWidget()
-        for cat in self._categories:
-            idx = self._tab_bar.addTab(cat["label"])
-            page = QWidget()
-            flow = FlowLayout(page)
-            flow.setSpacing(6)
-            for tag in cat["tags"]:
-                btn = QPushButton(tag)
-                btn.setCheckable(True)
-                btn.setStyleSheet("QPushButton { padding: 4px 10px; border: 1px solid #444; border-radius: 4px; background: #2a2a2a; color: #ccc; font-size: 11px; } QPushButton:checked { background: #3a6ea5; color: white; border-color: #5a8ec5; }")
-                btn.clicked.connect(lambda _, t=tag: self._toggle_tag(t))
-                flow.addWidget(btn)
-                self._tag_btns[tag] = btn
-            page.setLayout(flow)
-            self._stack.addWidget(page)
-
-        # Negative category pages
-        for cat in self._neg_categories:
-            idx = self._tab_bar.addTab(cat["label"])
-            page = QWidget()
-            flow = FlowLayout(page)
-            flow.setSpacing(6)
-            for tag in cat["tags"]:
-                btn = QPushButton(tag)
-                btn.setCheckable(True)
-                btn.setStyleSheet("QPushButton { padding: 4px 10px; border: 1px solid #8b3a3a; border-radius: 4px; background: #2a1515; color: #e06060; font-size: 11px; } QPushButton:checked { background: #8b3a3a; color: white; border-color: #c06060; }")
-                btn.clicked.connect(lambda _, t=tag: self._toggle_neg_tag(t))
-                flow.addWidget(btn)
-                self._tag_btns_neg[tag] = btn
-            page.setLayout(flow)
-            self._stack.addWidget(page)
+        self._build_tag_pages()
 
         self._emb_page = QWidget()
         self._emb_flow = FlowLayout(self._emb_page)
@@ -146,19 +122,113 @@ class PromptBuilderPanel(QWidget):
         self._neg_categories = []
         if not os.path.isdir(TAGS_DIR):
             return
-        for fname in sorted(os.listdir(TAGS_DIR)):
+
+        builtin_order = ["quality.json", "style.json", "lighting.json", "artists.json"]
+        loaded = {}
+        neg_loaded = []
+        user_files = []
+
+        for fname in os.listdir(TAGS_DIR):
             if not fname.endswith(".json"):
                 continue
             path = os.path.join(TAGS_DIR, fname)
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                if data.get("type") == "negative":
-                    self._neg_categories.append(data)
-                else:
-                    self._categories.append(data)
             except Exception:
-                pass
+                continue
+
+            if data.get("type") == "negative":
+                neg_loaded.append(data)
+            elif fname in builtin_order:
+                loaded[fname] = data
+            else:
+                user_files.append((fname, data))
+
+        # Built-in positive in fixed order
+        for fname in builtin_order:
+            if fname in loaded:
+                self._categories.append(loaded[fname])
+
+        # Negative
+        self._neg_categories = neg_loaded
+
+        # User files alphabetically
+        user_files.sort(key=lambda x: x[0])
+        for fname, data in user_files:
+            self._categories.append(data)
+
+    def _clear_stack_pages(self):
+        while self._stack.count() > 0:
+            w = self._stack.widget(0)
+            self._stack.removeWidget(w)
+            w.deleteLater()
+        while self._tab_bar.count() > 0:
+            self._tab_bar.removeTab(0)
+
+    def _build_tag_pages(self):
+        self._clear_stack_pages()
+        for cat in self._categories:
+            self._tab_bar.addTab(cat["label"])
+            page = QWidget()
+            flow = FlowLayout(page)
+            flow.setSpacing(6)
+            for tag in cat["tags"]:
+                btn = QPushButton(tag)
+                btn.setCheckable(True)
+                btn.setStyleSheet("QPushButton { padding: 4px 10px; border: 1px solid #444; border-radius: 4px; background: #2a2a2a; color: #ccc; font-size: 11px; } QPushButton:checked { background: #3a6ea5; color: white; border-color: #5a8ec5; }")
+                btn.clicked.connect(lambda _, t=tag: self._toggle_tag(t))
+                flow.addWidget(btn)
+                self._tag_btns[tag] = btn
+            page.setLayout(flow)
+            self._stack.addWidget(page)
+
+        for cat in self._neg_categories:
+            self._tab_bar.addTab(cat["label"])
+            page = QWidget()
+            flow = FlowLayout(page)
+            flow.setSpacing(6)
+            for tag in cat["tags"]:
+                btn = QPushButton(tag)
+                btn.setCheckable(True)
+                btn.setStyleSheet("QPushButton { padding: 4px 10px; border: 1px solid #8b3a3a; border-radius: 4px; background: #2a1515; color: #e06060; font-size: 11px; } QPushButton:checked { background: #8b3a3a; color: white; border-color: #c06060; }")
+                btn.clicked.connect(lambda _, t=tag: self._toggle_neg_tag(t))
+                flow.addWidget(btn)
+                self._tag_btns_neg[tag] = btn
+            page.setLayout(flow)
+            self._stack.addWidget(page)
+
+    def refresh_tags(self):
+        # Rebuild tag data and UI from disk
+        old_tag_set = set(self._tag_btns.keys())
+        old_neg_tag_set = set(self._tag_btns_neg.keys())
+        self._tag_btns.clear()
+        self._tag_btns_neg.clear()
+        self._load_tags()
+        self._build_tag_pages()
+
+        # Re-attach embeddings page and restore its content
+        self._stack.addWidget(self._emb_page)
+        self._emb_tab_idx = self._tab_bar.addTab(tr("pb_embeddings"))
+        self._tab_bar.setTabToolTip(self._emb_tab_idx, tr("pb_embeddings_tip"))
+        self._tab_bar.setTabEnabled(self._emb_tab_idx, False)
+        self.refresh_embeddings()
+
+        # Remove orphaned tags from selections
+        all_tags = set(self._tag_btns.keys())
+        all_neg_tags = set(self._tag_btns_neg.keys())
+        self._selected = [t for t in self._selected if t in all_tags]
+        self._random_selected = [t for t in self._random_selected if t in all_tags]
+        self._neg_selected = [t for t in self._neg_selected if t in all_neg_tags]
+        # Restore check state for tags that still exist
+        for t in self._selected:
+            if t in self._tag_btns:
+                self._tag_btns[t].setChecked(True)
+        for t in self._neg_selected:
+            if t in self._tag_btns_neg:
+                self._tag_btns_neg[t].setChecked(True)
+        self._update_preview()
+        self._neg_preview.setPlainText(", ".join(self._neg_selected))
 
     def refresh_embeddings(self):
         for w in reversed(range(self._emb_flow.count())):
@@ -227,8 +297,6 @@ class PromptBuilderPanel(QWidget):
 
         count = int(settings.get('PromptBuilder', 'random_tags_count', fallback='1'))
         for cat in self._categories:
-            if cat.get("type") == "negative":
-                continue
             cat_tags = cat["tags"]
             chosen = random.sample(cat_tags, min(count, len(cat_tags)))
             for t in chosen:
@@ -332,20 +400,6 @@ class PromptBuilderPanel(QWidget):
         btn_copy = QPushButton(tr("pb_copy"))
         btn_copy.setObjectName("SecondaryBtn")
         btn_copy.setEnabled(False)
-
-        def apply_load():
-            item = lst.currentItem()
-            if item:
-                self._set_tags(item.data(Qt.ItemDataRole.UserRole))
-                dlg.accept()
-
-        def apply_copy():
-            item = lst.currentItem()
-            if item:
-                text = item.data(Qt.ItemDataRole.UserRole + 1)
-                if text:
-                    self.prompt_ready.emit(text)
-                dlg.accept()
 
         def apply_load():
             item = lst.currentItem()
