@@ -279,12 +279,18 @@ class PromptBuilderPanel(QWidget):
     def _clear_all(self):
         self._selected.clear()
         self._random_selected.clear()
-        for btn in self._tag_btns.values():
-            btn.setChecked(False)
+        for btn in list(self._tag_btns.values()):
+            try:
+                btn.setChecked(False)
+            except RuntimeError:
+                pass
         self._preview.clear()
         self._neg_selected.clear()
-        for btn in self._tag_btns_neg.values():
-            btn.setChecked(False)
+        for btn in list(self._tag_btns_neg.values()):
+            try:
+                btn.setChecked(False)
+            except RuntimeError:
+                pass
         self._neg_preview.clear()
 
     def _randomize(self):
@@ -292,7 +298,10 @@ class PromptBuilderPanel(QWidget):
         for t in list(self._random_selected):
             if t in self._selected:
                 self._selected.remove(t)
-            self._tag_btns[t].setChecked(False)
+            try:
+                self._tag_btns[t].setChecked(False)
+            except (KeyError, RuntimeError):
+                pass
         self._random_selected.clear()
 
         count = int(settings.get('PromptBuilder', 'random_tags_count', fallback='1'))
@@ -302,7 +311,10 @@ class PromptBuilderPanel(QWidget):
             for t in chosen:
                 self._selected.append(t)
                 self._random_selected.append(t)
-                self._tag_btns[t].setChecked(True)
+                try:
+                    self._tag_btns[t].setChecked(True)
+                except (KeyError, RuntimeError):
+                    pass
         self._update_preview()
 
     def _copy_to_t2i(self):
