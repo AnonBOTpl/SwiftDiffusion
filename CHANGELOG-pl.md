@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.20.5] - 2026-05-25 – Prompt Builder: tagi negatywne, rozszerzona historia/ulubione, przycisk losowania
+### Dodano
+- **Tagi negatywne** — osobna kategoria w górnym QTabBar (czerwone przyciski). `tags/negative.json` z 30 tagami.
+- **Dwa pola podglądu** — pozytywne i negatywne QTextEdit ułożone pionowo (oba stała wysokość 60px).
+- **Historia/Ulubione przechowują negative_tags** — wstecznie kompatybilne przez `.get("negative_tags", [])`. Wczytywanie przywraca oba zestawy tagów.
+- **🎲 Przycisk Losuj** — losuje konfigurowalną liczbę tagów na kategorię (Ustawienia → Prompt Builder → "Losowych tagów na kategorię", QSpinBox 1–5, domyślnie 1). Śledzi wylosowane tagi w `_random_selected`; drugie kliknięcie zastępuje zestaw.
+- **Sygnał `neg_prompt_ready`** — Kopiuj do Text2Image kopiuje również tagi negatywne do pola negative prompt.
+- Klucze locale: `pb_random`, `pb_random_count`, `settings_tab_pb` (EN + PL).
+### Zmieniono
+- **Układ Prompt Buildera** — przyciski tagów negatywnych przeniesione z osobnego panelu na dole do głównego QTabBar obok Quality, Style, Lighting, Artists. Podgląd negatywny zawsze widoczny.
+- **Pojedynczy przycisk Kopiuj** kopiuje jednocześnie pozytywny i negatywny prompt.
+
 ## [2.20.4] - 2026-05-24 – Prompt Builder: historia i ulubione
 ### Dodano
 - **Historia promptów** — każde kliknięcie "Kopiuj do Text2Image" zapisuje zaznaczone tagi do `prompts_history.json` (max 20, najnowsze na górze). Przycisk "📜 Historia" otwiera dialog z akcjami Wczytaj/Kopiuj.

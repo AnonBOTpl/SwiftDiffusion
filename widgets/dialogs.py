@@ -184,7 +184,16 @@ class SettingsDialog(QDialog):
         int_l.addWidget(self.civitai_key_edit)
         int_l.addStretch()
 
-        # 6. About
+        # 6. Prompt Builder
+        pb_tab = QWidget(); self.tabs.addTab(pb_tab, tr("settings_tab_pb")); pb_l = QVBoxLayout(pb_tab)
+        pb_l.addWidget(QLabel(tr("pb_random_count")))
+        self.random_count_spin = QSpinBox()
+        self.random_count_spin.setRange(1, 5)
+        self.random_count_spin.setValue(int(settings.get('PromptBuilder', 'random_tags_count', fallback='1')))
+        pb_l.addWidget(self.random_count_spin)
+        pb_l.addStretch()
+
+        # 7. About
         about_tab = QWidget(); self.tabs.addTab(about_tab, tr("settings_tab_about")); about_l = QVBoxLayout(about_tab)
         accent = settings.get('UI', 'accent_color', fallback='#00d4ff')
         try: from importlib.metadata import version as _ver
@@ -324,6 +333,7 @@ class SettingsDialog(QDialog):
         settings.set('UI', 'theme', self.theme_combo.currentText())
         settings.set('UI', 'accent_color', self.curr_accent)
         settings.set('UI', 'use_custom_accent', self.chk_custom_accent.isChecked())
+        settings.set('PromptBuilder', 'random_tags_count', str(self.random_count_spin.value()))
         settings.save()
 
 

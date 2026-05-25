@@ -45,6 +45,10 @@
     "pb_fav_load": "Load",
     "pb_fav_delete": "Delete",
     "pb_fav_empty": "No favorites yet.\nBuild a prompt and save it with ★ Save.",
+    "pb_neg_header": "⚠ Negative tags",
+    "pb_neg_preview": "⚠ Selected negative tags:",
+    "pb_copy_neg": "Copy negative to Text2Image",
+    "pb_neg_empty": "Click negative tags above to add them here.",
 
     "header_params": "PARAMETERS",
     "header_inpaint_tools": "INPAINTING TOOLS",
@@ -150,6 +154,7 @@
     "dialog_import_settings": "Import Settings",
     "dialog_export_settings": "Export Settings",
     "settings_tab_integration": "Integration",
+    "settings_tab_pb": "Prompt Builder",
     "settings_tab_about": "About",
     "settings_integration_hf": "HuggingFace Token (optional):",
     "settings_integration_civitai": "CivitAI API Key (optional):",
@@ -228,5 +233,9 @@
     "opt_vram_slicing": "VAE Slicing / Tiling",
     "vram_dont_ask": "Don't show this warning again",
     "vram_apply": "Enable optimizations",
-    "vram_skip": "Skip"
+    "vram_skip": "Skip",
+
+    "pb_random": "Random",
+    "pb_random_count": "Random tags per category",
+    "pb_empty": "No tags found"
 }

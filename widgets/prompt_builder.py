@@ -1,5 +1,6 @@
 import os
 import json
+import random
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QTabBar,
@@ -8,7 +9,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon
-from config import tr
+from config import tr, settings
 from .flow_layout import FlowLayout
 
 
@@ -20,13 +21,17 @@ FAVORITES_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts_favorite
 
 class PromptBuilderPanel(QWidget):
     prompt_ready = pyqtSignal(str)
+    neg_prompt_ready = pyqtSignal(str)
 
     def __init__(self, engine=None, parent=None):
         super().__init__(parent)
         self._engine = engine
         self._categories = []
         self._selected = []
+        self._neg_selected = []
+        self._random_selected = []
         self._tag_btns = {}
+        self._tag_btns_neg = {}
         self._emb_page_idx = None
         self._load_tags()
 
@@ -48,6 +53,22 @@ class PromptBuilderPanel(QWidget):
                 btn.clicked.connect(lambda _, t=tag: self._toggle_tag(t))
                 flow.addWidget(btn)
                 self._tag_btns[tag] = btn
+            page.setLayout(flow)
+            self._stack.addWidget(page)
+
+        # Negative category pages
+        for cat in self._neg_categories:
+            idx = self._tab_bar.addTab(cat["label"])
+            page = QWidget()
+            flow = FlowLayout(page)
+            flow.setSpacing(6)
+            for tag in cat["tags"]:
+                btn = QPushButton(tag)
+                btn.setCheckable(True)
+                btn.setStyleSheet("QPushButton { padding: 4px 10px; border: 1px solid #8b3a3a; border-radius: 4px; background: #2a1515; color: #e06060; font-size: 11px; } QPushButton:checked { background: #8b3a3a; color: white; border-color: #c06060; }")
+                btn.clicked.connect(lambda _, t=tag: self._toggle_neg_tag(t))
+                flow.addWidget(btn)
+                self._tag_btns_neg[tag] = btn
             page.setLayout(flow)
             self._stack.addWidget(page)
 
@@ -76,9 +97,20 @@ class PromptBuilderPanel(QWidget):
 
         self._preview = QTextEdit()
         self._preview.setReadOnly(True)
-        self._preview.setFixedHeight(80)
+        self._preview.setFixedHeight(60)
         self._preview.setStyleSheet("background: #1a1a1a; border: 1px solid #333; border-radius: 4px; color: #ccc; padding: 6px;")
         main_l.addWidget(self._preview)
+
+        neg_preview_lbl = QLabel(tr("pb_neg_preview"))
+        neg_preview_lbl.setStyleSheet("color: #e06060; font-size: 11px;")
+        main_l.addWidget(neg_preview_lbl)
+
+        self._neg_preview = QTextEdit()
+        self._neg_preview.setReadOnly(True)
+        self._neg_preview.setFixedHeight(60)
+        self._neg_preview.setStyleSheet("background: #1a1a1a; border: 1px solid #8b3a3a; border-radius: 4px; color: #e06060; padding: 6px;")
+        self._neg_preview.setPlaceholderText(tr("pb_neg_empty"))
+        main_l.addWidget(self._neg_preview)
 
         btn_row = QHBoxLayout()
         self._btn_history = QPushButton(tr("pb_history"))
@@ -93,6 +125,9 @@ class PromptBuilderPanel(QWidget):
         self._btn_clear = QPushButton(tr("pb_clear"))
         self._btn_clear.setObjectName("SecondaryBtn")
         self._btn_clear.clicked.connect(self._clear_all)
+        self._btn_random = QPushButton("🎲 " + tr("pb_random"))
+        self._btn_random.setObjectName("SecondaryBtn")
+        self._btn_random.clicked.connect(self._randomize)
         self._btn_copy = QPushButton(tr("pb_copy"))
         self._btn_copy.setObjectName("GenerateBtn")
         self._btn_copy.setFixedHeight(40)
@@ -101,11 +136,14 @@ class PromptBuilderPanel(QWidget):
         btn_row.addWidget(self._btn_fav)
         btn_row.addWidget(self._btn_fav_save)
         btn_row.addWidget(self._btn_clear)
+        btn_row.addWidget(self._btn_random)
         btn_row.addStretch()
         btn_row.addWidget(self._btn_copy)
         main_l.addLayout(btn_row)
 
     def _load_tags(self):
+        self._categories = []
+        self._neg_categories = []
         if not os.path.isdir(TAGS_DIR):
             return
         for fname in sorted(os.listdir(TAGS_DIR)):
@@ -115,7 +153,10 @@ class PromptBuilderPanel(QWidget):
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                self._categories.append(data)
+                if data.get("type") == "negative":
+                    self._neg_categories.append(data)
+                else:
+                    self._categories.append(data)
             except Exception:
                 pass
 
@@ -145,26 +186,65 @@ class PromptBuilderPanel(QWidget):
     def _toggle_tag(self, tag):
         if tag in self._selected:
             self._selected.remove(tag)
+            if tag in self._random_selected:
+                self._random_selected.remove(tag)
             self._tag_btns[tag].setChecked(False)
         else:
             self._selected.append(tag)
             self._tag_btns[tag].setChecked(True)
         self._update_preview()
 
+    def _toggle_neg_tag(self, tag):
+        if tag in self._neg_selected:
+            self._neg_selected.remove(tag)
+            self._tag_btns_neg[tag].setChecked(False)
+        else:
+            self._neg_selected.append(tag)
+            self._tag_btns_neg[tag].setChecked(True)
+        self._neg_preview.setPlainText(", ".join(self._neg_selected))
+
     def _update_preview(self):
         self._preview.setPlainText(", ".join(self._selected))
 
     def _clear_all(self):
         self._selected.clear()
+        self._random_selected.clear()
         for btn in self._tag_btns.values():
             btn.setChecked(False)
         self._preview.clear()
+        self._neg_selected.clear()
+        for btn in self._tag_btns_neg.values():
+            btn.setChecked(False)
+        self._neg_preview.clear()
+
+    def _randomize(self):
+        # Deselect previous random tags
+        for t in list(self._random_selected):
+            if t in self._selected:
+                self._selected.remove(t)
+            self._tag_btns[t].setChecked(False)
+        self._random_selected.clear()
+
+        count = int(settings.get('PromptBuilder', 'random_tags_count', fallback='1'))
+        for cat in self._categories:
+            if cat.get("type") == "negative":
+                continue
+            cat_tags = cat["tags"]
+            chosen = random.sample(cat_tags, min(count, len(cat_tags)))
+            for t in chosen:
+                self._selected.append(t)
+                self._random_selected.append(t)
+                self._tag_btns[t].setChecked(True)
+        self._update_preview()
 
     def _copy_to_t2i(self):
         text = self._preview.toPlainText().strip()
         if text:
-            self._save_to_history(self._selected.copy(), text)
+            self._save_to_history(self._selected.copy(), text, self._neg_selected.copy())
             self.prompt_ready.emit(text)
+        neg_text = self._neg_preview.toPlainText().strip()
+        if neg_text:
+            self.neg_prompt_ready.emit(neg_text)
 
     def _history_path(self):
         return HISTORY_PATH
@@ -179,12 +259,13 @@ class PromptBuilderPanel(QWidget):
         except Exception:
             return []
 
-    def _save_to_history(self, tags, prompt):
+    def _save_to_history(self, tags, prompt, neg_tags=None):
         history = self._load_history()
         entry = {
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "prompt": prompt,
-            "tags": tags
+            "tags": tags,
+            "negative_tags": neg_tags if neg_tags is not None else []
         }
         history.insert(0, entry)
         history = history[:HISTORY_MAX]
@@ -194,11 +275,15 @@ class PromptBuilderPanel(QWidget):
         except Exception:
             pass
 
-    def _set_tags(self, tag_names):
+    def _set_tags(self, tag_names, neg_tag_names=None):
         self._clear_all()
         for t in tag_names:
             if t in self._tag_btns:
                 self._toggle_tag(t)
+        if neg_tag_names:
+            for t in neg_tag_names:
+                if t in self._tag_btns_neg:
+                    self._toggle_neg_tag(t)
 
     def _show_history(self):
         history = self._load_history()
@@ -225,10 +310,14 @@ class PromptBuilderPanel(QWidget):
             ts = entry.get("timestamp", "")
             prompt = entry.get("prompt", "")
             tags = entry.get("tags", [])
+            neg_tags = entry.get("negative_tags", [])
+            neg_text = ", ".join(neg_tags)
             display = f"{ts}  |  {prompt}"
             item = QListWidgetItem(display)
             item.setData(Qt.ItemDataRole.UserRole, tags)
             item.setData(Qt.ItemDataRole.UserRole + 1, prompt)
+            item.setData(Qt.ItemDataRole.UserRole + 2, neg_tags)
+            item.setData(Qt.ItemDataRole.UserRole + 3, neg_text)
             item.setToolTip(prompt)
             lst.addItem(item)
 
@@ -256,6 +345,23 @@ class PromptBuilderPanel(QWidget):
                 text = item.data(Qt.ItemDataRole.UserRole + 1)
                 if text:
                     self.prompt_ready.emit(text)
+                dlg.accept()
+
+        def apply_load():
+            item = lst.currentItem()
+            if item:
+                self._set_tags(item.data(Qt.ItemDataRole.UserRole), item.data(Qt.ItemDataRole.UserRole + 2))
+                dlg.accept()
+
+        def apply_copy():
+            item = lst.currentItem()
+            if item:
+                text = item.data(Qt.ItemDataRole.UserRole + 1)
+                if text:
+                    self.prompt_ready.emit(text)
+                neg_text = item.data(Qt.ItemDataRole.UserRole + 3)
+                if neg_text:
+                    self.neg_prompt_ready.emit(neg_text)
                 dlg.accept()
 
         def on_selection():
@@ -303,7 +409,13 @@ class PromptBuilderPanel(QWidget):
             return
         name = name.strip()
         favs = self._load_favorites()
-        favs.append({"name": name, "prompt": text, "tags": self._selected.copy()})
+        neg_text = self._neg_preview.toPlainText().strip()
+        favs.append({
+            "name": name,
+            "prompt": text,
+            "tags": self._selected.copy(),
+            "negative_tags": self._neg_selected.copy()
+        })
         self._save_favorites(favs)
         QMessageBox.information(self, tr("pb_fav_save"), tr("pb_fav_saved"))
 
@@ -331,11 +443,16 @@ class PromptBuilderPanel(QWidget):
         for fav in favs:
             name = fav.get("name", "")
             prompt = fav.get("prompt", "")
+            tags = fav.get("tags", [])
+            neg_tags = fav.get("negative_tags", [])
+            neg_text = ", ".join(neg_tags)
             display = f"{name}  |  {prompt}"
             item = QListWidgetItem(display)
-            item.setData(Qt.ItemDataRole.UserRole, fav.get("tags", []))
+            item.setData(Qt.ItemDataRole.UserRole, tags)
             item.setData(Qt.ItemDataRole.UserRole + 1, prompt)
             item.setData(Qt.ItemDataRole.UserRole + 2, favs.index(fav))
+            item.setData(Qt.ItemDataRole.UserRole + 3, neg_tags)
+            item.setData(Qt.ItemDataRole.UserRole + 4, neg_text)
             item.setToolTip(prompt)
             lst.addItem(item)
 
@@ -364,7 +481,7 @@ class PromptBuilderPanel(QWidget):
         def apply_load():
             item = lst.currentItem()
             if item:
-                self._set_tags(item.data(Qt.ItemDataRole.UserRole))
+                self._set_tags(item.data(Qt.ItemDataRole.UserRole), item.data(Qt.ItemDataRole.UserRole + 3))
                 dlg.accept()
 
         def apply_copy():
@@ -373,6 +490,9 @@ class PromptBuilderPanel(QWidget):
                 text = item.data(Qt.ItemDataRole.UserRole + 1)
                 if text:
                     self.prompt_ready.emit(text)
+                neg_text = item.data(Qt.ItemDataRole.UserRole + 4)
+                if neg_text:
+                    self.neg_prompt_ready.emit(neg_text)
                 dlg.accept()
 
         def apply_delete():

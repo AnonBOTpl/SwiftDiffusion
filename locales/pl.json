@@ -131,6 +131,7 @@
     "dialog_import_settings": "Importuj ustawienia",
     "dialog_export_settings": "Eksportuj ustawienia",
     "settings_tab_integration": "Integracja",
+    "settings_tab_pb": "Prompt Builder",
     "settings_tab_about": "O programie",
     "settings_integration_hf": "Token HuggingFace (opcjonalny):",
     "settings_integration_civitai": "Klucz API CivitAI (opcjonalny):",
@@ -210,5 +211,13 @@
     "pb_fav_saved": "Zapisano jako ulubiony!",
     "pb_fav_load": "Wczytaj",
     "pb_fav_delete": "Usuń",
-    "pb_fav_empty": "Brak ulubionych.\nZbuduj prompt i zapisz go przez ★ Zapisz."
+    "pb_fav_empty": "Brak ulubionych.\nZbuduj prompt i zapisz go przez ★ Zapisz.",
+    "pb_neg_header": "⚠ Tagi negatywne",
+    "pb_neg_preview": "⚠ Wybrane tagi negatywne:",
+    "pb_copy_neg": "Kopiuj negatyw do Text2Image",
+    "pb_neg_empty": "Kliknij tagi negatywne powyżej, aby je dodać.",
+
+    "pb_random": "Losuj",
+    "pb_random_count": "Losowych tagów na kategorię",
+    "pb_empty": "Nie znaleziono tagów"
 }

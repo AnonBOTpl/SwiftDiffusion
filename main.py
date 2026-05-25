@@ -19,7 +19,7 @@ from widgets import (
     PromptBuilderPanel, ResourceMonitor
 )
 
-APP_VERSION = "2.20.4"
+APP_VERSION = "2.20.5"
 
 
 class MainWindow(QMainWindow):
@@ -290,6 +290,7 @@ class MainWindow(QMainWindow):
         logger.info("[UI] Building Prompt Builder tab...")
         self.pb_panel = PromptBuilderPanel(engine=self.engine)
         self.pb_panel.prompt_ready.connect(self._on_prompt_ready)
+        self.pb_panel.neg_prompt_ready.connect(self._on_neg_prompt_ready)
         self.tabs.addTab(self.pb_panel, tr("tab_prompt_builder"))
 
         # 7. DOWNLOADER
@@ -350,6 +351,10 @@ class MainWindow(QMainWindow):
 
     def _on_prompt_ready(self, text):
         self.t2i_prompt.setPlainText(text)
+        self.tabs.setCurrentWidget(self.t2i_tab)
+
+    def _on_neg_prompt_ready(self, text):
+        self.t2i_neg.setPlainText(text)
         self.tabs.setCurrentWidget(self.t2i_tab)
 
     def open_fullscreen(self, pixmap): ImageViewer(pixmap, self).exec()

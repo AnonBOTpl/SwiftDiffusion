@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.20.5] - 2026-05-25 – Prompt Builder: negative tags, history/favorites extended, random button
+### Added
+- **Negative tags** — separate tab category in the top QTabBar (red-styled buttons). `tags/negative.json` with 30 tags.
+- **Two-preview layout** — positive and negative QTextEdit fields stacked (both 60px fixed height).
+- **History/Favorites now store negative_tags** — backward-compatible with old entries via `.get("negative_tags", [])`. Load restores both positive and negative tag sets.
+- **🎲 Random button** — picks user-configurable number of tags per category (Settings → Prompt Builder → "Random tags per category", QSpinBox 1–5, default 1). Tracks random tags in `_random_selected`; second click replaces the set.
+- **`neg_prompt_ready` signal** — Copy to Text2Image now also copies negative tags to the T2I negative prompt field.
+- Locale keys: `pb_random`, `pb_random_count`, `settings_tab_pb` (EN + PL).
+### Changed
+- **Prompt Builder layout** — negative tag buttons moved from a separate bottom panel into the main QTabBar alongside Quality, Style, Lighting, Artists. Negative preview is always visible.
+- **Single Copy button** copies both positive and negative prompts simultaneously.
+
 ## [2.20.4] - 2026-05-24 – Prompt Builder: history & favorites
 ### Added
 - **Prompt history** — every "Copy to Text2Image" saves the tag selection to `prompts_history.json` (max 20, newest first). "📜 History" button opens a dialog with Load/Copy actions.
