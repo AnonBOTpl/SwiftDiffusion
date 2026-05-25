@@ -19,7 +19,7 @@ from widgets import (
     PromptBuilderPanel, ResourceMonitor
 )
 
-APP_VERSION = "2.20.6"
+APP_VERSION = "2.20.7"
 
 
 class MainWindow(QMainWindow):

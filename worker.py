@@ -46,10 +46,11 @@ class GenerationWorker(QThread):
         self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
         try:
             file_path, used_seed = self.engine.generate(self.params, callback=lambda s, p: self.progress.emit(s, p))
-        except RuntimeError as e:
+        except Exception as e:
             if "STOPPED" in str(e):
                 self.finished.emit("", 0)
                 return
+            log(f"GenerationWorker error: {e}")
             self.finished.emit("", 0)
             return
         self.part_finished.emit(file_path, used_seed)
@@ -86,10 +87,11 @@ class Img2ImgWorker(QThread):
         self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
         try:
             file_path, used_seed = self.engine.img2img(self.params, callback=lambda s, p: self.progress.emit(s, p))
-        except RuntimeError as e:
+        except Exception as e:
             if "STOPPED" in str(e):
                 self.finished.emit("", 0)
                 return
+            log(f"Img2ImgWorker error: {e}")
             self.finished.emit("", 0)
             return
         self.part_finished.emit(file_path, used_seed)
@@ -125,10 +127,11 @@ class InpaintWorker(QThread):
         self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
         try:
             file_path, used_seed = self.engine.inpaint(self.params, callback=lambda s: self.progress.emit(s))
-        except RuntimeError as e:
+        except Exception as e:
             if "STOPPED" in str(e):
                 self.finished.emit("", 0)
                 return
+            log(f"InpaintWorker error: {e}")
             self.finished.emit("", 0)
             return
         self.finished.emit(file_path, used_seed)
@@ -152,10 +155,11 @@ class ControlNetWorker(QThread):
         self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
         try:
             file_path, used_seed = self.engine.controlnet_generate(self.params, callback=lambda s: self.progress.emit(s))
-        except RuntimeError as e:
+        except Exception as e:
             if "STOPPED" in str(e):
                 self.finished.emit("", 0)
                 return
+            log(f"ControlNetWorker error: {e}")
             self.finished.emit("", 0)
             return
         self.finished.emit(file_path, used_seed)
@@ -174,21 +178,25 @@ class ADetailerWorker(QThread):
         self.engine.stop_generation()
 
     def run(self):
-        self.status.emit(tr("worker_yolo_detection"))
-        self.params['prompt'] = resolve_wildcards(self.params.get('prompt', ''))
-        self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
-        out_path = self.engine.apply_adetailer(self.params, callback=lambda s: self.progress.emit(s))
+        try:
+            self.status.emit(tr("worker_yolo_detection"))
+            self.params['prompt'] = resolve_wildcards(self.params.get('prompt', ''))
+            self.params['neg_prompt'] = resolve_wildcards(self.params.get('neg_prompt', ''))
+            out_path = self.engine.apply_adetailer(self.params, callback=lambda s: self.progress.emit(s))
 
-        if out_path and self.params.get('auto_upscale') and self.params.get('upscaler_model'):
-            self.status.emit(tr("worker_adetailer_upscale"))
-            ups_path = self.engine.upscale_image(
-                out_path,
-                self.params['upscaler_model'],
-                self.params.get('keep_upscaler_vram', False)
-            )
-            if ups_path: out_path = ups_path
+            if out_path and self.params.get('auto_upscale') and self.params.get('upscaler_model'):
+                self.status.emit(tr("worker_adetailer_upscale"))
+                ups_path = self.engine.upscale_image(
+                    out_path,
+                    self.params['upscaler_model'],
+                    self.params.get('keep_upscaler_vram', False)
+                )
+                if ups_path: out_path = ups_path
 
-        self.finished.emit(out_path)
+            self.finished.emit(out_path)
+        except Exception as e:
+            log(f"ADetailerWorker error: {e}")
+            self.finished.emit("")
 
 class ModelLoaderWorker(QThread):
     finished = pyqtSignal(bool, str) # success, message
@@ -390,6 +398,10 @@ class UpscaleWorker(QThread):
         self.keep_vram = keep_vram
 
     def run(self):
-        self.status.emit(tr("status_upscaling"))
-        upscaled_path = self.engine.upscale_image(self.image_path, self.model_path, self.keep_vram)
-        self.finished.emit(upscaled_path)
+        try:
+            self.status.emit(tr("status_upscaling"))
+            upscaled_path = self.engine.upscale_image(self.image_path, self.model_path, self.keep_vram)
+            self.finished.emit(upscaled_path)
+        except Exception as e:
+            log(f"UpscaleWorker error: {e}")
+            self.finished.emit("")

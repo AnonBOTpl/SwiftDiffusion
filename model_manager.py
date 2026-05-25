@@ -193,6 +193,7 @@ class ModelManager:
 
             self.load_worker = ModelLoaderWorker(self.engine, m, self.loras)
             self.load_worker.finished.connect(self.on_model_loaded)
+            self.engine._clear_vram()
             self.load_worker.start()
 
     def on_model_loaded(self, success, message):
@@ -214,6 +215,7 @@ class ModelManager:
                 self.mw.lbl_compel.setStyleSheet("color: #888; font-size: 10px;")
             self.mw.pb_panel.refresh_embeddings()
         else:
+            self.engine._clear_vram()
             self.mw.p_bar.setFormat(tr("status_error"))
             QMessageBox.critical(
                 self.mw, tr("status_error"),

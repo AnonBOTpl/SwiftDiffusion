@@ -238,5 +238,11 @@
     "pb_random": "Random",
     "pb_random_count": "Random tags per category",
     "pb_presets": "Style Presets",
-    "pb_empty": "No tags found"
+    "pb_empty": "No tags found",
+
+    "tag_search_placeholder": "Search tags...",
+    "tag_search_no_results": "No results for '{query}'",
+
+    "pb_wildcards": "Wildcards",
+    "pb_wildcards_empty": "No wildcard files. Add .txt files to wildcards/"
 }

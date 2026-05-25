@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.20.7] - 2026-05-25 – Prompt Builder: wyszukiwarka tagów i zakładka Wildcards
+### Dodano
+- **Wyszukiwarka tagów** — `QLineEdit` z przyciskiem czyszczenia między obszarem tagów a Style Presets. Wpisywanie filtruje wszystkie przyciski tagów pozytywnych i negatywnych na dedykowanej stronie wyników w `QStackedWidget`. Kliknięcie wyniku przełącza zarówno oryginalny przycisk, jak i przycisk wyszukiwania. Etykieta gdy brak wyników.
+- **Zakładka Wildcards** — nowa kategoria w wewnętrznym `QTabWidget` Prompt Buildera (między Embeddings a wyszukiwarką). Każdy plik `.txt` w `wildcards/` staje się klikalnym przyciskiem. Kliknięcie przełącza `__nazwa__` w `_selected` (widoczne w podglądzie). Tooltip pokazuje pierwsze 5 linii pliku. Wybrane wildcardy są zachowywane przy `refresh_tags()`. Pomijane przez przycisk Losuj i wyszukiwarkę.
+- **Obserwator wildcardów** — `QFileSystemWatcher` na `wildcards/` automatycznie odświeża zakładkę przy zmianach plików.
+- **Wildcardy w historii/ulubionych** — `_set_tags()` przywraca wpisy `__nazwa__` z zapisanych promptów. `_clear_all()` resetuje przyciski wildcardów.
+- Klucze locale: `tag_search_placeholder`, `tag_search_no_results`, `pb_wildcards`, `pb_wildcards_empty` (EN + PL).
+
 ## [2.20.6] - 2026-05-25 – Style Presets, podgląd obok siebie, presety ekskluzywne, zmiana struktury plików
 ### Dodano
 - **Style Presets** — `QGroupBox("Style Presets")` poniżej zakładek z przyciskami presetów jednym kliknięciem. Każdy preset w osobnym pliku `tags/presets/{nazwa}.json` z formatem `{"name": "...", "icon": "🎬", "tags": [...]}`. Nowy plik → nowy preset natychmiast przez `QFileSystemWatcher`. 6 wbudowanych presetów.

@@ -220,5 +220,11 @@
     "pb_random": "Losuj",
     "pb_random_count": "Losowych tagów na kategorię",
     "pb_presets": "Style Presets",
-    "pb_empty": "Nie znaleziono tagów"
+    "pb_empty": "Nie znaleziono tagów",
+
+    "tag_search_placeholder": "Szukaj tagów...",
+    "tag_search_no_results": "Brak wyników dla '{query}'",
+
+    "pb_wildcards": "Wildcards",
+    "pb_wildcards_empty": "Brak plików wildcard. Dodaj pliki .txt do folderu wildcards/"
 }

@@ -64,9 +64,10 @@ class DiffusionEngine:
         logger.info("[SYSTEM] Generation stop requested")
 
     def _clear_vram(self):
+        torch.cuda.synchronize()
         gc.collect()
         torch.cuda.empty_cache()
-        logger.info("[VRAM] GPU memory cleared (torch.cuda.empty_cache())")
+        logger.info("[VRAM] GPU memory cleared (torch.cuda.synchronize + empty_cache)")
 
     def load_model(self, model_path):
         if self.current_model_path == model_path and self.pipe:
@@ -110,6 +111,12 @@ class DiffusionEngine:
         self.inpaint_pipe = None
         self.controlnet_pipe = None
         self._load_embeddings()
+        try:
+            import compel
+            if hasattr(compel, 'Compel') and hasattr(compel.Compel, '_cache'):
+                compel.Compel._cache.clear()
+        except ImportError:
+            pass
 
     def load_inpaint_model(self, model_path):
         if model_path == "original":
@@ -123,6 +130,7 @@ class DiffusionEngine:
                 del self.pipe
                 self.pipe = None
             if self.inpaint_pipe: del self.inpaint_pipe
+            if self.controlnet_pipe: del self.controlnet_pipe; self.controlnet_pipe = None
             self._clear_vram()
 
             logger.info(f"[SYSTEM] Loading dedicated Inpaint model: {model_path}")
@@ -142,6 +150,9 @@ class DiffusionEngine:
         if self.current_cn_model_path == cn_model_path and self.controlnet_pipe:
             return
 
+        if self.controlnet_pipe:
+            del self.controlnet_pipe
+            self.controlnet_pipe = None
         self._clear_vram()
         logger.info(f"[SYSTEM] Loading ControlNet model (component sharing): {cn_model_path}")
 
@@ -448,6 +459,9 @@ class DiffusionEngine:
                 self._clear_vram()
                 raise
             raise
+        finally:
+            del pipe
+            self._clear_vram()
 
         filename = f"img2img_{uuid.uuid4().hex[:8]}.png"
         file_path = os.path.join(settings.get('Paths', 'output_txt2img'), filename)
@@ -465,7 +479,6 @@ class DiffusionEngine:
         }
         metadata.add_text("sd_params", json.dumps(metadata_dict))
         result.save(file_path, pnginfo=metadata)
-        self._maybe_auto_clear()
         return file_path, seed
 
     def inpaint(self, params, callback=None):

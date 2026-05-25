@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.20.7] - 2026-05-25 – Prompt Builder: tag search & wildcards tab
+### Added
+- **Tag search** — `QLineEdit` with `setClearButtonEnabled(True)` between tag area and Style Presets. Typing filters all positive and negative tag buttons into a dedicated search results page in `QStackedWidget`. Clicking a search result toggles both the original button and the search button in sync. No-results label when nothing matches.
+- **Wildcards tab** — new category tab in Prompt Builder's internal `QTabWidget` (between Embeddings and search). Each `.txt` file in `wildcards/` becomes a checkable button. Clicking toggles `__name__` in `_selected` (appears in preview). Tooltip shows first 5 lines of the file. Selected wildcards are preserved across `refresh_tags()`. Skip by Random button and tag search.
+- **Wildcards watcher** — `QFileSystemWatcher` on `wildcards/` auto-rebuilds the tab when files change.
+- **Wildcards in history/favorites** — `_set_tags()` restores `__name__` entries from saved prompts. `_clear_all()` resets wildcard buttons.
+- Locale keys: `tag_search_placeholder`, `tag_search_no_results`, `pb_wildcards`, `pb_wildcards_empty` (EN + PL).
+
 ## [2.20.6] - 2026-05-25 – Style Presets, side-by-side preview, exclusive presets, refactored file structure
 ### Added
 - **Style Presets** — `QGroupBox("Style Presets")` below tag tabs with one-click preset buttons. Each preset lives in its own file under `tags/presets/{name}.json` with format `{"name": "...", "icon": "🎬", "tags": [...]}`. Drop a new file → new preset appears instantly via `QFileSystemWatcher`. 6 built-in presets.

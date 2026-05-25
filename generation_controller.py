@@ -168,6 +168,7 @@ class GenerationController:
             self.mw.l_ups_lbl.show()
             self.mw.c_ups.show()
             self.mw.l_status.setText(tr("status_finished"))
+        self.engine._clear_vram()
 
     def on_upscale_finished(self, path):
         if path:

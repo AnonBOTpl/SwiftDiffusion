@@ -4,8 +4,8 @@ import random
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QTabBar,
-    QPushButton, QTextEdit, QLabel, QGroupBox, QDialog, QListWidget, QListWidgetItem,
-    QInputDialog, QMessageBox
+    QPushButton, QTextEdit, QLabel, QLineEdit, QGroupBox, QDialog,
+    QListWidget, QListWidgetItem, QInputDialog, QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QFileSystemWatcher
 from PyQt6.QtGui import QFont, QIcon
@@ -18,6 +18,7 @@ HISTORY_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts_history.js
 HISTORY_MAX = 20
 FAVORITES_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts_favorites.json")
 PRESETS_DIR = os.path.join(TAGS_DIR, "presets")
+WILDCARDS_DIR = os.path.join(os.path.dirname(__file__), "..", "wildcards")
 
 
 class PromptBuilderPanel(QWidget):
@@ -37,6 +38,7 @@ class PromptBuilderPanel(QWidget):
         self._presets = []
         self._preset_btns = {}
         self._active_preset = None
+        self._wildcard_btns = {}
         self._load_tags()
         self._load_presets()
 
@@ -68,11 +70,52 @@ class PromptBuilderPanel(QWidget):
         self._tab_bar.currentChanged.connect(self._stack.setCurrentIndex)
         self.refresh_embeddings()
 
+        self._wildcard_page = QWidget()
+        self._wildcard_flow = FlowLayout(self._wildcard_page)
+        self._wildcard_flow.setSpacing(6)
+        self._wildcard_page.setLayout(self._wildcard_flow)
+        self._stack.addWidget(self._wildcard_page)
+        self._tab_bar.addTab(tr("pb_wildcards"))
+        self._wildcard_watcher = QFileSystemWatcher(self)
+        if os.path.isdir(WILDCARDS_DIR):
+            self._wildcard_watcher.addPath(WILDCARDS_DIR)
+        self._wildcard_watcher.directoryChanged.connect(self._rebuild_wildcards)
+        self._rebuild_wildcards()
+
+        self._search_page = QWidget()
+        self._search_flow = FlowLayout(self._search_page)
+        self._search_flow.setSpacing(6)
+        self._search_page.setLayout(self._search_flow)
+        self._stack.addWidget(self._search_page)
+        self._search_tab_idx = self._stack.count() - 1
+        self._search_btns = {}
+        self._prev_tab_idx = 0
+
         cat_row = QHBoxLayout()
         cat_row.addWidget(self._tab_bar)
         cat_row.addStretch()
         main_l.addLayout(cat_row)
         main_l.addWidget(self._stack, 1)
+
+        search_row = QHBoxLayout()
+        self._tag_search = QLineEdit()
+        self._tag_search.setPlaceholderText(tr("tag_search_placeholder"))
+        self._tag_search.setClearButtonEnabled(True)
+        self._tag_search.setStyleSheet(
+            "QLineEdit { padding: 6px 10px; border: 1px solid #444; "
+            "border-radius: 4px; background: #1a1a1a; color: #ccc; font-size: 11px; }"
+        )
+        self._tag_search.textChanged.connect(self._filter_tags)
+        search_row.addWidget(self._tag_search)
+        main_l.addLayout(search_row)
+
+        self._search_no_results = QLabel()
+        self._search_no_results.setStyleSheet(
+            "color: #888; font-size: 11px; padding: 20px;"
+        )
+        self._search_no_results.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._search_no_results.setVisible(False)
+        main_l.addWidget(self._search_no_results)
 
         # Style Presets group box
         self._preset_group = QGroupBox(tr("pb_presets"))
@@ -344,6 +387,67 @@ class PromptBuilderPanel(QWidget):
                 continue
             btn.setChecked(name == self._active_preset)
 
+    # ---------- wildcards ----------
+
+    def _load_wildcards(self):
+        names = []
+        if not os.path.isdir(WILDCARDS_DIR):
+            return names
+        for fname in sorted(os.listdir(WILDCARDS_DIR)):
+            if not fname.endswith(".txt"):
+                continue
+            name = fname[:-4]
+            path = os.path.join(WILDCARDS_DIR, fname)
+            preview = ""
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    lines = [l.rstrip("\n\r") for l in f.readlines()[:5]]
+                preview = "\n".join(lines)
+            except Exception:
+                pass
+            names.append((name, preview))
+        return names
+
+    def _rebuild_wildcards(self):
+        for i in reversed(range(self._wildcard_flow.count())):
+            item = self._wildcard_flow.takeAt(0)
+            if item and item.widget():
+                item.widget().deleteLater()
+        self._wildcard_btns.clear()
+
+        wc_list = self._load_wildcards()
+        if not wc_list:
+            lbl = QLabel(tr("pb_wildcards_empty"))
+            lbl.setStyleSheet("color: #666; font-size: 11px; padding: 20px;")
+            self._wildcard_flow.addWidget(lbl)
+            return
+
+        for name, preview in wc_list:
+            btn = QPushButton(name)
+            btn.setCheckable(True)
+            wc_key = f"__{name}__"
+            btn.setChecked(wc_key in self._selected)
+            btn.setStyleSheet(
+                "QPushButton { padding: 4px 10px; border: 1px solid #444; "
+                "border-radius: 4px; background: #2a2a2a; color: #ccc; font-size: 11px; } "
+                "QPushButton:checked { background: #5a7a3a; color: white; border-color: #7a9a5a; }"
+            )
+            if preview:
+                btn.setToolTip(preview)
+            btn.clicked.connect(lambda _, n=name: self._toggle_wildcard(n))
+            self._wildcard_flow.addWidget(btn)
+            self._wildcard_btns[name] = btn
+
+    def _toggle_wildcard(self, name):
+        wc_key = f"__{name}__"
+        if wc_key in self._selected:
+            self._selected.remove(wc_key)
+            self._wildcard_btns[name].setChecked(False)
+        else:
+            self._selected.append(wc_key)
+            self._wildcard_btns[name].setChecked(True)
+        self._update_preview()
+
     # ---------- refresh on file change ----------
 
     def refresh_tags(self):
@@ -354,15 +458,39 @@ class PromptBuilderPanel(QWidget):
         self._load_tags()
         self._build_tag_pages()
 
+        self._emb_page = QWidget()
+        self._emb_flow = FlowLayout(self._emb_page)
+        self._emb_flow.setSpacing(6)
+        self._emb_flow.setContentsMargins(10, 10, 10, 10)
+        self._emb_page.setLayout(self._emb_flow)
         self._stack.addWidget(self._emb_page)
         self._emb_tab_idx = self._tab_bar.addTab(tr("pb_embeddings"))
         self._tab_bar.setTabToolTip(self._emb_tab_idx, tr("pb_embeddings_tip"))
         self._tab_bar.setTabEnabled(self._emb_tab_idx, False)
         self.refresh_embeddings()
 
+        self._wildcard_page = QWidget()
+        self._wildcard_flow = FlowLayout(self._wildcard_page)
+        self._wildcard_flow.setSpacing(6)
+        self._wildcard_page.setLayout(self._wildcard_flow)
+        self._stack.addWidget(self._wildcard_page)
+        self._tab_bar.addTab(tr("pb_wildcards"))
+        self._wildcard_btns.clear()
+        self._rebuild_wildcards()
+
+        self._search_page = QWidget()
+        self._search_flow = FlowLayout(self._search_page)
+        self._search_flow.setSpacing(6)
+        self._search_page.setLayout(self._search_flow)
+        self._stack.addWidget(self._search_page)
+        self._search_tab_idx = self._stack.count() - 1
+        self._search_btns.clear()
+        self._tag_search.clear()
+        self._search_no_results.setVisible(False)
+
         all_tags = set(self._tag_btns.keys())
         all_neg_tags = set(self._tag_btns_neg.keys())
-        self._selected = [t for t in self._selected if t in all_tags]
+        self._selected = [t for t in self._selected if t in all_tags or (t.startswith("__") and t.endswith("__"))]
         self._random_selected = [t for t in self._random_selected if t in all_tags]
         self._neg_selected = [t for t in self._neg_selected if t in all_neg_tags]
         for t in self._selected:
@@ -407,6 +535,57 @@ class PromptBuilderPanel(QWidget):
             self._emb_flow.addWidget(btn)
             self._tag_btns[name] = btn
 
+    # ---------- tag search ----------
+
+    def _filter_tags(self, query):
+        if not query.strip():
+            self._search_no_results.setVisible(False)
+            self._stack.setCurrentIndex(self._prev_tab_idx)
+            return
+
+        q = query.strip().lower()
+        matching = [t for t in self._tag_btns if q in t.lower()]
+        matching += [t for t in self._tag_btns_neg if q in t.lower()]
+
+        for i in reversed(range(self._search_flow.count())):
+            item = self._search_flow.takeAt(0)
+            if item and item.widget():
+                item.widget().deleteLater()
+        self._search_btns.clear()
+
+        if not matching:
+            self._search_no_results.setText(
+                tr("tag_search_no_results").format(query=query.strip())
+            )
+            self._search_no_results.setVisible(True)
+            return
+
+        self._search_no_results.setVisible(False)
+        for tag in matching:
+            is_neg = tag in self._tag_btns_neg
+            btn = QPushButton(tag)
+            btn.setCheckable(True)
+            btn.setChecked(tag in (self._neg_selected if is_neg else self._selected))
+            if is_neg:
+                btn.setStyleSheet(
+                    "QPushButton { padding: 4px 10px; border: 1px solid #8b3a3a; "
+                    "border-radius: 4px; background: #2a1515; color: #e06060; font-size: 11px; } "
+                    "QPushButton:checked { background: #8b3a3a; color: white; border-color: #c06060; }"
+                )
+                btn.clicked.connect(lambda _, t=tag: self._toggle_neg_tag(t))
+            else:
+                btn.setStyleSheet(
+                    "QPushButton { padding: 4px 10px; border: 1px solid #444; "
+                    "border-radius: 4px; background: #2a2a2a; color: #ccc; font-size: 11px; } "
+                    "QPushButton:checked { background: #3a6ea5; color: white; border-color: #5a8ec5; }"
+                )
+                btn.clicked.connect(lambda _, t=tag: self._toggle_tag(t))
+            self._search_flow.addWidget(btn)
+            self._search_btns[tag] = btn
+
+        self._prev_tab_idx = self._stack.currentIndex()
+        self._stack.setCurrentIndex(self._search_tab_idx)
+
     # ---------- tag toggle logic ----------
 
     def _toggle_tag(self, tag):
@@ -415,9 +594,13 @@ class PromptBuilderPanel(QWidget):
             if tag in self._random_selected:
                 self._random_selected.remove(tag)
             self._tag_btns[tag].setChecked(False)
+            if tag in self._search_btns:
+                self._search_btns[tag].setChecked(False)
         else:
             self._selected.append(tag)
             self._tag_btns[tag].setChecked(True)
+            if tag in self._search_btns:
+                self._search_btns[tag].setChecked(True)
         self._update_preset_states()
         self._update_preview()
 
@@ -425,9 +608,13 @@ class PromptBuilderPanel(QWidget):
         if tag in self._neg_selected:
             self._neg_selected.remove(tag)
             self._tag_btns_neg[tag].setChecked(False)
+            if tag in self._search_btns:
+                self._search_btns[tag].setChecked(False)
         else:
             self._neg_selected.append(tag)
             self._tag_btns_neg[tag].setChecked(True)
+            if tag in self._search_btns:
+                self._search_btns[tag].setChecked(True)
         self._neg_preview.setPlainText(", ".join(self._neg_selected))
 
     def _update_preview(self):
@@ -450,6 +637,11 @@ class PromptBuilderPanel(QWidget):
             except RuntimeError:
                 pass
         self._neg_preview.clear()
+        for btn in list(self._wildcard_btns.values()):
+            try:
+                btn.setChecked(False)
+            except RuntimeError:
+                pass
         self._update_preset_states()
 
     def _randomize(self):
@@ -521,6 +713,10 @@ class PromptBuilderPanel(QWidget):
         for t in tag_names:
             if t in self._tag_btns:
                 self._toggle_tag(t)
+            elif t.startswith("__") and t.endswith("__"):
+                wc_name = t[2:-2]
+                if wc_name in self._wildcard_btns:
+                    self._toggle_wildcard(wc_name)
         if neg_tag_names:
             for t in neg_tag_names:
                 if t in self._tag_btns_neg:

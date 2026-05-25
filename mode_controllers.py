@@ -67,6 +67,7 @@ class InpaintController:
         self.mw.i_progress.setFormat(f"{tr('status_done')} ({seed})")
         self.mw.v_inpaint_out.set_image(path)
         self.mw.v_inpaint_out.setText("")
+        self.engine._clear_vram()
 
 
 class ControlNetController:
@@ -137,6 +138,7 @@ class ControlNetController:
         self.mw.cn_progress.setFormat(f"{tr('status_done')} ({seed})")
         self.mw.v_cn_out.set_image(path)
         self.mw.v_cn_out.setText("")
+        self.engine._clear_vram()
 
 
 class ADetailerController:
@@ -207,3 +209,4 @@ class ADetailerController:
             self.mw.last_generated_path = path
         else:
             self.mw.adet_progress.setFormat(tr("status_error"))
+        self.engine._clear_vram()
