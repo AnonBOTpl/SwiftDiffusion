@@ -16,10 +16,10 @@ from widgets import (
     ImageViewer, ClickableLabel, InpaintCanvas, ParameterSlider,
     LoRAVisualizer, FloatingTips, GalleryDetailWindow,
     SettingsDialog, WelcomeDialog, ModelDownloaderTab,
-    PromptBuilderPanel, ResourceMonitor
+    PromptBuilderPanel, ResourceMonitor, BatchThumbnailBar
 )
 
-APP_VERSION = "2.20.7"
+APP_VERSION = "2.20.8"
 
 
 class MainWindow(QMainWindow):
@@ -140,6 +140,18 @@ class MainWindow(QMainWindow):
         self.live_preview.setStyleSheet("border: 1px solid #333; border-radius: 8px; background-color: #1a1a1a; color: #444; font-size: 12px;")
         self.live_preview.hide()
         t2i_params.addWidget(self.live_preview)
+        batch_row = QHBoxLayout()
+        self.lbl_batch = QLabel(tr("batch_label"))
+        self.lbl_batch.setStyleSheet("color: #aaa; font-size: 11px;")
+        self.batch_spin = QSpinBox()
+        self.batch_spin.setRange(1, 10)
+        self.batch_spin.setValue(1)
+        self.batch_spin.setFixedWidth(50)
+        self.batch_spin.setToolTip(tr("batch_tooltip"))
+        batch_row.addWidget(self.lbl_batch)
+        batch_row.addWidget(self.batch_spin)
+        batch_row.addStretch()
+        t2i_params.addLayout(batch_row)
 
         self.btn_gen_t2i = QPushButton(tr("btn_generate")); self.btn_gen_t2i.setObjectName("GenerateBtn"); self.btn_gen_t2i.setFixedHeight(45); self.btn_gen_t2i.setMinimumWidth(180); self.btn_gen_t2i.clicked.connect(self.gen_ctrl.start_generation); t2i_params.addWidget(self.btn_gen_t2i); t2i_l.addLayout(t2i_params, 0)
         t2i_main = QVBoxLayout(); t2i_main.setContentsMargins(20, 10, 20, 0); self.t2i_prompt = QPlainTextEdit(); self.t2i_prompt.setPlaceholderText(tr("placeholder_prompt")); self.t2i_prompt.setFixedHeight(60); self.t2i_neg = QPlainTextEdit(); self.t2i_neg.setPlaceholderText(tr("placeholder_negative")); self.t2i_neg.setFixedHeight(50); self.lbl_prompt_t2i = QLabel(tr("label_prompt")); self.lbl_compel = QLabel(); self.lbl_compel.setStyleSheet("color: #666; font-size: 10px;"); t2i_main.addWidget(self.lbl_prompt_t2i); t2i_main.addWidget(self.lbl_compel); self.lbl_wildcards_t2i = QLabel(tr("wildcards_tooltip")); self.lbl_wildcards_t2i.setStyleSheet("color: #666; font-size: 10px; margin-top: -4px;"); t2i_main.addWidget(self.lbl_wildcards_t2i); t2i_main.addWidget(self.t2i_prompt); self.lbl_neg_t2i = QLabel(tr("label_negative")); t2i_main.addWidget(self.lbl_neg_t2i); t2i_main.addWidget(self.t2i_neg)
@@ -157,7 +169,13 @@ class MainWindow(QMainWindow):
         self.btn_to_inpaint = QPushButton(tr("btn_send_to_inpaint")); self.btn_to_inpaint.setObjectName("ActionBtn"); self.btn_to_inpaint.clicked.connect(self.inp_ctrl.send_to_inpaint)
         up_box.addStretch(); up_box.addWidget(self.btn_up); up_box.addWidget(self.btn_face); up_box.addWidget(self.btn_to_inpaint); up_box.addStretch(); t2i_main.addLayout(up_box)
 
-        s_box = QHBoxLayout(); self.l_status = QLabel(""); self.l_status.setStyleSheet("color: #00d4ff; font-weight: bold; font-size: 11px;"); self.btn_copy = QPushButton(tr("btn_copy")); self.btn_copy.setObjectName("CopyBtn"); self.btn_copy.hide(); self.btn_copy.clicked.connect(self.gen_ctrl.copy_seed_to_clipboard); s_box.addStretch(); s_box.addWidget(self.l_status); s_box.addWidget(self.btn_copy); s_box.addStretch(); t2i_main.addLayout(s_box); self.p_bar = QProgressBar(); t2i_main.addWidget(self.p_bar); t2i_l.addLayout(t2i_main, 1)
+        s_box = QHBoxLayout(); self.l_status = QLabel(""); self.l_status.setStyleSheet("color: #00d4ff; font-weight: bold; font-size: 11px;"); self.btn_copy = QPushButton(tr("btn_copy")); self.btn_copy.setObjectName("CopyBtn"); self.btn_copy.hide(); self.btn_copy.clicked.connect(self.gen_ctrl.copy_seed_to_clipboard); s_box.addStretch(); s_box.addWidget(self.l_status); s_box.addWidget(self.btn_copy); s_box.addStretch(); t2i_main.addLayout(s_box); self.p_bar = QProgressBar(); t2i_main.addWidget(self.p_bar)
+        self.batch_thumb_container = QWidget()
+        self.batch_thumb_layout = QVBoxLayout(self.batch_thumb_container)
+        self.batch_thumb_layout.setContentsMargins(0, 0, 0, 0)
+        self.batch_thumb_container.hide()
+        t2i_main.addWidget(self.batch_thumb_container)
+        t2i_l.addLayout(t2i_main, 1)
 
         # 2. INPAINTING
         logger.info("[UI] Building Inpaint tab...")

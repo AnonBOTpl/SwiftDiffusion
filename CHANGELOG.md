@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.20.8] - 2026-05-25 – Batch generation, sequential mode, thumbnail gallery
+### Added
+- **Batch generation** — QSpinBox (1–10) above the Generate button. Generates N images sequentially, each with a different seed. Progress bar shows per-item progress with "Batch 2/3..." label.
+- **Batch thumbnail bar** — after all batch items complete, a scrollable `BatchThumbnailBar` (100 px thumbnails) appears below the progress bar. Click any thumbnail to view the corresponding raw (pre-upscale) image in the left panel and the upscaled version (if auto upscale was on) in the right panel.
+- **Sequential upscale per item** — when auto upscale is enabled, each batch item is upscaled immediately after generation. The thumbnail shows the final upscaled result.
+- **Before/after split preview** — `v_orig` now always shows the pre-upscale raw image, `v_ups` shows the upscaled version (hidden if auto upscale is off). Works for both batch=1 and batch>1.
+- Locale keys: `batch_label`, `batch_tooltip`, `batch_thumbnails` (EN + PL).
+
 ## [2.20.7] - 2026-05-25 – Prompt Builder: tag search & wildcards tab
 ### Added
 - **Tag search** — `QLineEdit` with `setClearButtonEnabled(True)` between tag area and Style Presets. Typing filters all positive and negative tag buttons into a dedicated search results page in `QStackedWidget`. Clicking a search result toggles both the original button and the search button in sync. No-results label when nothing matches.

@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QSlider, QDoubleSpinBox, QSpinBox, QPushButton
+from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QSlider, QDoubleSpinBox, QSpinBox, QPushButton, QScrollArea
 from PyQt6.QtCore import Qt, pyqtSignal, QRect
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QBrush, QPen, QFont, QDoubleValidator
 from utils import qimage_to_pil
@@ -64,6 +64,38 @@ class LoRAItem(QWidget):
     def on_spin_changed(self, v): self.slider.blockSignals(True); self.slider.setValue(int(v * 100)); self.slider.blockSignals(False); self.changed.emit()
     def weight(self): return self.spin.value()
 
+
+class BatchThumbnailBar(QWidget):
+    imageSelected = pyqtSignal(str)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 5, 0, 0)
+        lbl = QLabel(tr("batch_thumbnails"))
+        lbl.setStyleSheet("color: #aaa; font-size: 11px; font-weight: bold;")
+        layout.addWidget(lbl)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFixedHeight(120)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        content = QWidget()
+        self.flow = QHBoxLayout(content)
+        self.flow.setContentsMargins(5, 5, 5, 5)
+        self.flow.setSpacing(8)
+        scroll.setWidget(content)
+        layout.addWidget(scroll)
+    def set_images(self, paths):
+        while self.flow.count():
+            item = self.flow.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        for path in paths:
+            lbl = ClickableLabel()
+            lbl.setFixedSize(100, 100)
+            lbl.set_image(path)
+            lbl.clicked.connect(lambda pix, pt=path: self.imageSelected.emit(pt))
+            self.flow.addWidget(lbl)
 
 class LoRAVisualizer(QWidget):
     def __init__(self):

@@ -49,6 +49,7 @@
 - **Zakładka Wildcards** — przeglądaj i przełączaj wildcardy z folderu `wildcards/` bezpośrednio w Prompt Builderze. Każdy plik `.txt` to klikalny przycisk; tooltip pokazuje pierwsze 5 linii. Wybrane wildcardy używają składni `__nazwa__` i są przywracane z historii/ulubionych.
 - **Własne kategorie tagów** — wrzuć własny plik `.json` do `tags/` z `{"label": "Moje Tagi", "tags": ["tag1", "tag2"]}` i pojawi się jako nowa zakładka natychmiast, bez restartu. Wbudowane kategorie zachowują swoją kolejność; twoje pliki dodawane są alfabetycznie poniżej.
 - **Style Presets** — gotowe zestawy tagów w `tags/presets/`. Każdy plik to jeden preset: `{"name": "Mój Styl", "icon": "✨", "tags": ["tag1", "tag2"]}`. Dodawaj lub usuwaj pliki w dowolnym momencie — zmiany widoczne od razu. Presety są ekskluzywne (wybranie jednego zastępuje poprzedni).
+- **Batch generation** — generuj do 10 obrazów sekwencyjnie jednym kliknięciem. Każdy element używa innego seeda. Auto upscale stosowany per-item. Po zakończeniu przewijany pasek miniatur pozwala przeglądać wyniki i porównywać wersję przed i po upscale.
 
 ### 🖌️ Tryby generowania
 

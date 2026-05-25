@@ -226,5 +226,9 @@
     "tag_search_no_results": "Brak wyników dla '{query}'",
 
     "pb_wildcards": "Wildcards",
-    "pb_wildcards_empty": "Brak plików wildcard. Dodaj pliki .txt do folderu wildcards/"
+    "pb_wildcards_empty": "Brak plików wildcard. Dodaj pliki .txt do folderu wildcards/",
+
+    "batch_label": "Batch:",
+    "batch_tooltip": "Generuj do 10 obrazów sekwencyjnie (1-10)\nKażdy obraz generowany jeden po drugim.\nAuto upscale wydłuży całkowity czas.",
+    "batch_thumbnails": "Wyniki batcha:"
 }

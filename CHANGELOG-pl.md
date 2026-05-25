@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.20.8] - 2026-05-25 – Batch generation, tryb sekwencyjny, galeria miniatur
+### Dodano
+- **Batch generation** — QSpinBox (1–10) nad przyciskiem Generuj. Generuje N obrazów sekwencyjnie, każdy z innym seedem. Pasek postępu pokazuje postęp per-item z etykietą "Batch 2/3...".
+- **Pasek miniatur batcha** — po zakończeniu wszystkich obrazów batcha, przewijany `BatchThumbnailBar` (miniatury 100 px) pojawia się pod paskiem postępu. Kliknij miniaturę, aby zobaczyć odpowiedni surowy obraz (przed upscalem) w lewym panelu i wersję po upscale (jeśli auto upscale był włączony) w prawym panelu.
+- **Sekwencyjny upscale per-item** — gdy auto upscale jest włączony, każdy obraz batcha jest powiększany natychmiast po wygenerowaniu. Miniatura pokazuje końcowy wynik po upscale.
+- **Podział przed/po** — `v_orig` pokazuje zawsze obraz przed upscalem, `v_ups` wersję po upscale (ukryty jeśli auto upscale wyłączony). Działa zarówno dla batch=1 jak i batch>1.
+- Klucze locale: `batch_label`, `batch_tooltip`, `batch_thumbnails` (EN + PL).
+
 ## [2.20.7] - 2026-05-25 – Prompt Builder: wyszukiwarka tagów i zakładka Wildcards
 ### Dodano
 - **Wyszukiwarka tagów** — `QLineEdit` z przyciskiem czyszczenia między obszarem tagów a Style Presets. Wpisywanie filtruje wszystkie przyciski tagów pozytywnych i negatywnych na dedykowanej stronie wyników w `QStackedWidget`. Kliknięcie wyniku przełącza zarówno oryginalny przycisk, jak i przycisk wyszukiwania. Etykieta gdy brak wyników.

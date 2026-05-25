@@ -50,6 +50,7 @@
 - **Wildcards tab** — browse and toggle wildcards from the `wildcards/` folder directly in Prompt Builder. Each `.txt` file appears as a checkable button; tooltip previews the first 5 lines. Selected wildcards use `__name__` syntax and are restored from history/favorites.
 - **Custom tag categories** — drop your own `.json` file into `tags/` with `{"label": "My Tags", "tags": ["tag1", "tag2"]}` and it appears as a new tab immediately, no restart needed. Built-in categories stay in their original order; your files are added alphabetically below them.
 - **Style Presets** — one-click tag sets in `tags/presets/`. Each file is one preset: `{"name": "My Style", "icon": "✨", "tags": ["tag1", "tag2"]}`. Add or remove files anytime — changes appear instantly. Presets are exclusive (selecting one replaces the other).
+- **Batch generation** — generate up to 10 images sequentially with a single click. Each item uses a different seed. Auto upscale is applied per-item. After completion, a scrollable thumbnail bar lets you browse all results and compare raw vs upscaled versions.
 
 ### 🖌️ Generation Modes
 

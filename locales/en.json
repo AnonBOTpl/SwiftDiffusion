@@ -244,5 +244,9 @@
     "tag_search_no_results": "No results for '{query}'",
 
     "pb_wildcards": "Wildcards",
-    "pb_wildcards_empty": "No wildcard files. Add .txt files to wildcards/"
+    "pb_wildcards_empty": "No wildcard files. Add .txt files to wildcards/",
+
+    "batch_label": "Batch:",
+    "batch_tooltip": "Generate up to 10 images sequentially (1-10)\nEach image is generated one after another.\nAuto upscale will extend the total time.",
+    "batch_thumbnails": "Batch Results:"
 }
