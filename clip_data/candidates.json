@@ -1,0 +1,10 @@
+{
+  "quality": ["masterpiece", "best quality", "highly detailed", "intricate", "ultra-detailed", "sharp focus", "stunning", "beautiful", "professional", "highres", "8k", "4k"],
+  "artists": ["Artgerm", "Alphonse Mucha", "Greg Rutkowski", "WLOP", "Ross Tran", "Gustav Klimt", "Van Gogh", "Claude Monet", "Rembrandt", "Salvador Dali", "Picasso", "Leonardo da Vinci", "Michelangelo", "Hokusai", "James Jean", "Loish", "Sakimichan", "Ilya Kuvshinov", "Makoto Shinkai", "Hayao Miyazaki", "Studio Ghibli", "Akihiko Yoshida", "Yoshitaka Amano", "Junji Ito", "Kentaro Miura", "Takehiko Inoue", "Akira Toriyama", "Eiichiro Oda", "Masashi Kishimoto", "Tite Kubo"],
+  "styles": ["anime", "digital painting", "oil painting", "watercolor", "sketch", "line art", "concept art", "fantasy art", "surrealism", "impressionism", "expressionism", "art nouveau", "baroque", "renaissance", "romanticism", "cubism", "pop art", "minimalism", "steampunk", "cyberpunk", "vaporwave", "synthwave", "pixel art", "chibi", "realistic", "photorealistic", "semi-realistic", "abstract", "gothic", "dark fantasy"],
+  "mediums": ["digital art", "oil painting", "watercolor painting", "acrylic painting", "photograph", "illustration", "drawing", "sketch", "charcoal drawing", "pastel art", "ink wash", "woodblock print", "fresco", "mosaic", "graffiti", "tattoo design", "3D render", "photorealistic render"],
+  "lighting": ["cinematic lighting", "dramatic lighting", "soft lighting", "volumetric lighting", "rim lighting", "studio lighting", "golden hour", "moody lighting", "neon lighting", "candlelight", "backlighting", "hard lighting", "ambient lighting", "foggy", "misty"],
+  "colors": ["vibrant colors", "pastel colors", "monochrome", "sepia", "warm colors", "cool colors", "muted colors", "colorful", "black and white", "duotone"],
+  "effects": ["depth of field", "bokeh", "HDR", "bloom", "lens flare", "motion blur", "glow effect", "chromatic aberration", "film grain", "vignette"],
+  "composition": ["close-up", "wide shot", "portrait", "landscape", "full body", "cowboy shot", "bird's-eye view", "worm's-eye view", "symmetrical", "rule of thirds", "golden ratio", "intricate details"]
+}

@@ -16,10 +16,11 @@ from widgets import (
     ImageViewer, ClickableLabel, InpaintCanvas, ParameterSlider,
     LoRAVisualizer, FloatingTips, GalleryDetailWindow,
     SettingsDialog, WelcomeDialog, ModelDownloaderTab,
-    PromptBuilderPanel, ResourceMonitor, BatchThumbnailBar
+    PromptBuilderPanel, ResourceMonitor, BatchThumbnailBar,
+    ClipInterrogatorTab
 )
 
-APP_VERSION = "2.20.8"
+APP_VERSION = "2.20.9"
 
 
 class MainWindow(QMainWindow):
@@ -311,7 +312,13 @@ class MainWindow(QMainWindow):
         self.pb_panel.neg_prompt_ready.connect(self._on_neg_prompt_ready)
         self.tabs.addTab(self.pb_panel, tr("tab_prompt_builder"))
 
-        # 7. DOWNLOADER
+        # 7. CLIP INTERROGATOR
+        logger.info("[UI] Building CLIP Interrogator tab...")
+        self.clip_tab = ClipInterrogatorTab()
+        self.clip_tab.prompt_ready.connect(self._on_prompt_ready)
+        self.tabs.addTab(self.clip_tab, tr("tab_clip"))
+
+        # 8. DOWNLOADER
         logger.info("[UI] Building Downloader tab...")
         self.dl_tab = ModelDownloaderTab()
         self.tabs.addTab(self.dl_tab, "📥 Downloader")

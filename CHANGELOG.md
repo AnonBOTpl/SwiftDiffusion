@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.20.9] - 2026-05-26 – CLIP Interrogator, hf_xet dependency
+### Added
+- **CLIP Interrogator tab** — reverse-engineer prompts from any image. Load ViT-B/32 or ViT-L/14 models via Download button, then analyze an image to get ranked matching terms across 8 categories (quality, colors, medium, artist, style, lighting, effects, composition). Copy result to Text2Image with one click.
+- **CLIP candidate database** — `clip_data/candidates.json` with ~120 curated terms across 8 categories. Supports user-provided `.json` files for custom candidates.
+- **Dynamic CLIP format detection** — `ClipDownloadWorker` uses `HfApi.list_repo_files` to check for `.safetensors`; downloads only PyTorch format (safetensors or bin) + configs, skips Flax/TF.
+- `hf_xet==1.1.1` to `requirements.txt` — accelerates HuggingFace Hub downloads with the Xet protocol for large files (models, LoRAs, ControlNet).
+
 ## [2.20.8] - 2026-05-25 – Batch generation, sequential mode, thumbnail gallery
 ### Added
 - **Batch generation** — QSpinBox (1–10) above the Generate button. Generates N images sequentially, each with a different seed. Progress bar shows per-item progress with "Batch 2/3..." label.

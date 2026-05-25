@@ -5,3 +5,4 @@ from .model_downloader import UrlDownloaderTab, ScrapingTab, ModelDownloaderTab
 from .flow_layout import FlowLayout
 from .prompt_builder import PromptBuilderPanel
 from .resource_monitor import ResourceMonitor
+from .clip_interrogator import ClipInterrogatorTab

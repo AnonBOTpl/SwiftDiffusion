@@ -50,6 +50,7 @@
 - **Własne kategorie tagów** — wrzuć własny plik `.json` do `tags/` z `{"label": "Moje Tagi", "tags": ["tag1", "tag2"]}` i pojawi się jako nowa zakładka natychmiast, bez restartu. Wbudowane kategorie zachowują swoją kolejność; twoje pliki dodawane są alfabetycznie poniżej.
 - **Style Presets** — gotowe zestawy tagów w `tags/presets/`. Każdy plik to jeden preset: `{"name": "Mój Styl", "icon": "✨", "tags": ["tag1", "tag2"]}`. Dodawaj lub usuwaj pliki w dowolnym momencie — zmiany widoczne od razu. Presety są ekskluzywne (wybranie jednego zastępuje poprzedni).
 - **Batch generation** — generuj do 10 obrazów sekwencyjnie jednym kliknięciem. Każdy element używa innego seeda. Auto upscale stosowany per-item. Po zakończeniu przewijany pasek miniatur pozwala przeglądać wyniki i porównywać wersję przed i po upscale.
+- **CLIP Interrogator** — wbudowane reverse engineering promptu. Załaduj model CLIP (ViT-B/32 lub ViT-L/14), wrzuć dowolny obraz i otrzymaj ranking dopasowanych terminów w 8 kategoriach — jakość, kolory, medium, artysta, styl, oświetlenie, efekty, kompozycja. Obsługa własnych plików `.json`. Przełącznik GPU/CUDA. Kopiowanie jednym kliknięciem do Text2Image.
 
 ### 🖌️ Tryby generowania
 
@@ -61,6 +62,7 @@
 | **ControlNet (Canny)** | Steruj generowaniem na podstawie krawędzi obrazu referencyjnego |
 | **ADetailer** | Automatyczne wykrywanie i poprawa twarzy przez YOLOv8 — bez dodatkowych kosztów VRAM |
 | **Upscaler** | Powiększanie obrazów wysokiej jakości przez bibliotekę `spandrel` |
+| **CLIP Interrogator** | Analizuj dowolny obraz i odtwórz jego prompt — wykrywa jakość, kolory, medium, artystę, styl, oświetlenie, efekty i kompozycję |
 
 ### ⚙️ Inteligentne ustawienia
 
@@ -142,7 +144,8 @@ SwiftDiffusion/
 │   ├── model_downloader.py    # Pobieracze z CivitAI / HF
 │   ├── flow_layout.py         # FlowLayout dla Prompt Builder
 │   ├── prompt_builder.py      # Zakładka Prompt Builder
-│   └── resource_monitor.py    # Monitor VRAM/RAM na żywo
+│   ├── resource_monitor.py    # Monitor VRAM/RAM na żywo
+│   └── clip_interrogator.py   # Zakładka CLIP Interrogator
 ├── models_registry.py         # Skaner i rejestr modeli
 ├── url_downloader.py          # Pomocnicze pobieranie
 ├── scraper.py                 # Wyszukiwarka modeli

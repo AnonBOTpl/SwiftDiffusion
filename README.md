@@ -51,6 +51,7 @@
 - **Custom tag categories** — drop your own `.json` file into `tags/` with `{"label": "My Tags", "tags": ["tag1", "tag2"]}` and it appears as a new tab immediately, no restart needed. Built-in categories stay in their original order; your files are added alphabetically below them.
 - **Style Presets** — one-click tag sets in `tags/presets/`. Each file is one preset: `{"name": "My Style", "icon": "✨", "tags": ["tag1", "tag2"]}`. Add or remove files anytime — changes appear instantly. Presets are exclusive (selecting one replaces the other).
 - **Batch generation** — generate up to 10 images sequentially with a single click. Each item uses a different seed. Auto upscale is applied per-item. After completion, a scrollable thumbnail bar lets you browse all results and compare raw vs upscaled versions.
+- **CLIP Interrogator** — built-in prompt reverse engineering. Load a CLIP model (ViT-B/32 or ViT-L/14), drop any image, and get a ranked list of matching terms across 8 categories — quality, colors, medium, artist, style, lighting, effects, composition. Custom `.json` candidate files supported. GPU/CUDA toggle. One-click copy to Text2Image.
 
 ### 🖌️ Generation Modes
 
@@ -62,6 +63,7 @@
 | **ControlNet (Canny)** | Guide generation using the edge structure of a reference image |
 | **ADetailer** | Automatically detect and enhance faces using YOLOv8 — zero extra VRAM cost |
 | **Upscaler** | High-quality upscaling via the `spandrel` library |
+| **CLIP Interrogator** | Analyze any image and reverse-engineer its prompt — detects quality, colors, medium, artist, style, lighting, effects, and composition |
 
 ### ⚙️ Smart Settings
 
@@ -143,7 +145,8 @@ SwiftDiffusion/
 │   ├── model_downloader.py    # CivitAI / HF downloaders
 │   ├── flow_layout.py         # Custom FlowLayout for Prompt Builder
 │   ├── prompt_builder.py      # Prompt Builder tab
-│   └── resource_monitor.py    # Live VRAM/RAM monitor widget
+│   ├── resource_monitor.py    # Live VRAM/RAM monitor widget
+│   └── clip_interrogator.py   # CLIP Interrogator tab
 ├── models_registry.py         # Model scanner & registry
 ├── url_downloader.py          # Legacy downloader helpers
 ├── scraper.py                 # Model search scraper
