@@ -19,7 +19,7 @@ from widgets import (
     PromptBuilderPanel, ResourceMonitor
 )
 
-APP_VERSION = "2.20.3"
+APP_VERSION = "2.20.4"
 
 
 class MainWindow(QMainWindow):
@@ -349,11 +349,7 @@ class MainWindow(QMainWindow):
             self.img2img_preview.setText("")
 
     def _on_prompt_ready(self, text):
-        current = self.t2i_prompt.toPlainText().strip()
-        if current:
-            self.t2i_prompt.setPlainText(f"{current}, {text}")
-        else:
-            self.t2i_prompt.setPlainText(text)
+        self.t2i_prompt.setPlainText(text)
         self.tabs.setCurrentWidget(self.t2i_tab)
 
     def open_fullscreen(self, pixmap): ImageViewer(pixmap, self).exec()

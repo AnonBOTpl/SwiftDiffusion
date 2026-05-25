@@ -1,13 +1,21 @@
 import os
 import json
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QTabBar, QPushButton, QTextEdit, QLabel
+from datetime import datetime
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QTabBar,
+    QPushButton, QTextEdit, QLabel, QDialog, QListWidget, QListWidgetItem,
+    QInputDialog, QMessageBox
+)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 from config import tr
 from .flow_layout import FlowLayout
 
 
 TAGS_DIR = os.path.join(os.path.dirname(__file__), "..", "tags")
+HISTORY_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts_history.json")
+HISTORY_MAX = 20
+FAVORITES_PATH = os.path.join(os.path.dirname(__file__), "..", "prompts_favorites.json")
 
 
 class PromptBuilderPanel(QWidget):
@@ -73,6 +81,15 @@ class PromptBuilderPanel(QWidget):
         main_l.addWidget(self._preview)
 
         btn_row = QHBoxLayout()
+        self._btn_history = QPushButton(tr("pb_history"))
+        self._btn_history.setObjectName("SecondaryBtn")
+        self._btn_history.clicked.connect(self._show_history)
+        self._btn_fav = QPushButton(tr("pb_favorites"))
+        self._btn_fav.setObjectName("SecondaryBtn")
+        self._btn_fav.clicked.connect(self._show_favorites)
+        self._btn_fav_save = QPushButton(tr("pb_fav_save"))
+        self._btn_fav_save.setObjectName("SecondaryBtn")
+        self._btn_fav_save.clicked.connect(self._save_favorite_dialog)
         self._btn_clear = QPushButton(tr("pb_clear"))
         self._btn_clear.setObjectName("SecondaryBtn")
         self._btn_clear.clicked.connect(self._clear_all)
@@ -80,6 +97,9 @@ class PromptBuilderPanel(QWidget):
         self._btn_copy.setObjectName("GenerateBtn")
         self._btn_copy.setFixedHeight(40)
         self._btn_copy.clicked.connect(self._copy_to_t2i)
+        btn_row.addWidget(self._btn_history)
+        btn_row.addWidget(self._btn_fav)
+        btn_row.addWidget(self._btn_fav_save)
         btn_row.addWidget(self._btn_clear)
         btn_row.addStretch()
         btn_row.addWidget(self._btn_copy)
@@ -143,4 +163,235 @@ class PromptBuilderPanel(QWidget):
     def _copy_to_t2i(self):
         text = self._preview.toPlainText().strip()
         if text:
+            self._save_to_history(self._selected.copy(), text)
             self.prompt_ready.emit(text)
+
+    def _history_path(self):
+        return HISTORY_PATH
+
+    def _load_history(self):
+        path = self._history_path()
+        if not os.path.exists(path):
+            return []
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+
+    def _save_to_history(self, tags, prompt):
+        history = self._load_history()
+        entry = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "prompt": prompt,
+            "tags": tags
+        }
+        history.insert(0, entry)
+        history = history[:HISTORY_MAX]
+        try:
+            with open(self._history_path(), "w", encoding="utf-8") as f:
+                json.dump(history, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    def _set_tags(self, tag_names):
+        self._clear_all()
+        for t in tag_names:
+            if t in self._tag_btns:
+                self._toggle_tag(t)
+
+    def _show_history(self):
+        history = self._load_history()
+        if not history:
+            dlg = QDialog(self)
+            dlg.setWindowTitle(tr("pb_history"))
+            dlg.setMinimumSize(400, 200)
+            l = QVBoxLayout(dlg)
+            lbl = QLabel(tr("pb_history_empty"))
+            lbl.setStyleSheet("color: #666; font-size: 12px; padding: 20px;")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            l.addWidget(lbl)
+            dlg.exec()
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(tr("pb_history"))
+        dlg.setMinimumSize(500, 350)
+        l = QVBoxLayout(dlg)
+
+        lst = QListWidget()
+        lst.setStyleSheet("QListWidget { background: #1a1a1a; border: 1px solid #333; border-radius: 4px; } QListWidget::item { color: #ccc; padding: 8px; border-bottom: 1px solid #333; } QListWidget::item:hover { background: #2a2a2a; }")
+        for entry in history:
+            ts = entry.get("timestamp", "")
+            prompt = entry.get("prompt", "")
+            tags = entry.get("tags", [])
+            display = f"{ts}  |  {prompt}"
+            item = QListWidgetItem(display)
+            item.setData(Qt.ItemDataRole.UserRole, tags)
+            item.setData(Qt.ItemDataRole.UserRole + 1, prompt)
+            item.setToolTip(prompt)
+            lst.addItem(item)
+
+        l.addWidget(lst)
+
+        btn_row = QHBoxLayout()
+
+        btn_load = QPushButton(tr("pb_history_load"))
+        btn_load.setObjectName("SecondaryBtn")
+        btn_load.setEnabled(False)
+
+        btn_copy = QPushButton(tr("pb_copy"))
+        btn_copy.setObjectName("SecondaryBtn")
+        btn_copy.setEnabled(False)
+
+        def apply_load():
+            item = lst.currentItem()
+            if item:
+                self._set_tags(item.data(Qt.ItemDataRole.UserRole))
+                dlg.accept()
+
+        def apply_copy():
+            item = lst.currentItem()
+            if item:
+                text = item.data(Qt.ItemDataRole.UserRole + 1)
+                if text:
+                    self.prompt_ready.emit(text)
+                dlg.accept()
+
+        def on_selection():
+            enabled = bool(lst.currentItem())
+            btn_load.setEnabled(enabled)
+            btn_copy.setEnabled(enabled)
+
+        lst.currentItemChanged.connect(on_selection)
+        lst.itemDoubleClicked.connect(apply_load)
+        btn_load.clicked.connect(apply_load)
+        btn_copy.clicked.connect(apply_copy)
+        btn_row.addWidget(btn_load)
+        btn_row.addStretch()
+        btn_row.addWidget(btn_copy)
+        l.addLayout(btn_row)
+
+        dlg.exec()
+
+    def _favorites_path(self):
+        return FAVORITES_PATH
+
+    def _load_favorites(self):
+        path = self._favorites_path()
+        if not os.path.exists(path):
+            return []
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+
+    def _save_favorites(self, favs):
+        try:
+            with open(self._favorites_path(), "w", encoding="utf-8") as f:
+                json.dump(favs, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    def _save_favorite_dialog(self):
+        text = self._preview.toPlainText().strip()
+        if not text:
+            return
+        name, ok = QInputDialog.getText(self, tr("pb_fav_save"), tr("pb_fav_name"))
+        if not ok or not name.strip():
+            return
+        name = name.strip()
+        favs = self._load_favorites()
+        favs.append({"name": name, "prompt": text, "tags": self._selected.copy()})
+        self._save_favorites(favs)
+        QMessageBox.information(self, tr("pb_fav_save"), tr("pb_fav_saved"))
+
+    def _show_favorites(self):
+        favs = self._load_favorites()
+        if not favs:
+            dlg = QDialog(self)
+            dlg.setWindowTitle(tr("pb_favorites"))
+            dlg.setMinimumSize(400, 200)
+            l = QVBoxLayout(dlg)
+            lbl = QLabel(tr("pb_fav_empty"))
+            lbl.setStyleSheet("color: #666; font-size: 12px; padding: 20px;")
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            l.addWidget(lbl)
+            dlg.exec()
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(tr("pb_favorites"))
+        dlg.setMinimumSize(550, 400)
+        l = QVBoxLayout(dlg)
+
+        lst = QListWidget()
+        lst.setStyleSheet("QListWidget { background: #1a1a1a; border: 1px solid #333; border-radius: 4px; } QListWidget::item { color: #ccc; padding: 8px; border-bottom: 1px solid #333; } QListWidget::item:hover { background: #2a2a2a; }")
+        for fav in favs:
+            name = fav.get("name", "")
+            prompt = fav.get("prompt", "")
+            display = f"{name}  |  {prompt}"
+            item = QListWidgetItem(display)
+            item.setData(Qt.ItemDataRole.UserRole, fav.get("tags", []))
+            item.setData(Qt.ItemDataRole.UserRole + 1, prompt)
+            item.setData(Qt.ItemDataRole.UserRole + 2, favs.index(fav))
+            item.setToolTip(prompt)
+            lst.addItem(item)
+
+        l.addWidget(lst)
+
+        btn_row = QHBoxLayout()
+
+        btn_load = QPushButton(tr("pb_fav_load"))
+        btn_load.setObjectName("SecondaryBtn")
+        btn_load.setEnabled(False)
+
+        btn_copy = QPushButton(tr("pb_copy"))
+        btn_copy.setObjectName("SecondaryBtn")
+        btn_copy.setEnabled(False)
+
+        btn_delete = QPushButton(tr("pb_fav_delete"))
+        btn_delete.setObjectName("SecondaryBtn")
+        btn_delete.setEnabled(False)
+
+        def on_selection():
+            enabled = bool(lst.currentItem())
+            btn_load.setEnabled(enabled)
+            btn_copy.setEnabled(enabled)
+            btn_delete.setEnabled(enabled)
+
+        def apply_load():
+            item = lst.currentItem()
+            if item:
+                self._set_tags(item.data(Qt.ItemDataRole.UserRole))
+                dlg.accept()
+
+        def apply_copy():
+            item = lst.currentItem()
+            if item:
+                text = item.data(Qt.ItemDataRole.UserRole + 1)
+                if text:
+                    self.prompt_ready.emit(text)
+                dlg.accept()
+
+        def apply_delete():
+            item = lst.currentItem()
+            if item:
+                idx = item.data(Qt.ItemDataRole.UserRole + 2)
+                favs.pop(idx)
+                self._save_favorites(favs)
+                dlg.accept()
+
+        lst.currentItemChanged.connect(on_selection)
+        lst.itemDoubleClicked.connect(apply_load)
+        btn_load.clicked.connect(apply_load)
+        btn_copy.clicked.connect(apply_copy)
+        btn_delete.clicked.connect(apply_delete)
+        btn_row.addWidget(btn_load)
+        btn_row.addWidget(btn_copy)
+        btn_row.addStretch()
+        btn_row.addWidget(btn_delete)
+        l.addLayout(btn_row)
+
+        dlg.exec()

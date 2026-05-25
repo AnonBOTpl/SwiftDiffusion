@@ -45,6 +45,7 @@
 - **Prompt Builder** — compose prompts visually from tag categories (quality, style, lighting, artists) with a single click
 - **Prompt weighting (compel)** — fine-tune the influence of words and phrases using standard `(word:1.2)` syntax, no extra setup required
 - **Textual Inversion embeddings** — drop `.pt` / `.bin` / `.safetensors` files into `models/embeddings/`; they appear automatically in the Prompt Builder and are ready to use after model load
+- **Prompt Builder** — built-in tag manager with categorized tags, live preview, and one-click copy to T2I. Save and restore prompt combinations via **history** (`prompts_history.json`, last 20) and **favorites** (`prompts_favorites.json`, unlimited). Separate Load/Copy/Delete actions per entry.
 
 ### 🖌️ Generation Modes
 

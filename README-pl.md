@@ -44,6 +44,7 @@
 - **Prompt Builder** — komponuj prompty wizualnie z kategorii tagów (quality, style, lighting, artists) jednym kliknięciem
 - **Prompt weighting (compel)** — precyzyjnie kontroluj wagę słów i fraz standardową składnią `(word:1.2)`, bez dodatkowej konfiguracji
 - **Embeddingi Textual Inversion** — wrzuć pliki `.pt` / `.bin` / `.safetensors` do `models/embeddings/`; pojawiają się automatycznie w Prompt Builderze i są gotowe do użycia po załadowaniu modelu
+- **Prompt Builder** — wbudowany menedżer tagów z kategoriami, podglądem na żywo i kopiowaniem jednym kliknięciem do T2I. Zapisuj i przywracaj kombinacje tagów przez **historię** (`prompts_history.json`, ostatnie 20) i **ulubione** (`prompts_favorites.json`, bez limitu). Osobne akcje Wczytaj/Kopiuj/Usuń na wpis.
 
 ### 🖌️ Tryby generowania
 

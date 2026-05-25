@@ -22,24 +22,23 @@
     "btn_settings": "⚙️ Ustawienia",
     "btn_generate": "GENERUJ OBRAZ",
     "btn_stop": "STOP",
-
     "tab_t2i": "Text2Image",
     "tab_inpaint": "Inpainting",
     "tab_controlnet": "ControlNet",
     "tab_gallery": "Galeria",
     "tab_prompt_builder": "Budowniczy Promptów",
-
     "pb_preview": "Wybrane tagi:",
     "pb_clear": "Wyczyść",
     "pb_copy": "Kopiuj do Text2Image",
     "pb_embeddings": "Embeddingi",
     "pb_embeddings_tip": "Wymaga załadowanego modelu. Dodaj .pt / .bin / .safetensors do models/embeddings/",
     "pb_embeddings_empty": "Brak załadowanych embeddingów.\nWymaga załadowanego modelu.\nUmieść pliki .pt / .bin / .safetensors w models/embeddings/",
-
+    "pb_history": "📜 Historia",
+    "pb_history_load": "Wczytaj w Builderze",
+    "pb_history_empty": "Brak historii.\nUżyj Kopiuj do Text2Image, aby zapisać prompt.",
     "header_params": "PARAMETRY",
     "header_inpaint_tools": "NARZĘDZIA INPAINTINGU",
     "header_controlnet_tools": "NARZĘDZIA CONTROLNET",
-
     "label_steps": "Kroki",
     "label_cfg": "Skala CFG",
     "label_width": "Szerokość",
@@ -53,14 +52,12 @@
     "label_original": "Oryginał",
     "label_upscaled": "Powiększony",
     "label_waiting": "Oczekiwanie...",
-
     "placeholder_prompt": "Prompt...",
     "placeholder_negative": "Negative...",
     "wildcards_tooltip": "Użyj __słowo__ aby wstawić losową linię z wildcards/słowo.txt",
     "compel_available": "⚡ Ważone prompty aktywne (użyj (słowo:1.3))",
     "compel_unavailable": "Ważone prompty niedostępne (zainstaluj compel)",
     "placeholder_drop": "Upuść obraz tutaj",
-
     "btn_apply_upscaler": "ZASTOSUJ UPSCALER",
     "btn_apply_adetailer": "WYŚLIJ DO ADETAILER",
     "btn_send_to_inpaint": "WYŚLIJ DO INPAINT",
@@ -74,16 +71,13 @@
     "btn_load_ref": "Załaduj referencję",
     "btn_generate_comp": "GENERUJ Z COMPEM",
     "btn_refresh_gallery": "ODŚWIEŻ GALERIĘ",
-
     "opt_use_main_model": "Użyj głównego modelu",
     "opt_default_vae": "Domyślne (z modelu)",
-
     "welcome_title": "Witaj w Stable Diffusion UI",
     "welcome_header": "Witaj!",
     "welcome_lang": "Wybierz język:",
     "welcome_theme": "Wybierz motyw:",
     "btn_finish": "Zakończ i uruchom",
-
     "settings_title": "Ustawienia",
     "settings_tab_perf": "Wydajność",
     "settings_tab_paths": "Ścieżki",
@@ -108,13 +102,11 @@
     "btn_import": "Importuj",
     "btn_export": "Eksportuj",
     "btn_save_close": "Zapisz i zamknij",
-
     "gallery_details_title": "Szczegóły obrazu",
     "gallery_params_header": "PARAMETRY GENEROWANIA",
     "gallery_no_meta": "Nie znaleziono metadanych w obrazie.",
     "gallery_read_error": "Błąd odczytu parametrów: ",
     "btn_send_to_t2i": "WYŚLIJ DO TEXT2IMAGE",
-
     "status_loading_model": "Ładowanie modelu...",
     "status_model_ready": "Model gotowy.",
     "status_model_error": "Najpierw załaduj model!",
@@ -131,7 +123,6 @@
     "btn_load_img2img": "Załaduj obraz",
     "label_no_image": "Brak obrazu",
     "status_finished": "Ukończono",
-
     "dialog_model": "Model",
     "dialog_lora": "LoRA",
     "dialog_image": "Obraz",
@@ -174,14 +165,12 @@
     "dl_file_version": "Wersja",
     "dl_size": "Rozmiar",
     "btn_close": "Zamknij",
-
     "worker_generating": "Generowanie...",
     "worker_img2img": "Img2Img...",
     "worker_inpainting": "Inpainting...",
     "worker_controlnet": "ControlNet (Canny)...",
     "worker_yolo_detection": "Detekcja YOLO / Inpainting...",
     "worker_adetailer_upscale": "ADetailer -> Upscale...",
-
     "dl_connecting_hf": "Łączenie z HuggingFace...",
     "dl_searching_repo": "Szukanie plików w repozytorium...",
     "dl_downloading_civitai": "Pobieranie z CivitAI...",
@@ -194,12 +183,10 @@
     "dl_results_found": "Znaleziono {n} modeli - kliknij wynik by wkleić URL",
     "dl_search_results": "Znaleziono {n} wyników",
     "dl_file_count": "{n} plików",
-
     "error_loading_model": "Błąd ładowania: {message}",
     "error_load_img2img": "Załaduj obraz dla Img2Img",
     "error_reading_file": "Błąd odczytu pliku: {e}",
     "error_tips_missing": "Brak pliku z poradami: {file_path}",
-
     "monitor_ram": "RAM: {used:.1f} / {total:.1f} GB",
     "monitor_vram": "VRAM: {used:.1f} / {total:.1f} GB",
     "monitor_gpu": "GPU: {util}% | {temp}°C",
@@ -207,10 +194,8 @@
     "monitor_gpu_error": "GPU: Błąd",
     "monitor_vram_na": "VRAM: N/A (Non-NVIDIA)",
     "monitor_gpu_na": "GPU: N/A",
-
     "tips_title_inpaint": "Porady Inpainting",
     "tips_title_controlnet": "Porady ControlNet",
-
     "vram_warning_header": "Wykryto model SDXL na karcie {vram:.1f} GB VRAM",
     "vram_warning_desc": "Modele SDXL wymagają więcej VRAM niż posiadasz. Zaleca się włączenie następujących optymalizacji:",
     "opt_attention_slicing": "Attention Slicing (mniej VRAM, wolniej)",
@@ -218,5 +203,12 @@
     "opt_vram_slicing": "VAE Slicing / Tiling",
     "vram_dont_ask": "Nie pokazuj więcej tego ostrzeżenia",
     "vram_apply": "Włącz optymalizacje",
-    "vram_skip": "Pomiń"
+    "vram_skip": "Pomiń",
+    "pb_favorites": "★ Ulubione",
+    "pb_fav_save": "★ Zapisz",
+    "pb_fav_name": "Nazwa ulubionego:",
+    "pb_fav_saved": "Zapisano jako ulubiony!",
+    "pb_fav_load": "Wczytaj",
+    "pb_fav_delete": "Usuń",
+    "pb_fav_empty": "Brak ulubionych.\nZbuduj prompt i zapisz go przez ★ Zapisz."
 }

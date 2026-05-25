@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.20.4] - 2026-05-24 – Prompt Builder: history & favorites
+### Added
+- **Prompt history** — every "Copy to Text2Image" saves the tag selection to `prompts_history.json` (max 20, newest first). "📜 History" button opens a dialog with Load/Copy actions.
+- **Prompt favorites** — "★ Save" saves current tags with a custom name to `prompts_favorites.json` (no limit). "★ Favorites" dialog shows all saved presets with Load/Copy/Delete actions.
+- Locale keys: `pb_history`, `pb_history_load`, `pb_history_empty`, `pb_favorites`, `pb_fav_save`, `pb_fav_name`, `pb_fav_saved`, `pb_fav_load`, `pb_fav_delete`, `pb_fav_empty` (EN + PL).
+### Changed
+- **Prompt Builder → T2I** — `_on_prompt_ready()` now **replaces** the T2I prompt instead of appending.
+- **`install.bat`** — validates Python 3.12 via `py -3.12 --version` before creating venv; uses `py -3.12 -m venv` instead of `python -m venv` to ensure correct version; shows download link if missing.
+
 ## [2.20.3] - 2026-05-24 – Refactor phase 3: extract generation & mode controllers
 ### Changed
 - **`generation_controller.py`** — new `GenerationController` class handling T2I/Img2Img generation, upscaling, preview animation, seed management (~180 lines).
@@ -7,7 +16,6 @@
 - **`main.py`** reduced from 536→317 lines (**-41%**, **-64%** from pre-refactor 881 lines).
 - All button connections (`btn_gen_t2i`, `btn_gen_inp`, `btn_gen_cn`, `btn_gen_adet`, `btn_up`, `btn_copy`, `btn_face`, `btn_to_inpaint`, `btn_load_i`, `btn_load_cn`, `btn_load_adet`) now routed through controllers.
 - Unused imports cleaned up (`logging`, `qimage_to_pil`, `UrlDownloaderTab`, worker classes).
-- **`install.bat`** — validates Python 3.12 via `py -3.12 --version` before creating venv; uses `py -3.12 -m venv` instead of `python -m venv` to ensure correct version; shows download link if missing.
 
 ## [2.20.2] - 2026-05-24 – Refactor phase 2: extract boot, resource monitor, model manager
 ### Changed

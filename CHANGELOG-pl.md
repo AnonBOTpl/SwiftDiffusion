@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.20.4] - 2026-05-24 – Prompt Builder: historia i ulubione
+### Dodano
+- **Historia promptów** — każde kliknięcie "Kopiuj do Text2Image" zapisuje zaznaczone tagi do `prompts_history.json` (max 20, najnowsze na górze). Przycisk "📜 Historia" otwiera dialog z akcjami Wczytaj/Kopiuj.
+- **Ulubione prompty** — "★ Zapisz" zapisuje obecne tagi z własną nazwą do `prompts_favorites.json` (bez limitu). "★ Ulubione" pokazuje wszystkie zapisane presety z akcjami Wczytaj/Kopiuj/Usuń.
+- Klucze locale: `pb_history`, `pb_history_load`, `pb_history_empty`, `pb_favorites`, `pb_fav_save`, `pb_fav_name`, `pb_fav_saved`, `pb_fav_load`, `pb_fav_delete`, `pb_fav_empty` (EN + PL).
+### Zmieniono
+- **Prompt Builder → T2I** — `_on_prompt_ready()` teraz **nadpisuje** pole promptu zamiast scalać.
+- **`install.bat`** — walidacja Pythona 3.12 przez `py -3.12 --version` przed tworzeniem venv; używa `py -3.12 -m venv` zamiast `python -m venv`; wyświetla link do pobrania w razie braku.
+
 ## [2.20.3] - 2026-05-24 – Refactor phase 3: ekstrakcja kontrolerów generacji i trybów
 ### Zmieniono
 - **`generation_controller.py`** — nowa klasa `GenerationController` obsługująca T2I/Img2Img, upscaling, animację podglądu, zarządzanie seedem (~180 linii).
@@ -7,7 +16,6 @@
 - **`main.py`** zredukowany z 536→317 linii (**-41%**, **-64%** od 881 linii przed refaktorem).
 - Wszystkie połączenia przycisków przekierowane przez kontrolery.
 - Wyczyszczono nieużywane importy (`logging`, `qimage_to_pil`, `UrlDownloaderTab`, klasy workerów).
-- **`install.bat`** — walidacja Pythona 3.12 przez `py -3.12 --version` przed tworzeniem venv; używa `py -3.12 -m venv` zamiast `python -m venv`; wyświetla link do pobrania w razie braku.
 
 ## [2.20.2] - 2026-05-24 – Refactor phase 2: ekstrakcja boot, monitora, managera modeli
 ### Zmieniono
