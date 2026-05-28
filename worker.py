@@ -448,11 +448,10 @@ class CLIPInterrogatorWorker(QThread):
     progress = pyqtSignal(int)
     status = pyqtSignal(str)
 
-    def __init__(self, image_path, model_id, local_dir, candidates, use_gpu=False):
+    def __init__(self, image_path, clip_model_name, candidates, use_gpu=False):
         super().__init__()
         self.image_path = image_path
-        self.model_id = model_id
-        self.local_dir = local_dir
+        self.clip_model_name = clip_model_name
         self.candidates = candidates
         self.use_gpu = use_gpu
 
@@ -463,9 +462,7 @@ class CLIPInterrogatorWorker(QThread):
             import torch
 
             config = Config()
-            config.clip_model_name = self.model_id
-            config.clip_path = self.local_dir
-            config.cache_path = self.local_dir
+            config.clip_model_name = self.clip_model_name
             if self.use_gpu and torch.cuda.is_available():
                 config.device = "cuda"
 

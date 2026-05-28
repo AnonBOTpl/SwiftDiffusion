@@ -11,8 +11,8 @@ CLIP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "c
 CLIP_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "clip_data")
 
 CLIP_MODELS = [
-    ("ViT-B/32 \u2013 fast (570 MB)", "openai/clip-vit-base-patch32"),
-    ("ViT-L/14 \u2013 accurate (1.7 GB)", "openai/clip-vit-large-patch14"),
+    {"label": "ViT-B/32 \u2013 fast (570 MB)", "hf_id": "openai/clip-vit-base-patch32", "open_clip": "ViT-B-32/openai"},
+    {"label": "ViT-L/14 \u2013 accurate (1.7 GB)", "hf_id": "openai/clip-vit-large-patch14", "open_clip": "ViT-L-14/openai"},
 ]
 
 
@@ -81,8 +81,8 @@ class ClipInterrogatorTab(QWidget):
         model_row = QHBoxLayout()
         model_row.addWidget(QLabel(tr("clip_model")))
         self.model_combo = QComboBox()
-        for label, _ in CLIP_MODELS:
-            self.model_combo.addItem(label)
+        for m in CLIP_MODELS:
+            self.model_combo.addItem(m["label"])
         self.model_combo.setMinimumWidth(220)
         self.model_combo.currentIndexChanged.connect(self._on_model_changed)
         model_row.addWidget(self.model_combo)
@@ -128,8 +128,8 @@ class ClipInterrogatorTab(QWidget):
 
     def _model_local_dir(self):
         idx = self.model_combo.currentIndex()
-        _, model_id = CLIP_MODELS[idx]
-        safe = model_id.replace("/", "_")
+        hf_id = CLIP_MODELS[idx]["hf_id"]
+        safe = hf_id.replace("/", "_")
         return os.path.join(CLIP_DIR, safe)
 
     def _model_downloaded(self):
@@ -168,8 +168,8 @@ class ClipInterrogatorTab(QWidget):
         self.lbl_dl_status.setText(tr("clip_downloading"))
         self.clip_progress.setMaximum(0)
         self.clip_progress.show()
-        _, model_id = CLIP_MODELS[self.model_combo.currentIndex()]
-        self._dl_worker = ClipDownloadWorker(model_id, self._model_local_dir())
+        idx = self.model_combo.currentIndex()
+        self._dl_worker = ClipDownloadWorker(CLIP_MODELS[idx]["hf_id"], self._model_local_dir())
         self._dl_worker.finished.connect(self._on_dl_finished)
         self._dl_worker.progress.connect(self._on_dl_progress)
         self._dl_worker.start()
@@ -208,13 +208,12 @@ class ClipInterrogatorTab(QWidget):
         self.clip_progress.setValue(0)
         self.clip_progress.show()
 
-        _, model_id = CLIP_MODELS[self.model_combo.currentIndex()]
+        idx = self.model_combo.currentIndex()
         use_gpu = self.chk_use_gpu.isChecked()
 
         self._clip_worker = CLIPInterrogatorWorker(
             image_path=self._image_path,
-            model_id=model_id,
-            local_dir=self._model_local_dir(),
+            clip_model_name=CLIP_MODELS[idx]["open_clip"],
             candidates=self._candidates,
             use_gpu=use_gpu
         )
