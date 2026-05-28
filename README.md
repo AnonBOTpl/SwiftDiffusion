@@ -64,6 +64,7 @@
 | **ADetailer** | Automatically detect and enhance faces using YOLOv8 — zero extra VRAM cost |
 | **Upscaler** | High-quality upscaling via the `spandrel` library |
 | **CLIP Interrogator** | Analyze any image and reverse-engineer its prompt — detects quality, colors, medium, artist, style, lighting, effects, and composition |
+| **Photo Restoration** | Restore old, damaged, or black-and-white photos — colorize B&W, remove scratches/creases, upscale, and enhance faces in a two-pass pipeline |
 
 ### ⚙️ Smart Settings
 
@@ -139,6 +140,7 @@ SwiftDiffusion/
 ├── main.py                    # UI skeleton & entry point
 ├── boot.py                    # CUDA health check on import
 ├── engine.py                  # Diffusion pipeline logic
+├── restoration_engine.py      # Photo Restoration engine (scratch removal, upscale, face enhance, colorization)
 ├── worker.py                  # Background QThread workers
 ├── model_manager.py           # Model loading, LoRA, file watchers
 ├── generation_controller.py   # T2I / Img2Img / Upscale orchestration
@@ -153,7 +155,8 @@ SwiftDiffusion/
 │   ├── flow_layout.py         # Custom FlowLayout for Prompt Builder
 │   ├── prompt_builder.py      # Prompt Builder tab
 │   ├── resource_monitor.py    # Live VRAM/RAM monitor widget
-│   └── clip_interrogator.py   # CLIP Interrogator tab
+│   ├── clip_interrogator.py   # CLIP Interrogator tab
+│   └── restoration.py         # Photo Restoration tab
 ├── models_registry.py         # Model scanner & registry
 ├── url_downloader.py          # Legacy downloader helpers
 ├── scraper.py                 # Model search scraper
@@ -166,6 +169,38 @@ SwiftDiffusion/
 ```
 
 ---
+
+---
+
+## 🖼️ Photo Restoration Guide
+
+The **Photo Restoration** tab can restore old, damaged, or black-and-white photos. It uses a two-pass pipeline combining scratch removal, colorization, upscaling, and face enhancement.
+
+### Basic workflow
+
+1. **Load an image** — click the folder button to load a JPEG/PNG
+2. **Enable options:**
+   - **Auto scratch removal** — removes scratches, creases, dust, and paper texture
+   - **Colorize** (B&W photos only) — choose between **OpenCV DNN** (fast, instant results) or **DeOldify** (better quality, slower)
+   - **Extra upscale** (visible when both colorize and scratch are on) — adds a second upscale pass for larger output
+3. **Click "Restore"** — the pipeline runs automatically and shows the result
+4. **Open result** — click "Open result" to view the saved file in Explorer
+
+### What happens under the hood
+
+| Step | Tool | What it does |
+|------|------|-------------|
+| Colorize | OpenCV DNN / DeOldify | Adds color to B&W photos (Pass 1 only) |
+| Upscale | Real-ESRGAN x4plus | 2× upscaling (Pass 1; Pass 2 if extra upscale checked) |
+| Face enhance | GFPGAN v1.4 | Restores facial details (both passes) |
+| Scratch removal | OpenCV inpainting (NS) | Removes scratches, creases, artifacts (Pass 2 only) |
+
+### Tips
+
+- **Best results with B&W photos** that have good contrast and visible luminance variation for colorization
+- **For color photos** — disable colorize, enable scratch + upscale
+- **Large originals** — scratch removal runs at full resolution; the two-pass pipeline may produce a file several times the original dimensions
+- **First run** — models are downloaded automatically (RealESRGAN ~67 MB, GFPGAN ~340 MB, colorization models ~129 MB). A restart may be needed if downloads fail mid-way.
 
 ## ☕ Support
 

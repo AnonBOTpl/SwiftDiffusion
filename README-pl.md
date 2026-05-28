@@ -63,6 +63,7 @@
 | **ADetailer** | Automatyczne wykrywanie i poprawa twarzy przez YOLOv8 — bez dodatkowych kosztów VRAM |
 | **Upscaler** | Powiększanie obrazów wysokiej jakości przez bibliotekę `spandrel` |
 | **CLIP Interrogator** | Analizuj dowolny obraz i odtwórz jego prompt — wykrywa jakość, kolory, medium, artystę, styl, oświetlenie, efekty i kompozycję |
+| **Photo Restoration** | Odnawiaj stare, zniszczone lub czarno-białe zdjęcia — koloruj B&W, usuwaj rysy/zagniecenia, powiększaj i poprawiaj twarze w potoku dwuprzebiegowym |
 
 ### ⚙️ Inteligentne ustawienia
 
@@ -138,6 +139,7 @@ SwiftDiffusion/
 ├── main.py                    # Szkielet UI i punkt wejścia
 ├── boot.py                    # CUDA health check przy imporcie
 ├── engine.py                  # Logika pipeline'ów dyfuzji
+├── restoration_engine.py      # Silnik Photo Restoration (usuwanie rys, upscale, poprawa twarzy, kolorowanie)
 ├── worker.py                  # Wątki QThread działające w tle
 ├── model_manager.py           # Ładowanie modeli, LoRA, file watchery
 ├── generation_controller.py   # T2I / Img2Img / Upscale
@@ -152,7 +154,8 @@ SwiftDiffusion/
 │   ├── flow_layout.py         # FlowLayout dla Prompt Builder
 │   ├── prompt_builder.py      # Zakładka Prompt Builder
 │   ├── resource_monitor.py    # Monitor VRAM/RAM na żywo
-│   └── clip_interrogator.py   # Zakładka CLIP Interrogator
+│   ├── clip_interrogator.py   # Zakładka CLIP Interrogator
+│   └── restoration.py         # Zakładka Photo Restoration
 ├── models_registry.py         # Skaner i rejestr modeli
 ├── url_downloader.py          # Pomocnicze pobieranie
 ├── scraper.py                 # Wyszukiwarka modeli
@@ -165,6 +168,38 @@ SwiftDiffusion/
 ```
 
 ---
+
+---
+
+## 🖼️ Instrukcja renowacji zdjęć
+
+Zakładka **Photo Restoration** umożliwia odnawianie starych, zniszczonych lub czarno-białych zdjęć. Używa dwuprzebiegowego potoku łączącego usuwanie rys, kolorowanie, powiększanie i poprawę twarzy.
+
+### Podstawowy przepis
+
+1. **Wczytaj obraz** — kliknij przycisk folderu, aby wczytać JPEG/PNG
+2. **Włącz opcje:**
+   - **Auto usuwanie rys/zagnieceń** — usuwa rysy, zagniecenia, kurz i fakturę papieru
+   - **Koloruj** (tylko zdjęcia B&W) — wybierz **OpenCV DNN** (szybki, natychmiastowe efekty) lub **DeOldify** (lepsza jakość, wolniejszy)
+   - **Extra upscale** (widoczny gdy zaznaczone zarówno kolorowanie jak i scratch) — dodaje drugie powiększenie dla większego obrazu wyjściowego
+3. **Kliknij "Restore"** — potok uruchamia się automatycznie i pokazuje wynik
+4. **Otwórz wynik** — kliknij "Otwórz wynik", aby zobaczyć zapisany plik w Eksploratorze
+
+### Co dzieje się pod maską
+
+| Krok | Narzędzie | Opis |
+|------|-----------|------|
+| Kolorowanie | OpenCV DNN / DeOldify | Dodaje kolor do zdjęć B&W (tylko Przebieg 1) |
+| Upscale | Real-ESRGAN x4plus | 2× powiększenie (Przebieg 1; Przebieg 2 jeśli extra upscale włączone) |
+| Poprawa twarzy | GFPGAN v1.4 | Odtwarza szczegóły twarzy (oba przebiegi) |
+| Usuwanie rys | OpenCV inpainting (NS) | Usuwa rysy, zagniecenia, artefakty (tylko Przebieg 2) |
+
+### Wskazówki
+
+- **Najlepsze efekty ze zdjęciami B&W** które mają dobry kontrast i widoczną zmienność tonalną dla kolorowania
+- **Dla zdjęć kolorowych** — wyłącz kolorowanie, włącz scratch + upscale
+- **Duże oryginały** — usuwanie rys działa w pełnej rozdzielczości; dwuprzebiegowy potok może dać plik kilkukrotnie większy od oryginału
+- **Pierwsze uruchomienie** — modele pobierane są automatycznie (RealESRGAN ~67 MB, GFPGAN ~340 MB, modele kolorowania ~129 MB). Jeśli pobieranie przerwie się w połowie, może być potrzebny restart aplikacji.
 
 ## ☕ Wsparcie
 

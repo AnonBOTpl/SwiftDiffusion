@@ -15,3 +15,7 @@ ultralytics
 psutil
 nvidia-ml-py
 ddgs
+gfpgan
+realesrgan
+basicsr
+facexlib

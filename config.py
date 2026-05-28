@@ -19,10 +19,13 @@ class SettingsManager:
             'models_facedetection': 'models/facedetection',
             'models_upscalers': 'models/upscalers',
             'models_embeddings': 'models/embeddings',
+            'models_restoration': 'models/restoration',
+            'models_colorization': 'models/colorization',
             'output_txt2img': 'output/txt2img',
             'output_inpaint': 'output/inpaint',
             'output_controlnet': 'output/controlnet',
             'output_upscaled': 'output/upscaled',
+            'output_restoration': 'output/restoration',
             'docs': 'docs'
         },
         'UI': {
