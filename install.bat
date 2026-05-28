@@ -71,6 +71,7 @@ goto end_3
 echo Step 3/4: Installing remaining libraries...
 :end_3
 python -m pip install -r requirements.txt
+python -m pip install compel --no-deps
 
 REM === Step 4/4: Settings file ===
 echo.

@@ -98,20 +98,13 @@ Real-time VRAM, RAM, GPU load, and temperature — visible in the sidebar at all
 
 ### Windows (recommended)
 
-Choose your installer:
-
-| Installer | Speed | Venv |
-|-----------|-------|------|
-| `install.bat` | Standard (pip) | `.venv` |
-| `install_uv.bat` | **Faster** (uv, Rust-based) | `.venv-uv` |
-
 ```
 1. Clone or download this repo
-2. Run install.bat (pip) OR install_uv.bat (uv — 10-50× faster)
-3. Run start.bat (for pip) OR start-uv.bat (for uv)
+2. Run install.bat
+3. Run start.bat
 ```
 
-Both installers set up a virtual environment, install PyTorch with CUDA 12.8 support, and pull all dependencies automatically. The uv installer auto-downloads `uv` if not present. Venvs are independent — you can keep both.
+`install.bat` sets up a virtual environment, installs PyTorch with CUDA 12.8 support, and pulls all dependencies automatically.
 
 ### Linux
 
@@ -153,7 +146,7 @@ SwiftDiffusion/
 │   ├── flow_layout.py         # Custom FlowLayout for Prompt Builder
 │   ├── prompt_builder.py      # Prompt Builder tab
 │   ├── resource_monitor.py    # Live VRAM/RAM monitor widget
-│   ├── clip_interrogator.py   # CLIP Interrogator tab
+│   └── clip_interrogator.py   # CLIP Interrogator tab
 ├── models_registry.py         # Model scanner & registry
 ├── url_downloader.py          # Legacy downloader helpers
 ├── scraper.py                 # Model search scraper

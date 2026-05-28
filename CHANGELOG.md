@@ -6,10 +6,6 @@
 - **CLIP candidate database** — `clip_data/candidates.json` with ~120 curated terms across 8 categories. Supports user-provided `.json` files for custom candidates.
 - **Dynamic CLIP format detection** — `ClipDownloadWorker` uses `HfApi.list_repo_files` to check for `.safetensors`; downloads only PyTorch format (safetensors or bin) + configs, skips Flax/TF.
 - `hf_xet==1.1.1` to `requirements.txt` — accelerates HuggingFace Hub downloads with the Xet protocol for large files (models, LoRAs, ControlNet).
-### Fixed
-- **boot.py CUDA timeout too short** — increased subprocess timeout from 15s to 45s and health-check thread timeout from 8s to 30s. First `import torch` on a fresh system/driver can take 20+ seconds, causing a false "GPU driver in bad state" error.
-- **compel dependency bloating** — `compel` had `notebook` in its `Requires`, pulling the entire JupyterLab ecosystem (~40 packages). Removed `compel` from `requirements.txt`; `install.bat` now installs it with `--no-deps`.
-- **UV installer** — new `install_uv.bat` uses the `uv` package manager (Rust-based, 10-50× faster than pip). Auto-installs `uv` if not present. Creates a separate `.venv-uv` directory — coexists with the standard `.venv`. `start-uv.bat` launches the uv-based venv. Users can choose between `install.bat` (pip) and `install_uv.bat` (uv).
 
 ## [2.20.8] - 2026-05-25 – Batch generation, sequential mode, thumbnail gallery
 ### Added
