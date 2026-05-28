@@ -162,9 +162,9 @@ class RestorationEngine:
             steps.append("colorize")
         if auto_scratch:
             steps.append("scratch")
-        steps.append("face")
         if upscale:
             steps.append("upscale")
+        steps.append("face")
 
         if len(steps) == 1:
             status_cb("Nothing to do")
