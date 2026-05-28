@@ -180,7 +180,7 @@ Zakładka **Photo Restoration** umożliwia odnawianie starych, zniszczonych lub 
 1. **Wczytaj obraz** — kliknij przycisk folderu, aby wczytać JPEG/PNG
 2. **Włącz opcje:**
    - **Auto usuwanie rys/zagnieceń** — usuwa rysy, zagniecenia, kurz i fakturę papieru
-   - **Koloruj** (tylko zdjęcia B&W) — wybierz **OpenCV DNN** (szybki, natychmiastowe efekty) lub **DeOldify** (lepsza jakość, wolniejszy)
+   - **Koloruj** (tylko zdjęcia B&W) — używa **OpenCV DNN** dla szybkich efektów
    - **Extra upscale** (widoczny gdy zaznaczone zarówno kolorowanie jak i scratch) — dodaje drugie powiększenie dla większego obrazu wyjściowego
 3. **Kliknij "Restore"** — potok uruchamia się automatycznie i pokazuje wynik
 4. **Otwórz wynik** — kliknij "Otwórz wynik", aby zobaczyć zapisany plik w Eksploratorze
@@ -189,7 +189,7 @@ Zakładka **Photo Restoration** umożliwia odnawianie starych, zniszczonych lub 
 
 | Krok | Narzędzie | Opis |
 |------|-----------|------|
-| Kolorowanie | OpenCV DNN / DeOldify | Dodaje kolor do zdjęć B&W (tylko Przebieg 1) |
+| Kolorowanie | OpenCV DNN | Dodaje kolor do zdjęć B&W (tylko Przebieg 1) |
 | Upscale | Real-ESRGAN x4plus | 2× powiększenie (Przebieg 1; Przebieg 2 jeśli extra upscale włączone) |
 | Poprawa twarzy | GFPGAN v1.4 | Odtwarza szczegóły twarzy (oba przebiegi) |
 | Usuwanie rys | OpenCV inpainting (NS) | Usuwa rysy, zagniecenia, artefakty (tylko Przebieg 2) |

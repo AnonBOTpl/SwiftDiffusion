@@ -134,29 +134,9 @@ class RestorationEngine:
         return (out * 255).astype(np.uint8)
 
     def _pass1_colorize(self, img, colorize_method, status_cb):
-        if colorize_method == "opencv":
-            status_cb("Colorizing (OpenCV DNN)...")
-            logger.info("[Restoration] Pass1: OpenCV DNN colorization")
-            return self._colorize_opencv(img)
-        elif colorize_method == "deoldify":
-            status_cb("Colorizing (DeOldify)...")
-            try:
-                from deoldify.visualize import get_image_colorizer
-                from deoldify import device as deoldify_device
-                from deoldify.device_id import DeviceId
-                deoldify_device.set(device=DeviceId.GPU0 if self.device == "cuda" else DeviceId.CPU)
-                colorizer = get_image_colorizer(artistic=True)
-                from PIL import Image
-                pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-                result = colorizer.get_transformed_image(pil_img, render_factor=30)
-                img = cv2.cvtColor(np.array(result), cv2.COLOR_RGB2BGR)
-                del colorizer
-                self._clear_vram()
-                return img
-            except ImportError:
-                logger.warning("[Restoration] DeOldify not installed, falling back to OpenCV")
-                status_cb("DeOldify not installed, falling back to OpenCV")
-                return self._colorize_opencv(img)
+        status_cb("Colorizing (OpenCV DNN)...")
+        logger.info("[Restoration] Pass1: OpenCV DNN colorization")
+        return self._colorize_opencv(img)
 
     def _pass2_scratch_upscale_face(self, img, status_cb):
         status_cb("Removing scratches...")
@@ -183,7 +163,7 @@ class RestorationEngine:
             raise ValueError("Could not load image")
         logger.info(f"[Restoration] Image loaded: shape={img.shape}, dtype={img.dtype}, range=[{img.min()},{img.max()}]")
 
-        needs_colorize = colorize_method in ("opencv", "deoldify")
+        needs_colorize = colorize_method is not None
 
         if needs_colorize:
             # ---- PASS 1: colorize -> upscale -> face enhance (always) ----

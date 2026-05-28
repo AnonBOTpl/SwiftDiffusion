@@ -4,12 +4,12 @@
 ### Added
 - **Photo Restoration tab** — dedicated tab for restoring old, damaged, or black-and-white photos. Before/after split preview with side-by-side comparison. Load any JPEG/PNG, apply scratch removal, B&W colorization, upscaling, and face enhancement in a single pipeline.
 - **Two-pass pipeline** — when colorization is active, runs in two passes: Pass 1 = colorize → upscale → face enhance; Pass 2 = scratch removal → face enhance (optional extra upscale checkbox). Matches the proven manual two-step workflow.
-- **Colorization (B&W photos)** — two backends: OpenCV DNN (fast, lightweight) and DeOldify (higher quality). Both auto-downloaded on first use. Input image must have visible luminance variation for best results.
+- **Colorization (B&W photos)** — OpenCV DNN backend, auto-downloaded on first use. Input image must have visible luminance variation for best results.
 - **Scratch/crease removal** — toggle for auto removal of scratches, creases, dust, and paper texture artifacts.
 - **Extra upscale checkbox** — when colorize + scratch are both active, an "Extra upscale" toggle appears to add a second upscale pass after scratch removal (before final face enhancement).
 - **Automatic model downloads** — RealESRGAN, GFPGAN, and colorization models download on first use via HuggingFace Hub, SourceForge, and richzhang/colorization. Download progress bar for each model.
 - **Unique output filenames** — restored images save with timestamp: `{name}_restored_20260528_143022.jpg` to prevent overwrites.
-- Locale keys: `restore_image`, `restore_result`, `restore_result_empty`, `restore_processing`, `restore_done`, `restore_error`, `restore_scratch`, `restore_colorize`, `restore_color_opencv`, `restore_color_deoldify`, `restore_models`, `restore_open` (EN + PL).
+- Locale keys: `restore_image`, `restore_result`, `restore_result_empty`, `restore_processing`, `restore_done`, `restore_error`, `restore_scratch`, `restore_colorize`, `restore_color_opencv`, `restore_models`, `restore_open` (EN + PL).
 
 ## [2.20.9] - 2026-05-26 – CLIP Interrogator, hf_xet dependency
 ### Added

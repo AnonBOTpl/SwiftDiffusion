@@ -4,12 +4,12 @@
 ### Dodano
 - **Zakładka Photo Restoration** — dedykowana zakładka do renowacji starych, zniszczonych lub czarno-białych zdjęć. Podgląd przed/po z porównaniem obok siebie. Wczytaj dowolne JPEG/PNG, zastosuj usuwanie rys, kolorowanie B&W, powiększanie i poprawę twarzy w jednym potoku.
 - **Potok dwuprzebiegowy** — gdy kolorowanie jest aktywne, przebiega w dwóch przejściach: Przebieg 1 = kolorowanie → upscale → poprawa twarzy; Przebieg 2 = usuwanie rys → poprawa twarzy (opcjonalny dodatkowy upscale). Odzwierciedla sprawdzony ręczny przepis użytkownika.
-- **Kolorowanie (zdjęcia B&W)** — dwa silniki: OpenCV DNN (szybki, lekki) i DeOldify (wyższa jakość). Oba pobierane automatycznie przy pierwszym użyciu. Najlepsze efekty przy zdjęciach z widoczną zmiennością tonalną.
+- **Kolorowanie (zdjęcia B&W)** — silnik OpenCV DNN, pobierany automatycznie przy pierwszym użyciu. Najlepsze efekty przy zdjęciach z widoczną zmiennością tonalną.
 - **Usuwanie rys/zagnieceń** — przełącznik do automatycznego usuwania rys, zagnieceń, kurzu i artefaktów faktury papieru.
 - **Checkbox Extra upscale** — gdy zaznaczone są zarówno kolorowanie jak i scratch, pojawia się przełącznik dodający drugie powiększenie po usuwaniu rys (przed końcową poprawą twarzy).
 - **Automatyczne pobieranie modeli** — RealESRGAN, GFPGAN i modele kolorowania pobierane przy pierwszym użyciu przez HuggingFace Hub, SourceForge i richzhang/colorization. Pasek postępu pobierania dla każdego modelu.
 - **Unikalne nazwy plików** — odnowione zdjęcia zapisywane ze znacznikiem czasu: `{nazwa}_restored_20260528_143022.jpg` zapobiegający nadpisywaniu.
-- Klucze locale: `restore_image`, `restore_result`, `restore_result_empty`, `restore_processing`, `restore_done`, `restore_error`, `restore_scratch`, `restore_colorize`, `restore_color_opencv`, `restore_color_deoldify`, `restore_models`, `restore_open` (EN + PL).
+- Klucze locale: `restore_image`, `restore_result`, `restore_result_empty`, `restore_processing`, `restore_done`, `restore_error`, `restore_scratch`, `restore_colorize`, `restore_color_opencv`, `restore_models`, `restore_open` (EN + PL).
 
 ## [2.20.9] - 2026-05-26 – CLIP Interrogator, zależność hf_xet
 ### Dodano

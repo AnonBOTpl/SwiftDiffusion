@@ -61,7 +61,6 @@ class RestorationTab(QWidget):
 
         self.colorize_combo = QComboBox()
         self.colorize_combo.addItem(tr("restore_color_opencv"), "opencv")
-        self.colorize_combo.addItem(tr("restore_color_deoldify"), "deoldify")
         self.colorize_combo.hide()
         left.addWidget(self.colorize_combo)
 

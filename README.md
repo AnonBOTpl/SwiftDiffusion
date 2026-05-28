@@ -181,7 +181,7 @@ The **Photo Restoration** tab can restore old, damaged, or black-and-white photo
 1. **Load an image** — click the folder button to load a JPEG/PNG
 2. **Enable options:**
    - **Auto scratch removal** — removes scratches, creases, dust, and paper texture
-   - **Colorize** (B&W photos only) — choose between **OpenCV DNN** (fast, instant results) or **DeOldify** (better quality, slower)
+   - **Colorize** (B&W photos only) — uses **OpenCV DNN** for fast results
    - **Extra upscale** (visible when both colorize and scratch are on) — adds a second upscale pass for larger output
 3. **Click "Restore"** — the pipeline runs automatically and shows the result
 4. **Open result** — click "Open result" to view the saved file in Explorer
@@ -190,7 +190,7 @@ The **Photo Restoration** tab can restore old, damaged, or black-and-white photo
 
 | Step | Tool | What it does |
 |------|------|-------------|
-| Colorize | OpenCV DNN / DeOldify | Adds color to B&W photos (Pass 1 only) |
+| Colorize | OpenCV DNN | Adds color to B&W photos (Pass 1 only) |
 | Upscale | Real-ESRGAN x4plus | 2× upscaling (Pass 1; Pass 2 if extra upscale checked) |
 | Face enhance | GFPGAN v1.4 | Restores facial details (both passes) |
 | Scratch removal | OpenCV inpainting (NS) | Removes scratches, creases, artifacts (Pass 2 only) |
