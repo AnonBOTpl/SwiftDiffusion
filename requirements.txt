@@ -15,4 +15,3 @@ ultralytics
 psutil
 nvidia-ml-py
 ddgs
-compel
