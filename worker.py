@@ -458,177 +458,26 @@ class CLIPInterrogatorWorker(QThread):
 
     def run(self):
         try:
-            self.status.emit("Loading CLIP model...")
-            from transformers import CLIPModel, CLIPProcessor
-            import torch
             from PIL import Image
+            from clip_interrogator import Config, Interrogator
+            import torch
 
-            self.progress.emit(5)
-            model = CLIPModel.from_pretrained(self.local_dir, local_files_only=True)
-            processor = CLIPProcessor.from_pretrained(self.local_dir, local_files_only=True)
+            config = Config()
+            config.clip_model_name = self.model_id
+            config.clip_path = self.local_dir
+            config.cache_path = self.local_dir
+            if self.use_gpu and torch.cuda.is_available():
+                config.device = "cuda"
 
-            device = "cuda" if self.use_gpu and torch.cuda.is_available() else "cpu"
-            if device == "cpu":
-                model = model.float()
-            model = model.to(device)
-            model.eval()
+            interrogator = Interrogator(config)
+            self.progress.emit(50)
 
-            self.progress.emit(15)
-            self.status.emit("Encoding image...")
             image = Image.open(self.image_path).convert("RGB")
-            img_inputs = processor(images=image, return_tensors="pt").to(device)
-            with torch.no_grad():
-                img_emb = model.get_image_features(**img_inputs)
-                img_emb = img_emb / img_emb.norm(dim=-1, keepdim=True)
-
-            self.progress.emit(25)
-            rankings = []
-            prompt_parts = []
-            total_cats = len(self.candidates)
-            for idx, (cat, terms) in enumerate(self.candidates.items()):
-                if not terms:
-                    continue
-                self.status.emit(f"Matching {cat}...")
-                texts = terms
-                text_inputs = processor(text=texts, return_tensors="pt", padding=True, truncation=True).to(device)
-                with torch.no_grad():
-                    text_embs = model.get_text_features(**text_inputs)
-                    text_embs = text_embs / text_embs.norm(dim=-1, keepdim=True)
-                sims = (img_emb @ text_embs.T).squeeze(0).cpu().numpy()
-                best_idx = int(sims.argmax())
-                best_text = terms[best_idx]
-                best_score = float(sims[best_idx])
-                rankings.append((cat.capitalize(), best_text, best_score))
-                if cat in ("quality", "mediums", "artists", "styles", "lighting", "colors"):
-                    prompt_parts.append((cat, best_text))
-                self.progress.emit(25 + int((idx + 1) / total_cats * 65))
-
-            self.progress.emit(90)
-            self.status.emit("Building prompt...")
-            prompt = self._build_prompt(prompt_parts, rankings)
-
-            del model, processor
-            if device == "cuda":
-                import gc, torch
-                gc.collect()
-                torch.cuda.empty_cache()
-
+            results = interrogator.interrogate(image)
             self.progress.emit(100)
-            self.finished.emit(prompt, rankings)
 
+            items = [(cat, term, f"{score:.3f}") for cat, terms in results if cat != "rating" for term, score in terms]
+            self.finished.emit(results[0][1][0][0] if results else "", items)
         except Exception as e:
             log(f"CLIPInterrogatorWorker error: {e}")
             self.finished.emit("", [])
-
-    def _build_prompt(self, prompt_parts, rankings):
-        parts = []
-        order = {"quality": 0, "colors": 1, "mediums": 2, "artists": 3, "styles": 4, "lighting": 5}
-        scored = {}
-        for cat, text in prompt_parts:
-            scored[cat] = text
-        sorted_parts = sorted(scored.items(), key=lambda x: order.get(x[0], 99))
-        for cat, text in sorted_parts:
-            if cat == "artists":
-                parts.append(f"by {text}")
-            else:
-                parts.append(text)
-        return ", ".join(parts)
-
-
-class RestorationWorker(QThread):
-    finished = pyqtSignal(str)
-    progress = pyqtSignal(int)
-    status = pyqtSignal(str)
-
-    def __init__(self, image_path, output_dir, colorize_method=None, auto_scratch=True, upscale=False):
-        super().__init__()
-        self.image_path = image_path
-        self.output_dir = output_dir
-        self.colorize_method = colorize_method
-        self.auto_scratch = auto_scratch
-        self.upscale = upscale
-        self.engine = None
-
-    def stop(self):
-        if self.engine:
-            self.engine.stop()
-
-    def run(self):
-        try:
-            from restoration_engine import RestorationEngine
-            import cv2
-            import os
-
-            self.engine = RestorationEngine()
-            os.makedirs(self.output_dir, exist_ok=True)
-
-            from datetime import datetime
-            base = os.path.splitext(os.path.basename(self.image_path))[0]
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            out_path = os.path.join(self.output_dir, f"{base}_restored_{ts}.jpg")
-
-            result = self.engine.run_pipeline(
-                image_path=self.image_path,
-                progress_cb=lambda p: self.progress.emit(p),
-                status_cb=lambda s: self.status.emit(s),
-                colorize_method=self.colorize_method,
-                auto_scratch=self.auto_scratch,
-                upscale=self.upscale,
-            )
-
-            self.engine = None
-            if result is not None:
-                cv2.imwrite(out_path, result)
-                self.finished.emit(out_path)
-            else:
-                self.finished.emit("")
-        except Exception as e:
-            log(f"RestorationWorker error: {e}")
-            self.status.emit(f"Error: {str(e)}")
-            self.finished.emit("")
-
-
-class RestorationDownloadWorker(QThread):
-    finished = pyqtSignal(bool, str)
-    progress = pyqtSignal(int, str)
-
-    def __init__(self, model_type="restoration"):
-        super().__init__()
-        self.model_type = model_type
-
-    def stop(self):
-        if hasattr(self, '_dl'):
-            self._dl.stop()
-
-    def run(self):
-        try:
-            from restoration_engine import RestorationDownloader
-            self._dl = RestorationDownloader()
-
-            if self.model_type == "restoration":
-                ok = self._dl.download_restoration(
-                    progress_cb=lambda p: self.progress.emit(p, ""),
-                    status_cb=lambda s: self.progress.emit(-1, s),
-                )
-            elif self.model_type == "colorization":
-                ok = self._dl.download_colorization(
-                    progress_cb=lambda p: self.progress.emit(p, ""),
-                    status_cb=lambda s: self.progress.emit(-1, s),
-                )
-            elif self.model_type == "all":
-                ok = self._dl.download_restoration(
-                    progress_cb=lambda p: self.progress.emit(p, ""),
-                    status_cb=lambda s: self.progress.emit(-1, s),
-                )
-                if ok:
-                    ok = self._dl.download_colorization(
-                        progress_cb=lambda p: self.progress.emit(p, ""),
-                        status_cb=lambda s: self.progress.emit(-1, s),
-                    )
-            else:
-                ok = False
-
-            self.finished.emit(ok, "Done" if ok else "Failed")
-        except Exception as e:
-            log(f"RestorationDownloadWorker error: {e}")
-            self.finished.emit(False, str(e))

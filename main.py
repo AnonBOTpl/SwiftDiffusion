@@ -18,10 +18,10 @@ from widgets import (
     LoRAVisualizer, FloatingTips, GalleryDetailWindow,
     SettingsDialog, WelcomeDialog, ModelDownloaderTab,
     PromptBuilderPanel, ResourceMonitor, BatchThumbnailBar,
-    ClipInterrogatorTab, RestorationTab
+    ClipInterrogatorTab
 )
 
-APP_VERSION = "2.21.0"
+APP_VERSION = "2.20.9"
 
 
 class MainWindow(QMainWindow):
@@ -319,12 +319,7 @@ class MainWindow(QMainWindow):
         self.clip_tab.prompt_ready.connect(self._on_prompt_ready)
         self.tabs.addTab(self.clip_tab, tr("tab_clip"))
 
-        # 8. PHOTO RESTORATION
-        logger.info("[UI] Building Photo Restoration tab...")
-        self.restore_tab = RestorationTab()
-        self.tabs.addTab(self.restore_tab, tr("tab_restoration"))
-
-        # 9. DOWNLOADER
+        # 8. DOWNLOADER
         logger.info("[UI] Building Downloader tab...")
         self.dl_tab = ModelDownloaderTab()
         self.tabs.addTab(self.dl_tab, "📥 Downloader")
