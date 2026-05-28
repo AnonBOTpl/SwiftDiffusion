@@ -405,3 +405,131 @@ class UpscaleWorker(QThread):
         except Exception as e:
             log(f"UpscaleWorker error: {e}")
             self.finished.emit("")
+
+
+class ClipDownloadWorker(QThread):
+    finished = pyqtSignal(bool, str)
+    progress = pyqtSignal(int, str)
+
+    def __init__(self, model_id, local_dir):
+        super().__init__()
+        self.model_id = model_id
+        self.local_dir = local_dir
+
+    def run(self):
+        try:
+            from huggingface_hub import snapshot_download, HfApi
+            os.makedirs(os.path.dirname(self.local_dir), exist_ok=True)
+            self.progress.emit(-1, f"Downloading {self.model_id}...")
+
+            api = HfApi()
+            files = api.list_repo_files(self.model_id)
+            has_safetensors = any(f.endswith(".safetensors") for f in files)
+
+            ignore = ["flax_model.msgpack", "tf_model.h5"]
+            if has_safetensors:
+                ignore.append("pytorch_model.bin")
+
+            snapshot_download(
+                repo_id=self.model_id,
+                local_dir=self.local_dir,
+                local_dir_use_symlinks=False,
+                resume_download=True,
+                ignore_patterns=ignore
+            )
+            self.finished.emit(True, "Model downloaded")
+        except Exception as e:
+            log(f"ClipDownloadWorker error: {e}")
+            self.finished.emit(False, str(e))
+
+
+class CLIPInterrogatorWorker(QThread):
+    finished = pyqtSignal(str, list)
+    progress = pyqtSignal(int)
+    status = pyqtSignal(str)
+
+    def __init__(self, image_path, model_id, local_dir, candidates, use_gpu=False):
+        super().__init__()
+        self.image_path = image_path
+        self.model_id = model_id
+        self.local_dir = local_dir
+        self.candidates = candidates
+        self.use_gpu = use_gpu
+
+    def run(self):
+        try:
+            self.status.emit("Loading CLIP model...")
+            from transformers import CLIPModel, CLIPProcessor
+            import torch
+            from PIL import Image
+
+            self.progress.emit(5)
+            model = CLIPModel.from_pretrained(self.local_dir, local_files_only=True)
+            processor = CLIPProcessor.from_pretrained(self.local_dir, local_files_only=True)
+
+            device = "cuda" if self.use_gpu and torch.cuda.is_available() else "cpu"
+            if device == "cpu":
+                model = model.float()
+            model = model.to(device)
+            model.eval()
+
+            self.progress.emit(15)
+            self.status.emit("Encoding image...")
+            image = Image.open(self.image_path).convert("RGB")
+            img_inputs = processor(images=image, return_tensors="pt").to(device)
+            with torch.no_grad():
+                img_emb = model.get_image_features(**img_inputs)
+                img_emb = img_emb / img_emb.norm(dim=-1, keepdim=True)
+
+            self.progress.emit(25)
+            rankings = []
+            prompt_parts = []
+            total_cats = len(self.candidates)
+            for idx, (cat, terms) in enumerate(self.candidates.items()):
+                if not terms:
+                    continue
+                self.status.emit(f"Matching {cat}...")
+                texts = terms
+                text_inputs = processor(text=texts, return_tensors="pt", padding=True, truncation=True).to(device)
+                with torch.no_grad():
+                    text_embs = model.get_text_features(**text_inputs)
+                    text_embs = text_embs / text_embs.norm(dim=-1, keepdim=True)
+                sims = (img_emb @ text_embs.T).squeeze(0).cpu().numpy()
+                best_idx = int(sims.argmax())
+                best_text = terms[best_idx]
+                best_score = float(sims[best_idx])
+                rankings.append((cat.capitalize(), best_text, best_score))
+                if cat in ("quality", "mediums", "artists", "styles", "lighting", "colors"):
+                    prompt_parts.append((cat, best_text))
+                self.progress.emit(25 + int((idx + 1) / total_cats * 65))
+
+            self.progress.emit(90)
+            self.status.emit("Building prompt...")
+            prompt = self._build_prompt(prompt_parts, rankings)
+
+            del model, processor
+            if device == "cuda":
+                import gc, torch
+                gc.collect()
+                torch.cuda.empty_cache()
+
+            self.progress.emit(100)
+            self.finished.emit(prompt, rankings)
+
+        except Exception as e:
+            log(f"CLIPInterrogatorWorker error: {e}")
+            self.finished.emit("", [])
+
+    def _build_prompt(self, prompt_parts, rankings):
+        parts = []
+        order = {"quality": 0, "colors": 1, "mediums": 2, "artists": 3, "styles": 4, "lighting": 5}
+        scored = {}
+        for cat, text in prompt_parts:
+            scored[cat] = text
+        sorted_parts = sorted(scored.items(), key=lambda x: order.get(x[0], 99))
+        for cat, text in sorted_parts:
+            if cat == "artists":
+                parts.append(f"by {text}")
+            else:
+                parts.append(text)
+        return ", ".join(parts)
