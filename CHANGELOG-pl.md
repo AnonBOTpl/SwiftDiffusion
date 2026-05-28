@@ -6,6 +6,8 @@
 - **Baza kandydatów CLIP** — `clip_data/candidates.json` z ~120 terminami w 8 kategoriach. Obsługuje własne pliki `.json` dla niestandardowych kandydatów.
 - **Dynamiczne wykrywanie formatu CLIP** — `ClipDownloadWorker` używa `HfApi.list_repo_files` do sprawdzenia obecności `.safetensors`; pobiera tylko format PyTorch (safetensors lub bin) + configi, pomija Flax/TF.
 - `hf_xet==1.1.1` do `requirements.txt` — przyspiesza pobieranie z HuggingFace Hub poprzez protokół Xet dla dużych plików (modele, LoRA, ControlNet).
+### Naprawiono
+- **Zbyt krótki timeout CUDA w boot.py** — zwiększony timeout subprocesu z 15s do 45s i timeout wątku health-check z 8s do 30s. Pierwszy `import torch` na świeżym systemie/sterowniku może trwać 20+ sekund, co powodowało fałszywy błąd "GPU driver in bad state".
 
 ## [2.20.8] - 2026-05-25 – Batch generation, tryb sekwencyjny, galeria miniatur
 ### Dodano
