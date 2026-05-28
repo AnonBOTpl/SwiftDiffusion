@@ -33,6 +33,8 @@ COLORIZATION_FILES = [
     ("pts_in_hull.npy", "viveknarayan/Image_Colorization", "space"),
 ]
 
+MAX_INPUT_DIM = 1024
+
 
 class RestorationEngine:
     def __init__(self):
@@ -45,6 +47,16 @@ class RestorationEngine:
     def _clear_vram(self):
         torch.cuda.empty_cache()
         gc.collect()
+
+    def _downscale_safe(self, img):
+        h, w = img.shape[:2]
+        orig = (w, h)
+        if max(w, h) > MAX_INPUT_DIM:
+            scale = MAX_INPUT_DIM / max(w, h)
+            new_w, new_h = int(w * scale), int(h * scale)
+            img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            logger.info(f"[Restoration] Downscaled {orig} -> ({new_w},{new_h}) (VRAM safety)")
+        return img
 
     def _remove_scratches(self, img):
         logger.info(f"[Restoration] Scratch removal input: shape={img.shape}, dtype={img.dtype}")
@@ -88,7 +100,7 @@ class RestorationEngine:
             raise FileNotFoundError(f"GFPGAN model not found: {model_path}")
 
         enhancer = GFPGANer(
-            model_path=model_path, upscale=2, arch='clean',
+            model_path=model_path, upscale=1, arch='clean',
             channel_multiplier=2, bg_upsampler=None, device=self.device
         )
         _, _, img = enhancer.enhance(img, has_aligned=False, only_center_face=False, paste_back=True)
@@ -133,29 +145,9 @@ class RestorationEngine:
         logger.info(f"[Restoration] Colorization output: range=[{out.min():.4f},{out.max():.4f}]")
         return (out * 255).astype(np.uint8)
 
-    def _pass1_colorize(self, img, colorize_method, status_cb):
-        status_cb("Colorizing (OpenCV DNN)...")
-        logger.info("[Restoration] Pass1: OpenCV DNN colorization")
-        return self._colorize_opencv(img)
-
-    def _pass2_scratch_upscale_face(self, img, status_cb):
-        status_cb("Removing scratches...")
-        img = self._remove_scratches(img)
-        if self._stop_flag:
-            return None
-        status_cb("Upscaling (Real-ESRGAN)...")
-        img = self._upscale(img)
-        if self._stop_flag:
-            return None
-        status_cb("Enhancing faces (GFPGAN)...")
-        img = self._enhance_faces(img)
-        if self._stop_flag:
-            return None
-        return img
-
-    def run_pipeline(self, image_path, progress_cb, status_cb, auto_scratch=True, colorize_method=None, extra_upscale=False):
+    def run_pipeline(self, image_path, progress_cb, status_cb, colorize_method=None, auto_scratch=True, upscale=False):
         self._stop_flag = False
-        logger.info(f"[Restoration] Pipeline start: image={image_path}, auto_scratch={auto_scratch}, colorize={colorize_method}")
+        logger.info(f"[Restoration] Pipeline start: image={image_path}, colorize={colorize_method}, scratch={auto_scratch}, upscale={upscale}")
 
         img = cv2.imread(image_path)
         if img is None:
@@ -163,71 +155,46 @@ class RestorationEngine:
             raise ValueError("Could not load image")
         logger.info(f"[Restoration] Image loaded: shape={img.shape}, dtype={img.dtype}, range=[{img.min()},{img.max()}]")
 
-        needs_colorize = colorize_method is not None
+        img = self._downscale_safe(img)
 
-        if needs_colorize:
-            # ---- PASS 1: colorize -> upscale -> face enhance (always) ----
-            status_cb("Pass 1/2: Colorizing...")
-            progress_cb(0)
-            img = self._pass1_colorize(img, colorize_method, status_cb)
-            if self._stop_flag:
-                return None
-            progress_cb(15)
+        steps = []
+        if colorize_method:
+            steps.append("colorize")
+        if auto_scratch:
+            steps.append("scratch")
+        steps.append("face")
+        if upscale:
+            steps.append("upscale")
 
-            status_cb("Pass 1/2: Upscaling...")
-            img = self._upscale(img)
-            if self._stop_flag:
-                return None
-            progress_cb(35)
+        if len(steps) == 1:
+            status_cb("Nothing to do")
+            progress_cb(100)
+            return img
 
-            status_cb("Pass 1/2: Enhancing faces...")
-            img = self._enhance_faces(img)
-            if self._stop_flag:
-                return None
-            progress_cb(50)
+        pct_per_step = 100.0 / len(steps)
+        step_idx = 0
 
-            # ---- PASS 2: only if scratch removal is also checked ----
-            if auto_scratch:
-                status_cb("Pass 2/2: Removing scratches...")
-                progress_cb(55)
-                img = self._remove_scratches(img)
-                if self._stop_flag:
-                    return None
-                progress_cb(70)
+        def advance():
+            nonlocal step_idx
+            step_idx += 1
+            progress_cb(int(step_idx * pct_per_step))
 
-                if extra_upscale:
-                    status_cb("Pass 2/2: Upscaling...")
-                    img = self._upscale(img)
-                    if self._stop_flag:
-                        return None
-                    progress_cb(85)
-
-                status_cb("Pass 2/2: Enhancing faces...")
-                img = self._enhance_faces(img)
-                if self._stop_flag:
-                    return None
-                progress_cb(100)
-
-        else:
-            # No colorization: single pass scratch -> upscale -> face
-            if auto_scratch:
+        for step in steps:
+            if step == "colorize":
+                status_cb("Colorizing...")
+                img = self._colorize_opencv(img)
+            elif step == "scratch":
                 status_cb("Removing scratches...")
                 img = self._remove_scratches(img)
-                if self._stop_flag:
-                    return None
-                progress_cb(30)
-
-            status_cb("Upscaling (Real-ESRGAN)...")
-            img = self._upscale(img)
+            elif step == "face":
+                status_cb("Enhancing faces...")
+                img = self._enhance_faces(img)
+            elif step == "upscale":
+                status_cb("Upscaling...")
+                img = self._upscale(img)
             if self._stop_flag:
                 return None
-            progress_cb(65)
-
-            status_cb("Enhancing faces (GFPGAN)...")
-            img = self._enhance_faces(img)
-            if self._stop_flag:
-                return None
-            progress_cb(100)
+            advance()
 
         logger.info(f"[Restoration] Pipeline complete: shape={img.shape}, range=[{img.min()},{img.max()}]")
         status_cb("Done")

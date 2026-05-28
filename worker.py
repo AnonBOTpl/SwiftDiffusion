@@ -540,13 +540,13 @@ class RestorationWorker(QThread):
     progress = pyqtSignal(int)
     status = pyqtSignal(str)
 
-    def __init__(self, image_path, output_dir, auto_scratch=True, colorize_method=None, extra_upscale=False):
+    def __init__(self, image_path, output_dir, colorize_method=None, auto_scratch=True, upscale=False):
         super().__init__()
         self.image_path = image_path
         self.output_dir = output_dir
-        self.auto_scratch = auto_scratch
         self.colorize_method = colorize_method
-        self.extra_upscale = extra_upscale
+        self.auto_scratch = auto_scratch
+        self.upscale = upscale
         self.engine = None
 
     def stop(self):
@@ -571,9 +571,9 @@ class RestorationWorker(QThread):
                 image_path=self.image_path,
                 progress_cb=lambda p: self.progress.emit(p),
                 status_cb=lambda s: self.status.emit(s),
-                auto_scratch=self.auto_scratch,
                 colorize_method=self.colorize_method,
-                extra_upscale=self.extra_upscale,
+                auto_scratch=self.auto_scratch,
+                upscale=self.upscale,
             )
 
             self.engine = None

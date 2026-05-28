@@ -49,11 +49,6 @@ class RestorationTab(QWidget):
         sep.setStyleSheet("color: #333;")
         left.addWidget(sep)
 
-        self.chk_scratch = QCheckBox(tr("restore_scratch"))
-        self.chk_scratch.setChecked(True)
-        self.chk_scratch.setStyleSheet("color: #aaa; font-size: 11px;")
-        left.addWidget(self.chk_scratch)
-
         self.chk_colorize = QCheckBox(tr("restore_colorize"))
         self.chk_colorize.setStyleSheet("color: #aaa; font-size: 11px;")
         self.chk_colorize.toggled.connect(self._on_colorize_toggled)
@@ -64,10 +59,14 @@ class RestorationTab(QWidget):
         self.colorize_combo.hide()
         left.addWidget(self.colorize_combo)
 
-        self.chk_extra_upscale = QCheckBox("Extra upscale")
-        self.chk_extra_upscale.setStyleSheet("color: #aaa; font-size: 11px;")
-        self.chk_extra_upscale.hide()
-        left.addWidget(self.chk_extra_upscale)
+        self.chk_scratch = QCheckBox(tr("restore_scratch"))
+        self.chk_scratch.setChecked(True)
+        self.chk_scratch.setStyleSheet("color: #aaa; font-size: 11px;")
+        left.addWidget(self.chk_scratch)
+
+        self.chk_upscale = QCheckBox("Upscale")
+        self.chk_upscale.setStyleSheet("color: #aaa; font-size: 11px;")
+        left.addWidget(self.chk_upscale)
 
         self.btn_restore = QPushButton(tr("btn_restore"))
         self.btn_restore.setObjectName("GenerateBtn")
@@ -114,7 +113,6 @@ class RestorationTab(QWidget):
         sep2.setStyleSheet("color: #333;")
         right.addWidget(sep2)
 
-        # Download section
         right.addWidget(QLabel(tr("restore_models")))
         dl_row = QHBoxLayout()
         self.btn_dl_restore = QPushButton(tr("btn_dl_restoration"))
@@ -137,7 +135,6 @@ class RestorationTab(QWidget):
 
     def _on_colorize_toggled(self, enabled):
         self.colorize_combo.setVisible(enabled)
-        self.chk_extra_upscale.setVisible(enabled)
 
     def _check_models(self):
         restore_ok = os.path.isfile(os.path.join(RESTORATION_DIR, "RealESRGAN_x4plus.pth"))
@@ -212,9 +209,9 @@ class RestorationTab(QWidget):
         self._worker = RestorationWorker(
             image_path=self._image_path,
             output_dir=OUTPUT_DIR,
-            auto_scratch=self.chk_scratch.isChecked(),
             colorize_method=colorize,
-            extra_upscale=self.chk_colorize.isChecked() and self.chk_extra_upscale.isChecked(),
+            auto_scratch=self.chk_scratch.isChecked(),
+            upscale=self.chk_upscale.isChecked(),
         )
         self._worker.progress.connect(self._on_restore_progress)
         self._worker.status.connect(self.lbl_status.setText)
