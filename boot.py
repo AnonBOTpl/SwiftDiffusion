@@ -9,7 +9,7 @@ _test_proc = subprocess.Popen(
     stdout=subprocess.PIPE, stderr=subprocess.PIPE
 )
 try:
-    _out, _ = _test_proc.communicate(timeout=15)
+    _out, _ = _test_proc.communicate(timeout=45)
     if _out.strip() != b"OK":
         print(f"[BOOT] torch test failed: {_out.decode()}")
         _test_proc.terminate()
@@ -38,8 +38,8 @@ def _check_cuda_health():
         done.set()
     t = threading.Thread(target=test, daemon=True)
     t.start()
-    if not done.wait(timeout=8):
-        print("[STARTUP] CUDA not responding (8s timeout). GPU driver in bad state.")
+    if not done.wait(timeout=30):
+        print("[STARTUP] CUDA not responding (30s timeout). GPU driver in bad state.")
         print("[STARTUP] Please restart your computer to reset the GPU driver.")
         sys.exit(1)
     print("[STARTUP] CUDA health check passed.")
