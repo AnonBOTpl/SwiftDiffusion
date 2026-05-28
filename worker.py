@@ -407,74 +407,77 @@ class UpscaleWorker(QThread):
             self.finished.emit("")
 
 
-class ClipDownloadWorker(QThread):
-    finished = pyqtSignal(bool, str)
-    progress = pyqtSignal(int, str)
-
-    def __init__(self, model_id, local_dir):
-        super().__init__()
-        self.model_id = model_id
-        self.local_dir = local_dir
-
-    def run(self):
-        try:
-            from huggingface_hub import snapshot_download, HfApi
-            os.makedirs(os.path.dirname(self.local_dir), exist_ok=True)
-            self.progress.emit(-1, f"Downloading {self.model_id}...")
-
-            api = HfApi()
-            files = api.list_repo_files(self.model_id)
-            has_safetensors = any(f.endswith(".safetensors") for f in files)
-
-            ignore = ["flax_model.msgpack", "tf_model.h5"]
-            if has_safetensors:
-                ignore.append("pytorch_model.bin")
-
-            snapshot_download(
-                repo_id=self.model_id,
-                local_dir=self.local_dir,
-                local_dir_use_symlinks=False,
-                resume_download=True,
-                ignore_patterns=ignore
-            )
-            self.finished.emit(True, "Model downloaded")
-        except Exception as e:
-            log(f"ClipDownloadWorker error: {e}")
-            self.finished.emit(False, str(e))
-
 
 class CLIPInterrogatorWorker(QThread):
     finished = pyqtSignal(str, list)
     progress = pyqtSignal(int)
     status = pyqtSignal(str)
 
-    def __init__(self, image_path, clip_model_name, candidates, use_gpu=False):
+    def __init__(self, image_path, model_id, candidates, use_gpu=False):
         super().__init__()
         self.image_path = image_path
-        self.clip_model_name = clip_model_name
+        self.model_id = model_id
         self.candidates = candidates
         self.use_gpu = use_gpu
 
     def run(self):
         try:
             from PIL import Image
-            from clip_interrogator import Config, Interrogator
             import torch
+            from transformers import CLIPModel, CLIPProcessor
 
-            config = Config()
-            config.clip_model_name = self.clip_model_name
-            if self.use_gpu and torch.cuda.is_available():
-                config.device = "cuda"
+            device = "cuda" if self.use_gpu and torch.cuda.is_available() else "cpu"
+            self.status.emit(f"Loading {self.model_id}...")
 
-            interrogator = Interrogator(config)
-            self.progress.emit(50)
+            model = CLIPModel.from_pretrained(self.model_id).to(device)
+            processor = CLIPProcessor.from_pretrained(self.model_id)
 
+            model.eval()
+            self.status.emit("Encoding image...")
             image = Image.open(self.image_path).convert("RGB")
-            results = interrogator.interrogate(image)
-            self.progress.emit(100)
+            inputs = processor(images=image, return_tensors="pt").to(device)
+            with torch.no_grad():
+                image_features = model.get_image_features(**inputs)
+            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+            self.progress.emit(30)
 
-            items = [(cat, term, f"{score:.3f}") for cat, terms in results if cat != "rating" for term, score in terms]
-            self.finished.emit(results[0][1][0][0] if results else "", items)
+            all_terms = []
+            for terms in self.candidates.values():
+                all_terms.extend(terms)
+
+            self.status.emit(f"Encoding {len(all_terms)} candidates...")
+            batch_size = 128
+            sim_map = {}
+            for i in range(0, len(all_terms), batch_size):
+                batch = all_terms[i:i + batch_size]
+                texts = processor(text=batch, return_tensors="pt", padding=True, truncation=True).to(device)
+                with torch.no_grad():
+                    text_features = model.get_text_features(**texts)
+                text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+                sims = (image_features @ text_features.T).squeeze(0)
+                for j, term in enumerate(batch):
+                    sim_map[term] = sims[j].item()
+                pct = 30 + int(50 * (i + len(batch)) / len(all_terms))
+                self.progress.emit(min(pct, 90))
+
+            del model, processor, inputs, texts, image_features, text_features
+            if device == "cuda":
+                torch.cuda.empty_cache()
+            self.progress.emit(95)
+
+            rankings = []
+            prompt_parts = []
+            for cat, terms in self.candidates.items():
+                scored = [(t, sim_map[t]) for t in terms if t in sim_map]
+                scored.sort(key=lambda x: x[1], reverse=True)
+                for term, score in scored[:3]:
+                    rankings.append((cat, term, f"{score:.3f}"))
+                if scored:
+                    prompt_parts.append(scored[0][0])
+
+            prompt = ", ".join(prompt_parts)
+            self.progress.emit(100)
+            self.finished.emit(prompt, rankings)
         except Exception as e:
             log(f"CLIPInterrogatorWorker error: {e}")
             self.finished.emit("", [])

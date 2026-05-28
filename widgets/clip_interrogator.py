@@ -1,18 +1,17 @@
 import os
 import json
 from PyQt6.QtWidgets import *
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from config import settings, tr
-from worker import ClipDownloadWorker, CLIPInterrogatorWorker
+from worker import CLIPInterrogatorWorker
 from widgets.widgets_common import ClickableLabel
 
-CLIP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "clip")
 CLIP_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "clip_data")
 
 CLIP_MODELS = [
-    {"label": "ViT-B/32 \u2013 fast (570 MB)", "hf_id": "openai/clip-vit-base-patch32", "open_clip": "ViT-B-32/openai"},
-    {"label": "ViT-L/14 \u2013 accurate (1.7 GB)", "hf_id": "openai/clip-vit-large-patch14", "open_clip": "ViT-L-14/openai"},
+    ("ViT-B/32 \u2013 fast (570 MB)", "openai/clip-vit-base-patch32"),
+    ("ViT-L/14 \u2013 accurate (1.7 GB)", "openai/clip-vit-large-patch14"),
 ]
 
 
@@ -21,17 +20,14 @@ class ClipInterrogatorTab(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._dl_worker = None
         self._clip_worker = None
         self._candidates = {}
-        self._model_ready = False
         self.init_ui()
         self.refresh_candidates()
 
     def init_ui(self):
         l = QHBoxLayout(self)
 
-        # --- LEFT PANEL ---
         left = QVBoxLayout()
         left.setContentsMargins(15, 10, 10, 10)
         left.setSpacing(10)
@@ -62,7 +58,7 @@ class ClipInterrogatorTab(QWidget):
         self.btn_analyze.setObjectName("GenerateBtn")
         self.btn_analyze.setFixedHeight(40)
         self.btn_analyze.clicked.connect(self.analyze)
-        self.btn_analyze.setEnabled(False)
+        self.btn_analyze.setEnabled(True)
         left.addWidget(self.btn_analyze)
 
         self.clip_progress = QProgressBar()
@@ -73,7 +69,6 @@ class ClipInterrogatorTab(QWidget):
 
         l.addLayout(left, 1)
 
-        # --- RIGHT PANEL ---
         right = QVBoxLayout()
         right.setContentsMargins(10, 10, 15, 10)
         right.setSpacing(8)
@@ -81,20 +76,15 @@ class ClipInterrogatorTab(QWidget):
         model_row = QHBoxLayout()
         model_row.addWidget(QLabel(tr("clip_model")))
         self.model_combo = QComboBox()
-        for m in CLIP_MODELS:
-            self.model_combo.addItem(m["label"])
+        for label, _ in CLIP_MODELS:
+            self.model_combo.addItem(label)
         self.model_combo.setMinimumWidth(220)
-        self.model_combo.currentIndexChanged.connect(self._on_model_changed)
         model_row.addWidget(self.model_combo)
-        self.btn_dl_model = QPushButton(tr("btn_clip_download"))
-        self.btn_dl_model.setObjectName("SecondaryBtn")
-        self.btn_dl_model.clicked.connect(self.download_model)
-        model_row.addWidget(self.btn_dl_model)
-        right.addLayout(model_row)
 
         self.lbl_dl_status = QLabel("")
         self.lbl_dl_status.setStyleSheet("color: #888; font-size: 10px;")
-        right.addWidget(self.lbl_dl_status)
+        model_row.addWidget(self.lbl_dl_status)
+        right.addLayout(model_row)
 
         right.addWidget(QLabel(tr("clip_prompt")))
         self.clip_prompt_edit = QPlainTextEdit()
@@ -124,34 +114,6 @@ class ClipInterrogatorTab(QWidget):
 
         l.addLayout(right, 2)
 
-        self._check_model_state()
-
-    def _model_local_dir(self):
-        idx = self.model_combo.currentIndex()
-        hf_id = CLIP_MODELS[idx]["hf_id"]
-        safe = hf_id.replace("/", "_")
-        return os.path.join(CLIP_DIR, safe)
-
-    def _model_downloaded(self):
-        return os.path.isdir(self._model_local_dir())
-
-    def _on_model_changed(self):
-        self._check_model_state()
-
-    def _check_model_state(self):
-        if self._model_downloaded():
-            self.btn_dl_model.setText(tr("btn_clip_downloaded"))
-            self.btn_dl_model.setEnabled(False)
-            self.lbl_dl_status.setText(tr("clip_model_ready"))
-            self._model_ready = True
-            self.btn_analyze.setEnabled(True)
-        else:
-            self.btn_dl_model.setText(tr("btn_clip_download"))
-            self.btn_dl_model.setEnabled(True)
-            self.lbl_dl_status.setText(tr("clip_model_need_dl"))
-            self._model_ready = False
-            self.btn_analyze.setEnabled(False)
-
     def load_image(self):
         f, _ = QFileDialog.getOpenFileName(self, tr("dialog_image"), "", "Images (*.png *.jpg *.jpeg *.webp)")
         if f:
@@ -160,43 +122,9 @@ class ClipInterrogatorTab(QWidget):
             self.clip_preview.setText("")
             self._image_path = f
 
-    def download_model(self):
-        if self._dl_worker and self._dl_worker.isRunning():
-            return
-        self.btn_dl_model.setEnabled(False)
-        self.btn_dl_model.setText(tr("btn_clip_downloading"))
-        self.lbl_dl_status.setText(tr("clip_downloading"))
-        self.clip_progress.setMaximum(0)
-        self.clip_progress.show()
-        idx = self.model_combo.currentIndex()
-        self._dl_worker = ClipDownloadWorker(CLIP_MODELS[idx]["hf_id"], self._model_local_dir())
-        self._dl_worker.finished.connect(self._on_dl_finished)
-        self._dl_worker.progress.connect(self._on_dl_progress)
-        self._dl_worker.start()
-
-    def _on_dl_progress(self, pct, msg):
-        if self.clip_progress.maximum() == 0 and pct > 0:
-            self.clip_progress.setMaximum(100)
-        if pct >= 0:
-            self.clip_progress.setValue(pct)
-        self.lbl_dl_status.setText(msg)
-
-    def _on_dl_finished(self, success, msg):
-        self.clip_progress.hide()
-        if success:
-            self.lbl_dl_status.setText(tr("clip_dl_done"))
-            self._check_model_state()
-        else:
-            self.lbl_dl_status.setText(msg)
-            self.btn_dl_model.setText(tr("btn_clip_download"))
-            self.btn_dl_model.setEnabled(True)
-
     def analyze(self):
         if not hasattr(self, '_image_path') or not self._image_path:
             QMessageBox.warning(self, tr("status_error"), tr("clip_no_image"))
-            return
-        if not self._model_ready:
-            QMessageBox.warning(self, tr("status_error"), tr("clip_model_need_dl"))
             return
         if self._clip_worker and self._clip_worker.isRunning():
             return
@@ -209,11 +137,12 @@ class ClipInterrogatorTab(QWidget):
         self.clip_progress.show()
 
         idx = self.model_combo.currentIndex()
+        _, model_id = CLIP_MODELS[idx]
         use_gpu = self.chk_use_gpu.isChecked()
 
         self._clip_worker = CLIPInterrogatorWorker(
             image_path=self._image_path,
-            clip_model_name=CLIP_MODELS[idx]["open_clip"],
+            model_id=model_id,
             candidates=self._candidates,
             use_gpu=use_gpu
         )
