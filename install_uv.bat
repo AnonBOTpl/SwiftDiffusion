@@ -2,7 +2,7 @@
 set VENV_DIR=.venv-uv
 
 echo ============================================
-echo   SwiftDiffusion UV Test Installer
+echo   SwiftDiffusion UV Installer
 echo ============================================
 echo.
 echo [1/5] Sprawdzanie / instalowanie uv...

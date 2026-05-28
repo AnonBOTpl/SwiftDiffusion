@@ -97,13 +97,20 @@ VRAM, RAM, obciążenie i temperatura GPU — widoczne w pasku bocznym przez ca�
 
 ### Windows (zalecane)
 
+Wybierz instalator:
+
+| Instalator | Szybkość | Venv |
+|------------|----------|------|
+| `install.bat` | Standardowy (pip) | `.venv` |
+| `install_uv.bat` | **Szybszy** (uv, w Rust) | `.venv-uv` |
+
 ```
 1. Pobierz lub sklonuj repozytorium
-2. Uruchom install.bat
-3. Uruchom start.bat
+2. Uruchom install.bat (pip) LUB install_uv.bat (uv — 10-50× szybciej)
+3. Uruchom start.bat (dla pip) LUB start-uv.bat (dla uv)
 ```
 
-`install.bat` automatycznie tworzy środowisko wirtualne, instaluje PyTorch z obsługą CUDA 12.8 i pobiera wszystkie zależności.
+Oba instalatory automatycznie tworzą środowisko wirtualne, instalują PyTorch z obsługą CUDA 12.8 i pobierają wszystkie zależności. Instalator uv sam pobiera `uv` jeśli nie jest zainstalowany. Venv są niezależne — możesz mieć oba.
 
 ### Linux
 

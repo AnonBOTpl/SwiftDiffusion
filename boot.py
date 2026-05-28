@@ -3,6 +3,7 @@ import subprocess
 import threading
 
 print("[BOOT] Swift Diffusion starting...")
+print("[BOOT] First launch may take up to 3 minutes (PyTorch + Qt cache warmup). Please wait...")
 
 _test_proc = subprocess.Popen(
     [sys.executable, "-c", "import torch; torch.cuda.device_count(); print('OK')"],
@@ -45,4 +46,5 @@ def _check_cuda_health():
     print("[STARTUP] CUDA health check passed.")
 
 _check_cuda_health()
-print("[STARTUP] CUDA health check done. Initializing Qt...")
+print("[STARTUP] CUDA health check done.")
+print("[STARTUP] Loading PyQt6 (may be slow on first install, up to 60s)...")
