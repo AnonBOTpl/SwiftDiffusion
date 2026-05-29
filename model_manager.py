@@ -45,7 +45,7 @@ class ModelManager:
         if hasattr(self.mw, 'pb_panel') and self.mw.pb_panel:
             self.mw.pb_panel.refresh_embeddings()
 
-    def scan_models(self, folder, exts=(".safetensors",)):
+    def scan_models(self, folder, exts=(".safetensors", ".ckpt")):
         if not os.path.exists(folder):
             return []
         return [f for f in os.listdir(folder) if f.lower().endswith(exts)]
@@ -130,7 +130,7 @@ class ModelManager:
     def browse_model(self):
         file, _ = QFileDialog.getOpenFileName(
             self.mw, tr("dialog_model"), "",
-            "Safetensors (*.safetensors);;All Files (*)"
+            "Supported Models (*.safetensors *.ckpt);;Safetensors (*.safetensors);;CKPT (*.ckpt);;All Files (*)"
         )
         if file:
             name = os.path.basename(file)

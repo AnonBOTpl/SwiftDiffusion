@@ -85,6 +85,10 @@ class DiffusionEngine:
                 self.pipe = StableDiffusionPipeline.from_single_file(
                     model_path, torch_dtype=torch.float16, use_safetensors=True
                 )
+            elif model_path.endswith('.ckpt'):
+                self.pipe = StableDiffusionPipeline.from_single_file(
+                    model_path, torch_dtype=torch.float16, use_safetensors=False
+                )
             else:
                 self.pipe = StableDiffusionPipeline.from_pretrained(
                     model_path, torch_dtype=torch.float16, use_safetensors=True
@@ -134,9 +138,14 @@ class DiffusionEngine:
             self._clear_vram()
 
             logger.info(f"[SYSTEM] Loading dedicated Inpaint model: {model_path}")
-            self.inpaint_pipe = StableDiffusionInpaintPipeline.from_single_file(
-                model_path, torch_dtype=torch.float16, use_safetensors=True
-            )
+            if model_path.endswith('.safetensors'):
+                self.inpaint_pipe = StableDiffusionInpaintPipeline.from_single_file(
+                    model_path, torch_dtype=torch.float16, use_safetensors=True
+                )
+            else:
+                self.inpaint_pipe = StableDiffusionInpaintPipeline.from_single_file(
+                    model_path, torch_dtype=torch.float16, use_safetensors=False
+                )
             self.current_inpaint_model_path = model_path
             self.current_model_path = None
 
@@ -157,6 +166,8 @@ class DiffusionEngine:
         logger.info(f"[SYSTEM] Loading ControlNet model (component sharing): {cn_model_path}")
 
         if cn_model_path.endswith('.safetensors'):
+            controlnet = ControlNetModel.from_single_file(cn_model_path, torch_dtype=torch.float16)
+        elif cn_model_path.endswith('.ckpt'):
             controlnet = ControlNetModel.from_single_file(cn_model_path, torch_dtype=torch.float16)
         else:
             controlnet = ControlNetModel.from_pretrained(cn_model_path, torch_dtype=torch.float16)
