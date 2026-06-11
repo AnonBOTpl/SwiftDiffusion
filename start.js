@@ -3,7 +3,7 @@ module.exports = {
     {
       "method": "shell.run",
       "params": {
-        "message": "conda run -n swiftdiffusion python main.py",
+        "message": ".venv\\Scripts\\activate && python main.py",
         "path": "{{path}}"
       }
     }
